@@ -1,0 +1,29 @@
+nhập thông tin xuất vé, thông tin bao gồm:
+	Ngày xuất: lấy ngày giờ hiện tại
+	liên hệ: sđt khách hàng, nhập số điện thoại sẽ tự nhập mail và tên AG
+	mail
+	tên AG
+	chặng bay đi: CXR Sân bay cam ranh T2 - TAS sân bay quốc tế T2
+	ngày giờ bay đi	
+	chặng bay đến: CXR Sân bay cam ranh T2 - TAS sân bay quốc tế T2
+	ngày giờ bay đến
+	mã đặt chỗ hãng
+
+	tên khách hàng
+	giới tính
+
+	Add on
+	Mã đặt chỗ trip
+	Thu AG: thực tế
+	giá xuất
+	số thẻ thanh toán: có sẵn data, yêu cầu gợi ý
+	tài khoản: có data sẵn
+	lưu ý
+	vé có hoàn khay không: drop xổ xuống để chọn
+
+tìm kiếm cho từng cột: trên mỗi  cột sẽ có tìm kiếm - giống filter trong excel
+
+giao diện
+
+admin tạo tài khoản
+tài khoản nhân viên
