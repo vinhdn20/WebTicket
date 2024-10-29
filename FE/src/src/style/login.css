@@ -1,0 +1,10 @@
+.container_login {
+    display: flex;
+    justify-content: center;
+    flex-direction: column;
+    align-items: center;
+}
+
+.container_line{
+    margin-bottom: 15px
+}
