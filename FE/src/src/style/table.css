@@ -1,0 +1,194 @@
+/* Thiết lập toàn trang */
+body {
+  font-family: Arial, sans-serif;
+  background-color: #f4f4f4;
+  margin: 0;
+  padding: 0;
+}
+
+/* Container chính */
+.container {
+  max-width: 90%;
+  margin: 20px auto;
+  padding: 20px;
+  background-color: #fff;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+  border-radius: 8px;
+}
+
+h1 {
+  text-align: center;
+  color: #333;
+  font-size: 24px;
+  margin-bottom: 20px;
+}
+
+/* Form nhập liệu */
+.form-container {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 15px;
+  margin-bottom: 20px;
+}
+
+.form-container div {
+  display: flex;
+  flex-direction: column;
+}
+
+.form-container label {
+  font-weight: bold;
+  color: #555;
+  margin-bottom: 5px;
+}
+
+.form-container input,
+.form-container select,
+.form-container textarea {
+  width: 100%;
+  padding: 10px;
+  margin-top: 5px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  box-sizing: border-box;
+  font-size: 14px;
+}
+
+.form-container textarea {
+  resize: vertical;
+}
+
+/* Button */
+.button-container {
+  grid-column: span 2;
+  display: flex;
+  width: 30%;
+}
+.tittle {
+  display: flex;
+  justify-content: center; /* Căn giữa theo chiều ngang */
+  align-items: center; /* Căn giữa theo chiều dọc */
+}
+.search-container{
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 5px;
+}
+button {
+  background-color: #4caf50;
+  color: white;
+  padding: 12px 30px;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+  font-size: 16px;
+  transition: background-color 0.3s;
+  margin-right: 10px;
+}
+
+button:hover {
+  background-color: #45a049;
+}
+
+/* Bảng dữ liệu */
+.table-container {
+  overflow-x: auto; /* Cho phép cuộn ngang */
+  margin-top: 30px;
+  border-collapse: collapse;
+  width: 100%;
+  font-size: 14px;
+  white-space: nowrap;
+}
+
+.table-container table {
+  width: 100%;
+  min-width: 800px; /* Đặt min-width để không tràn quá nhiều */
+}
+
+.table-wrapper {
+  overflow-x: auto; /* Tạo thanh cuộn ngang nếu nội dung vượt quá kích thước container */
+  -webkit-overflow-scrolling: touch; /* Tối ưu trải nghiệm cuộn trên thiết bị di động */
+}
+
+.table-container th,
+.table-container td {
+  border: 1px solid #ddd;
+  padding: 10px 15px;
+  text-align: center;
+  white-space: nowrap; /* Ngăn chữ tràn ra */
+}
+
+.table-container th {
+  background-color: #f2f2f2;
+  font-weight: bold;
+  color: #333;
+}
+
+.table-container td {
+  color: #555;
+}
+
+input[type="checkbox"] {
+  transform: scale(1.2);
+  margin: 0;
+}
+
+/* Input và textarea */
+input[type="text"],
+input[type="email"],
+input[type="number"],
+input[type="datetime-local"],
+select,
+textarea {
+  margin-bottom: 10px;
+  border-radius: 4px;
+  padding: 8px;
+  border: 1px solid #ccc;
+  box-sizing: border-box;
+}
+
+input[type="text"]::placeholder,
+input[type="search"]::placeholder {
+  color: #888;
+}
+
+/* Input tìm kiếm */
+input[type="search"] {
+  margin-bottom: 20px;
+  padding: 10px;
+  width: 100%;
+  max-width: 400px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 14px;
+}
+
+/* Điều chỉnh khoảng cách nút trong phân trang */
+.pagination {
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+  margin-top: 20px;
+}
+
+.pagination button {
+  padding: 8px 16px;
+  font-size: 14px;
+  background-color: #4caf50;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.pagination button:disabled {
+  background-color: #ccc;
+  cursor: not-allowed;
+}
+
+.pagination select {
+  padding: 8px;
+  font-size: 14px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+}
