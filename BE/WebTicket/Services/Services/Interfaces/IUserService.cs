@@ -1,4 +1,5 @@
-﻿using Services.Models;
+﻿using Repositories.Entities;
+using Services.Models;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -7,8 +8,10 @@ using System.Threading.Tasks;
 
 namespace Services.Services.Interfaces
 {
-    public interface IUserService
+    public interface IUserService : IBasicOperationService<Users>
     {
-        Task<string> LoginAsync(LoginModel loginModel);
+        Task<(string token, string refreshToken)> LoginAsync(LoginModel loginModel);
+        Task<(string token, string refreshToken)> GetNewByRefreshToken(string refreshToken);
+        Task LogoutAsync(Guid userId);
     }
 }

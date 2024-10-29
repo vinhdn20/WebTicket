@@ -4,6 +4,8 @@ using Microsoft.OpenApi.Models;
 using Repositories;
 using Repositories.Implements;
 using Repositories.Interfaces;
+using Services.Services.Implement;
+using Services.Services.Interfaces;
 using System.Text;
 using WebTicket;
 
@@ -36,10 +38,13 @@ builder.Services.AddAuthentication()
         });
 builder.Services.AddAuthorization();
 
-builder.Services.AddDbContext<WebTicketDbContext>(options =>
-    options.UseNpgsql(builder.Configuration.GetConnectionString("Core")));
+builder.Services.AddDbContext<DbContext, WebTicketDbContext>(options =>
+    options
+    .UseLazyLoadingProxies()
+    .UseNpgsql(builder.Configuration.GetConnectionString("Core")));
 
 builder.Services.AddScoped<IDBRepository, DBRepository>();
+builder.Services.AddScoped<IUserService, UserService>();
 
 builder.Services.AddSwaggerGen(c =>
 {
@@ -83,6 +88,15 @@ if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
     app.UseSwaggerUI();
+}
+
+
+using (var serviceScope = app.Services.CreateScope())
+{
+    var context = serviceScope.ServiceProvider.GetRequiredService<WebTicketDbContext>();
+    context.Database.Migrate();
+    //var dataSeeder = serviceScope.ServiceProvider.GetRequiredService<DataSeeder>();
+    //await dataSeeder.SeedAsync();
 }
 
 app.UseHttpsRedirection();
