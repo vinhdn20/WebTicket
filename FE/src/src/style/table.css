@@ -106,8 +106,8 @@ button:hover {
 }
 
 .table-wrapper {
-  overflow-x: auto; /* Tạo thanh cuộn ngang nếu nội dung vượt quá kích thước container */
-  -webkit-overflow-scrolling: touch; /* Tối ưu trải nghiệm cuộn trên thiết bị di động */
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch; 
 }
 
 .table-container th,
