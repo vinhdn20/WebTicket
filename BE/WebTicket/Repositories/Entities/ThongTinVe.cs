@@ -8,6 +8,7 @@ namespace Repositories.Entities
 {
     public class ThongTinVe : BaseEntity
     {
+        public DateTime NgayXuat { get; set; }
         public string ChangDi { get; set; }
         public DateTime NgayGioBayDi { get; set; }
         public string ChangVe { get; set; }
@@ -18,5 +19,6 @@ namespace Repositories.Entities
         public string ThuAG { get; set; }
         public string GiaXuat { get;set; }
         public string LuuY { get; set; }
+        public string VeHoanKhay { get; set; }
     }
 }
