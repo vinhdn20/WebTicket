@@ -22,7 +22,7 @@ namespace Repositories.Entities
         public string VeHoanKhay { get; set; }
 
         public Guid AGCustomerId { get; set; }
-        public virtual AGCustomer AgCustomer { get; set; }
+        public virtual AGCustomer AGCustomer { get; set; }
 
         public Guid CustomerId { get; set; }
         public virtual Customer Customer { get; set; }

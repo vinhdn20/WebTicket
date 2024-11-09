@@ -91,6 +91,8 @@ PageCount      : {PageCount}";
     public class FilterKey
     {
         public const string User = "Users";
+
+        public const string ChangDi = "ChangDi";
     }
 
     public class OperationResult<T>
