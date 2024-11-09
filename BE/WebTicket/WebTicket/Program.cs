@@ -21,7 +21,6 @@ var jwtKey = builder.Configuration["Jwt:Key"];
 var jwtIssuer = builder.Configuration["Jwt:Issuer"];
 var jwtAudience = builder.Configuration["Jwt:Audience"];
 
-builder.Services.ConfigureCORS();
 builder.Services.AddAuthentication()
         .AddJwtBearer(options =>
         {
@@ -36,15 +35,16 @@ builder.Services.AddAuthentication()
                 IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtKey))
             };
         });
-builder.Services.AddCors(options =>
-{
-    options.AddPolicy("AllowSpecificOrigin",
-        builder => builder
-            .WithOrigins("http://localhost:3000") // Địa chỉ frontend của bạn
-            .AllowAnyHeader()
-            .AllowAnyMethod()
-            .AllowCredentials());
-});
+//builder.Services.AddCors(options =>
+//{
+//    options.AddPolicy("AllowSpecificOrigin",
+//        builder => builder
+//            .WithOrigins("http://localhost:3000") // Địa chỉ frontend của bạn
+//            .AllowAnyHeader()
+//            .AllowAnyMethod()
+//            .AllowCredentials());
+//});
+builder.Services.ConfigureCORS();
 
 builder.Services.AddAuthorization();
 
@@ -110,7 +110,7 @@ using (var serviceScope = app.Services.CreateScope())
 }
 
 app.UseHttpsRedirection();
-app.UseCors("AllowSpecificOrigin");
+app.UseCors("AllowedCorsOrigins");
 app.UseAuthorization();
 
 app.MapControllers();

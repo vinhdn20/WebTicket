@@ -20,5 +20,14 @@ namespace Repositories.Entities
         public string GiaXuat { get;set; }
         public string LuuY { get; set; }
         public string VeHoanKhay { get; set; }
+
+        public Guid AGCustomerId { get; set; }
+        public virtual AGCustomer AgCustomer { get; set; }
+
+        public Guid CustomerId { get; set; }
+        public virtual Customer Customer { get; set; }
+
+        public Guid CardId { get; set; }
+        public virtual Card Card { get; set; }
     }
 }
