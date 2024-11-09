@@ -1,4 +1,5 @@
 ﻿// Import required modules
+using Common;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Repositories;
@@ -86,7 +87,7 @@ namespace Ve.Controllers
                     ticketInfo.CustomerId = customer.Id;
                 }
 
-                var addTicket = ticketInfo;
+                var addTicket = ticketInfo.DeepCopy();
                 addTicket.Customer = null;
                 addTicket.AGCustomer = null;
                 addTicket.Card = null;
