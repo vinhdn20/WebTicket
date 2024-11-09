@@ -12,7 +12,27 @@ async function fetchInitialData() {
     }
 
     const result = await response.json();
-    return result;
+    return result.map((item) => ({
+      ngayXuat: item.ngayXuat,
+      changDi: item.changDi,
+      ngayGioBayDi: item.ngayGioBayDi,
+      changVe: item.changVe,
+      ngayGioBayDen: item.ngayGioBayDen,
+      maDatChoHang: item.maDatChoHang,
+      addOn: item.addOn,
+      maDatChoTrip: item.maDatChoTrip,
+      thuAG: item.thuAG,
+      giaXuat: item.giaXuat,
+      luuY: item.luuY,
+      veHoanKhay: item.veHoanKhay,
+      tenAG: item.agCustomer?.tenAG || null,
+      mail: item.agCustomer?.mail || null,
+      sdt: item.agCustomer?.sdt || null,
+      tenKhachHang: item.customer?.tenKhachHang || null,
+      gioiTinh: item.customer?.gioiTinh || null,
+      soThe: item.card?.soThe || null,
+      taiKhoan: item.card?.taiKhoan || null,
+    }));
   } catch (error) {
     console.error("Error fetching initial data:", error);
     return [];
@@ -21,12 +41,12 @@ async function fetchInitialData() {
 
 const columns = [
   { Header: "Ngày xuất", accessor: "ngayXuat" },
-  { Header: "Liên hệ (SĐT)", accessor: "lienHe" },
+  { Header: "Liên hệ (SĐT)", accessor: "sdt" },
   { Header: "Mail", accessor: "mail" },
   { Header: "Tên AG", accessor: "tenAG" },
   { Header: "Chặng bay đi", accessor: "changDi" },
   { Header: "Ngày giờ bay đi", accessor: "ngayGioBayDi" },
-  { Header: "Chặng bay đến", accessor: "chanVe" },
+  { Header: "Chặng bay đến", accessor: "changVe" },
   { Header: "Ngày giờ bay đến", accessor: "ngayGioBayDen" },
   { Header: "Mã đặt chỗ hãng", accessor: "maDatChoHang" },
   { Header: "Tên khách hàng", accessor: "tenKhachHang" },
@@ -35,7 +55,7 @@ const columns = [
   { Header: "Mã đặt chỗ trip", accessor: "maDatChoTrip" },
   { Header: "Thu AG", accessor: "thuAG" },
   { Header: "Giá xuất", accessor: "giaXuat" },
-  { Header: "Số thẻ thanh toán", accessor: "soTheThanhToan" },
+  { Header: "Số thẻ thanh toán", accessor: "soThe" },
   { Header: "Tài khoản", accessor: "taiKhoan" },
   { Header: "Lưu ý", accessor: "luuY" },
   { Header: "Vé hoàn khay", accessor: "veHoanKhay" },
@@ -98,12 +118,14 @@ const TicketTable = () => {
   );
 
   async function callCreateTicketAPI(ticketData) {
+    console.log(ticketData);
     try {
       const response = await fetch("https://localhost:7113/Ve/xuatVe", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
+
         body: JSON.stringify(ticketData),
       });
 
@@ -112,7 +134,7 @@ const TicketTable = () => {
       }
 
       const result = await response.json();
-      console.log("Ticket created successfully:", result);
+      alert("Vé đã tạo thành công cho khách có sđt: " + result.agCustomer.sdt);
       return result;
     } catch (error) {
       console.error("Error creating ticket:", error);
@@ -122,41 +144,91 @@ const TicketTable = () => {
 
   const handleAddTicket = async () => {
     const newTicket = {
-      ngayXuat: new Date().toLocaleString(),
-      lienHe: document.querySelector('[name="lienHe"]').value || null,
-      mail: document.querySelector('[name="mail"]').value || null,
-      tenAG: document.querySelector('[name="tenAG"]').value || null,
-      changDi: document.querySelector('[name="changDi"]').value || null,
-      ngayGioBayDi: document.querySelector('[name="ngayGioBayDi"]').value || null,
-      chanVe: document.querySelector('[name="chanVe"]').value || null,
-      ngayGioBayDen: document.querySelector('[name="ngayGioBayDen"]').value || null,
-      maDatChoHang: document.querySelector('[name="maDatChoHang"]').value || null,
-      tenKhachHang: document.querySelector('[name="tenKhachHang"]').value || null,
-      gioiTinh: document.querySelector('[name="gioiTinh"]').value || null,
-      addOn: document.querySelector('[name="addOn"]').value || null,
-      maDatChoTrip: document.querySelector('[name="maDatChoTrip"]').value || null,
-      thuAG: document.querySelector('[name="thuAG"]').value || null,
-      giaXuat: document.querySelector('[name="giaXuat"]').value || null,
-      soTheThanhToan: document.querySelector('[name="soTheThanhToan"]').value || null,
-      taiKhoan: document.querySelector('[name="taiKhoan"]').value || null,
-      luuY: document.querySelector('[name="luuY"]').value || null,
-      veHoanKhay: document.querySelector('[name="veHoanKhay"]').value || null,
+      ngayXuat: new Date().toISOString(),
+      sdt: document.querySelector('[name="sdt"]').value || "",
+      mail: document.querySelector('[name="mail"]').value || "",
+      tenAG: document.querySelector('[name="tenAG"]').value || "",
+      changDi: document.querySelector('[name="changDi"]').value || "",
+      ngayGioBayDi:
+        document.querySelector('[name="ngayGioBayDi"]').value ||
+        new Date().toISOString(),
+      changVe: document.querySelector('[name="changVe"]').value || "",
+      ngayGioBayDen:
+        document.querySelector('[name="ngayGioBayDen"]').value ||
+        new Date().toISOString(),
+      maDatChoHang: document.querySelector('[name="maDatChoHang"]').value || "",
+      tenKhachHang: document.querySelector('[name="tenKhachHang"]').value || "",
+      gioiTinh: document.querySelector('[name="gioiTinh"]').value || "",
+      addOn: document.querySelector('[name="addOn"]').value || "",
+      maDatChoTrip: document.querySelector('[name="maDatChoTrip"]').value || "",
+      thuAG: document.querySelector('[name="thuAG"]').value || "",
+      giaXuat: document.querySelector('[name="giaXuat"]').value || "",
+      soThe: document.querySelector('[name="soThe"]').value || "",
+      taiKhoan: document.querySelector('[name="taiKhoan"]').value || "",
+      luuY: document.querySelector('[name="luuY"]').value || "",
+      veHoanKhay: document.querySelector('[name="veHoanKhay"]').value || "",
     };
 
     const formattedTicket = {
-      ...newTicket,
+      ngayXuat: newTicket.ngayXuat,
+      changDi: newTicket.changDi,
       ngayGioBayDi: new Date(newTicket.ngayGioBayDi).toISOString(),
+      changVe: newTicket.changVe,
       ngayGioBayDen: new Date(newTicket.ngayGioBayDen).toISOString(),
+      maDatChoHang: newTicket.maDatChoHang,
+      addOn: newTicket.addOn,
+      maDatChoTrip: newTicket.maDatChoTrip,
+      thuAG: newTicket.thuAG,
+      giaXuat: newTicket.giaXuat,
+      luuY: newTicket.luuY,
+      veHoanKhay: newTicket.veHoanKhay,
+      agCustomer: {
+        tenAG: newTicket.tenAG,
+        mail: newTicket.mail,
+        sdt: newTicket.sdt,
+      },
+      customer: {
+        tenKhachHang: newTicket.tenKhachHang,
+        gioiTinh: newTicket.gioiTinh,
+      },
+      card: {
+        soThe: newTicket.soThe,
+        taiKhoan: newTicket.taiKhoan,
+      },
     };
-  
+
     try {
       const createdTicket = await callCreateTicketAPI(formattedTicket);
-      setData((prevData) => [...prevData, createdTicket]);
+      setData((prevData) => [
+        ...prevData,
+        {
+          ...createdTicket,
+          ngayXuat: createdTicket.ngayXuat,
+          changDi: createdTicket.changDi,
+          ngayGioBayDi: new Date(createdTicket.ngayGioBayDi).toISOString(),
+          changVe: createdTicket.changVe,
+          ngayGioBayDen: new Date(createdTicket.ngayGioBayDen).toISOString(),
+          maDatChoHang: createdTicket.maDatChoHang,
+          addOn: createdTicket.addOn,
+          maDatChoTrip: createdTicket.maDatChoTrip,
+          thuAG: createdTicket.thuAG,
+          giaXuat: createdTicket.giaXuat,
+          luuY: createdTicket.luuY,
+          veHoanKhay: createdTicket.veHoanKhay,
+          tenAG: createdTicket.agCustomer.tenAG,
+          mail: createdTicket.agCustomer.mail,
+          sdt: createdTicket.agCustomer.sdt,
+          tenKhachHang: createdTicket.customer?.tenKhachHang,
+          gioiTinh: createdTicket.customer?.gioiTinh,
+          soThe: createdTicket.card?.soThe,
+          taiKhoan: createdTicket.card?.taiKhoan,
+        },
+      ]); // Re-render the table with new data
     } catch (error) {
       console.error("Error adding ticket:", error);
     }
   };
-  
+
   const handleFilterChange = (columnId, value) => {
     setColumnFilters((prevFilters) => ({
       ...prevFilters,
@@ -164,28 +236,33 @@ const TicketTable = () => {
     }));
   };
 
-  const handleSearchByName = async () => {
-    try {
-      // Placeholder for API call to search for data based on filters
-      console.log(columnFilters);
-      const response = await fetch("/api/search", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(columnFilters),
-      });
-
-      if (!response.ok) {
-        throw new Error("Failed to fetch data");
-      }
-
-      const result = await response.json();
-      setData(result);
-    } catch (error) {
-      console.error("Error fetching data:", error);
-    }
+  const handleSearchByName = () => {
+    setColumnFilters((prevFilters) => ({ ...prevFilters }));
   };
+  // const handleSearchByName = async () => {
+  //   try {
+  //     // Placeholder for API call to search for data based on filters
+  //     console.log(columnFilters);
+  //     const response = await fetch("/api/search", {
+  //       method: "POST",
+  //       headers: {
+  //         "Content-Type": "application/json",
+  //       },
+  //       body: JSON.stringify(columnFilters),
+  //     });
+
+  //     if (!response.ok) {
+  //       throw new Error("Failed to fetch data");
+  //     }
+
+  //     const result = await response.json();
+  //     setData(result);
+  //   } catch (error) {
+  //     console.error("Error fetching data:", error);
+  //   }
+  // };
+
+  console.log(data);
 
   return (
     <div className="container">
@@ -202,7 +279,7 @@ const TicketTable = () => {
         </div>
         <div>
           <label>Liên hệ (SĐT):</label>
-          <input type="text" name="lienHe" />
+          <input type="text" name="sdt" />
         </div>
         <div>
           <label>Mail:</label>
@@ -218,7 +295,6 @@ const TicketTable = () => {
             type="text"
             name="changDi"
             defaultValue="CXR Sân bay Cam Ranh T2 - TAS Sân bay quốc tế T2"
-            disabled
           />
         </div>
         <div>
@@ -229,7 +305,7 @@ const TicketTable = () => {
           <label>Chặng bay đến:</label>
           <input
             type="text"
-            name="chanVe"
+            name="changVe"
             defaultValue="CXR Sân bay Cam Ranh T2 - TAS Sân bay quốc tế T2"
             disabled
           />
@@ -271,7 +347,7 @@ const TicketTable = () => {
         </div>
         <div>
           <label>Số thẻ thanh toán:</label>
-          <select name="soTheThanhToan">
+          <select name="soThe">
             <option value="9012">9012</option>
             <option value="3456">3456</option>
           </select>
@@ -285,7 +361,7 @@ const TicketTable = () => {
           <textarea rows="3" name="luuY"></textarea>
         </div>
         <div>
-          <label>Vé hoàn khay:</label>
+          <label>Vé có hoàn hay không:</label>
           <select name="veHoanKhay">
             <option value="Có">Có</option>
             <option value="Không">Không</option>
