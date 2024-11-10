@@ -61,6 +61,28 @@ const columns = [
   { Header: "Vé hoàn khay", accessor: "veHoanKhay" },
 ];
 
+const columnSearch = [
+  // { Header: "Ngày xuất", accessor: "ngayXuat" },
+  { Header: "Liên hệ (SĐT)", accessor: "sdt" },
+  { Header: "Mail", accessor: "mail" },
+  { Header: "Tên AG", accessor: "tenAG" },
+  { Header: "Chặng bay đi", accessor: "changDi" },
+  // { Header: "Ngày giờ bay đi", accessor: "ngayGioBayDi" },
+  { Header: "Chặng bay đến", accessor: "changVe" },
+  // { Header: "Ngày giờ bay đến", accessor: "ngayGioBayDen" },
+  { Header: "Mã đặt chỗ hãng", accessor: "maDatChoHang" },
+  { Header: "Tên khách hàng", accessor: "tenKhachHang" },
+  { Header: "Giới tính", accessor: "gioiTinh" },
+  { Header: "Add on", accessor: "addOn" },
+  { Header: "Mã đặt chỗ trip", accessor: "maDatChoTrip" },
+  { Header: "Thu AG", accessor: "thuAG" },
+  { Header: "Giá xuất", accessor: "giaXuat" },
+  { Header: "Số thẻ thanh toán", accessor: "soThe" },
+  { Header: "Tài khoản", accessor: "taiKhoan" },
+  { Header: "Lưu ý", accessor: "luuY" },
+  { Header: "Vé hoàn khay", accessor: "veHoanKhay" },
+];
+
 const TicketTable = () => {
   const [data, setData] = useState([]);
   const [columnFilters, setColumnFilters] = useState({});
@@ -307,7 +329,7 @@ const TicketTable = () => {
             type="text"
             name="changVe"
             defaultValue="CXR Sân bay Cam Ranh T2 - TAS Sân bay quốc tế T2"
-            disabled
+            // disabled
           />
         </div>
         <div>
@@ -347,10 +369,11 @@ const TicketTable = () => {
         </div>
         <div>
           <label>Số thẻ thanh toán:</label>
-          <select name="soThe">
+          {/* <select name="soThe">
             <option value="9012">9012</option>
             <option value="3456">3456</option>
-          </select>
+          </select> */}
+          <textarea rows="1" name="soThe"></textarea>
         </div>
         <div>
           <label>Tài khoản:</label>
@@ -381,7 +404,7 @@ const TicketTable = () => {
         <h3>Tìm Kiếm</h3>
       </div>
       <div className="search-container" style={{ marginBottom: "20px" }}>
-        {columns.map((column) => (
+        {columnSearch.map((column) => (
           <div
             key={column.accessor}
             className="filter-input-wrapper"
