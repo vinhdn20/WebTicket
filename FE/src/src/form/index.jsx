@@ -3,16 +3,62 @@ import { useTable, usePagination, useRowSelect } from "react-table";
 import "../style/table.css";
 
 // Function to fetch initial data
-async function fetchInitialData() {
+
+
+const columns = [
+  { Header: "Ngày xuất", accessor: "ngayXuat" },
+  { Header: "Liên hệ (SĐT)", accessor: "sdt" },
+  { Header: "Mail", accessor: "mail" },
+  { Header: "Tên AG", accessor: "tenAG" },
+  { Header: "Chặng bay đi", accessor: "changDi" },
+  { Header: "Ngày giờ bay đi", accessor: "ngayGioBayDi" },
+  { Header: "Chặng bay đến", accessor: "changVe" },
+  { Header: "Ngày giờ bay đến", accessor: "ngayGioBayDen" },
+  { Header: "Mã đặt chỗ hãng", accessor: "maDatChoHang" },
+  { Header: "Tên khách hàng", accessor: "tenKhachHang" },
+  { Header: "Giới tính", accessor: "gioiTinh" },
+  { Header: "Add on", accessor: "addOn" },
+  { Header: "Mã đặt chỗ trip", accessor: "maDatChoTrip" },
+  { Header: "Thu AG", accessor: "thuAG" },
+  { Header: "Giá xuất", accessor: "giaXuat" },
+  { Header: "Số thẻ thanh toán", accessor: "soThe" },
+  { Header: "Tài khoản", accessor: "taiKhoan" },
+  { Header: "Lưu ý", accessor: "luuY" },
+  { Header: "Vé hoàn khay", accessor: "veHoanKhay" },
+];
+
+const columnSearch = [
+  { Header: "Liên hệ (SĐT)", accessor: "sdt" },
+  { Header: "Mã đặt chỗ hãng", accessor: "maDatChoHang" },
+  { Header: "Tên khách hàng", accessor: "tenKhachHang" },
+  { Header: "Mã đặt chỗ trip", accessor: "maDatChoTrip" },
+];
+const initTable = {
+  "pageIndex": 1,
+  "pageSize": 10,
+  "sortKey": "",
+  "isAscending": true,
+  "searchContent": "",
+  "filters": {}
+}
+
+async function fetchInitialData(columnFilters) {
   try {
-    const response = await fetch("https://localhost:7113/Ve/bangVe");
+    const response = await fetch("https://localhost:7113/ve/filter", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(columnFilters),
+    });
 
     if (!response.ok) {
       throw new Error("Failed to fetch initial data: " + response.statusText);
     }
 
     const result = await response.json();
-    return result.map((item) => ({
+    console.log(result.items);
+    return result.items.map((item) => ({
       ngayXuat: item.ngayXuat,
       changDi: item.changDi,
       ngayGioBayDi: item.ngayGioBayDi,
@@ -39,71 +85,19 @@ async function fetchInitialData() {
   }
 }
 
-const columns = [
-  { Header: "Ngày xuất", accessor: "ngayXuat" },
-  { Header: "Liên hệ (SĐT)", accessor: "sdt" },
-  { Header: "Mail", accessor: "mail" },
-  { Header: "Tên AG", accessor: "tenAG" },
-  { Header: "Chặng bay đi", accessor: "changDi" },
-  { Header: "Ngày giờ bay đi", accessor: "ngayGioBayDi" },
-  { Header: "Chặng bay đến", accessor: "changVe" },
-  { Header: "Ngày giờ bay đến", accessor: "ngayGioBayDen" },
-  { Header: "Mã đặt chỗ hãng", accessor: "maDatChoHang" },
-  { Header: "Tên khách hàng", accessor: "tenKhachHang" },
-  { Header: "Giới tính", accessor: "gioiTinh" },
-  { Header: "Add on", accessor: "addOn" },
-  { Header: "Mã đặt chỗ trip", accessor: "maDatChoTrip" },
-  { Header: "Thu AG", accessor: "thuAG" },
-  { Header: "Giá xuất", accessor: "giaXuat" },
-  { Header: "Số thẻ thanh toán", accessor: "soThe" },
-  { Header: "Tài khoản", accessor: "taiKhoan" },
-  { Header: "Lưu ý", accessor: "luuY" },
-  { Header: "Vé hoàn khay", accessor: "veHoanKhay" },
-];
-
-const columnSearch = [
-  // { Header: "Ngày xuất", accessor: "ngayXuat" },
-  { Header: "Liên hệ (SĐT)", accessor: "sdt" },
-  { Header: "Mail", accessor: "mail" },
-  { Header: "Tên AG", accessor: "tenAG" },
-  { Header: "Chặng bay đi", accessor: "changDi" },
-  // { Header: "Ngày giờ bay đi", accessor: "ngayGioBayDi" },
-  { Header: "Chặng bay đến", accessor: "changVe" },
-  // { Header: "Ngày giờ bay đến", accessor: "ngayGioBayDen" },
-  { Header: "Mã đặt chỗ hãng", accessor: "maDatChoHang" },
-  { Header: "Tên khách hàng", accessor: "tenKhachHang" },
-  { Header: "Giới tính", accessor: "gioiTinh" },
-  { Header: "Add on", accessor: "addOn" },
-  { Header: "Mã đặt chỗ trip", accessor: "maDatChoTrip" },
-  { Header: "Thu AG", accessor: "thuAG" },
-  { Header: "Giá xuất", accessor: "giaXuat" },
-  { Header: "Số thẻ thanh toán", accessor: "soThe" },
-  { Header: "Tài khoản", accessor: "taiKhoan" },
-  { Header: "Lưu ý", accessor: "luuY" },
-  { Header: "Vé hoàn khay", accessor: "veHoanKhay" },
-];
-
 const TicketTable = () => {
   const [data, setData] = useState([]);
-  const [columnFilters, setColumnFilters] = useState({});
+  const [columnFilters, setColumnFilters] = useState(initTable);
 
   useEffect(() => {
     const loadData = async () => {
-      const initialData = await fetchInitialData();
+      const initialData = await fetchInitialData(columnFilters);
+      console.log(initialData)
       setData(initialData);
     };
     loadData();
-  }, []);
+  }, columnFilters);
 
-  const filteredData = useMemo(() => {
-    return data.filter((item) =>
-      Object.entries(columnFilters).every(([key, value]) =>
-        value
-          ? item[key].toString().toLowerCase().includes(value.toLowerCase())
-          : true
-      )
-    );
-  }, [columnFilters, data]);
 
   const {
     getTableProps,
@@ -120,7 +114,7 @@ const TicketTable = () => {
     state: { pageIndex, pageSize },
     selectedFlatRows,
   } = useTable(
-    { columns, data: filteredData, initialState: { pageIndex: 0 } },
+    { columns, data: data, initialState: { pageIndex: 0 } },
     usePagination,
     useRowSelect,
     (hooks) => {
@@ -252,39 +246,38 @@ const TicketTable = () => {
   };
 
   const handleFilterChange = (columnId, value) => {
-    setColumnFilters((prevFilters) => ({
-      ...prevFilters,
-      [columnId]: value,
-    }));
+  setColumnFilters((prevFilters) => ({
+    ...prevFilters,
+    filters: {
+      ...prevFilters.filters,
+      [columnId]: [value],
+    },
+  }));
+};
+
+
+  const handleSearchByName = async () => {
+    try {
+      // Placeholder for API call to search for data based on filters
+      console.log(columnFilters);
+      const response = await fetch("https://localhost:7113/ve/filter", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(columnFilters),
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to fetch data");
+      }
+
+      const result = await response.json();
+      setData(result);
+    } catch (error) {
+      console.error("Error fetching data:", error);
+    }
   };
-
-  const handleSearchByName = () => {
-    setColumnFilters((prevFilters) => ({ ...prevFilters }));
-  };
-  // const handleSearchByName = async () => {
-  //   try {
-  //     // Placeholder for API call to search for data based on filters
-  //     console.log(columnFilters);
-  //     const response = await fetch("/api/search", {
-  //       method: "POST",
-  //       headers: {
-  //         "Content-Type": "application/json",
-  //       },
-  //       body: JSON.stringify(columnFilters),
-  //     });
-
-  //     if (!response.ok) {
-  //       throw new Error("Failed to fetch data");
-  //     }
-
-  //     const result = await response.json();
-  //     setData(result);
-  //   } catch (error) {
-  //     console.error("Error fetching data:", error);
-  //   }
-  // };
-
-  console.log(data);
 
   return (
     <div className="container">
@@ -422,7 +415,7 @@ const TicketTable = () => {
             </label>
             {["gioiTinh", "veHoanKhay"].includes(column.accessor) ? (
               <select
-                value={columnFilters[column.accessor] || ""}
+                value={columnFilters.filters?.[column.accessor] || ""}
                 onChange={(e) =>
                   handleFilterChange(column.accessor, e.target.value)
                 }
@@ -451,7 +444,7 @@ const TicketTable = () => {
             ) : column.accessor === "mail" ? (
               <input
                 type="email"
-                value={columnFilters[column.accessor] || ""}
+                value={columnFilters.filters?.[column.accessor] || ""}
                 onChange={(e) =>
                   handleFilterChange(column.accessor, e.target.value)
                 }
@@ -467,7 +460,7 @@ const TicketTable = () => {
               column.accessor === "ngayGioBayDen" ? (
               <input
                 type="datetime-local"
-                value={columnFilters[column.accessor] || ""}
+                value={columnFilters.filters?.[column.accessor] || ""}
                 onChange={(e) =>
                   handleFilterChange(column.accessor, e.target.value)
                 }
@@ -482,7 +475,7 @@ const TicketTable = () => {
             ) : column.accessor === "ngayXuat" ? (
               <input
                 type="datetime-local"
-                value={columnFilters[column.accessor] || ""}
+                value={columnFilters.filters?.[column.accessor] || ""}
                 onChange={(e) =>
                   handleFilterChange(column.accessor, e.target.value)
                 }
@@ -497,7 +490,7 @@ const TicketTable = () => {
             ) : (
               <input
                 type="text"
-                value={columnFilters[column.accessor] || ""}
+                value={columnFilters.filters?.[column.accessor] || ""}
                 onChange={(e) =>
                   handleFilterChange(column.accessor, e.target.value)
                 }

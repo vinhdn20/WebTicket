@@ -72,7 +72,7 @@ h1 {
 .search-container{
   display: grid;
   grid-template-columns: repeat(4, 1fr);
-  gap: 5px;
+  gap: 35px;
 }
 button {
   background-color: #4caf50;
