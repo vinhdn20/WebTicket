@@ -2,9 +2,6 @@ import React, { useState, useMemo, useEffect } from "react";
 import { useTable, usePagination, useRowSelect } from "react-table";
 import "../style/table.css";
 
-// Function to fetch initial data
-
-
 const columns = [
   { Header: "Ngày xuất", accessor: "ngayXuat" },
   { Header: "Liên hệ (SĐT)", accessor: "sdt" },
@@ -44,7 +41,7 @@ const initTable = {
 
 async function fetchInitialData(columnFilters) {
   try {
-    const response = await fetch("https://localhost:7113/ve/filter", {
+    const response = await fetch("https://localhost:44331/ve/filter", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -57,7 +54,6 @@ async function fetchInitialData(columnFilters) {
     }
 
     const result = await response.json();
-    console.log(result.items);
     return result.items.map((item) => ({
       ngayXuat: item.ngayXuat,
       changDi: item.changDi,
@@ -96,7 +92,7 @@ const TicketTable = () => {
       setData(initialData);
     };
     loadData();
-  }, columnFilters);
+  }, [columnFilters]);
 
 
   const {
@@ -114,7 +110,7 @@ const TicketTable = () => {
     state: { pageIndex, pageSize },
     selectedFlatRows,
   } = useTable(
-    { columns, data: data, initialState: { pageIndex: 0 } },
+    { columns, data: data.items ? data.items : data, initialState: { pageIndex: 0 } },
     usePagination,
     useRowSelect,
     (hooks) => {
@@ -134,9 +130,8 @@ const TicketTable = () => {
   );
 
   async function callCreateTicketAPI(ticketData) {
-    console.log(ticketData);
     try {
-      const response = await fetch("https://localhost:7113/Ve/xuatVe", {
+      const response = await fetch("https://localhost:44331/Ve/xuatVe", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -259,8 +254,7 @@ const TicketTable = () => {
   const handleSearchByName = async () => {
     try {
       // Placeholder for API call to search for data based on filters
-      console.log(columnFilters);
-      const response = await fetch("https://localhost:7113/ve/filter", {
+      const response = await fetch("https://localhost:44331/ve/filter", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -272,8 +266,28 @@ const TicketTable = () => {
         throw new Error("Failed to fetch data");
       }
 
-      const result = await response.json();
-      setData(result);
+      const table = response.items.map((item) => ({
+        ngayXuat: item.ngayXuat,
+        changDi: item.changDi,
+        ngayGioBayDi: item.ngayGioBayDi,
+        changVe: item.changVe,
+        ngayGioBayDen: item.ngayGioBayDen,
+        maDatChoHang: item.maDatChoHang,
+        addOn: item.addOn,
+        maDatChoTrip: item.maDatChoTrip,
+        thuAG: item.thuAG,
+        giaXuat: item.giaXuat,
+        luuY: item.luuY,
+        veHoanKhay: item.veHoanKhay,
+        tenAG: item.agCustomer?.tenAG || null,
+        mail: item.agCustomer?.mail || null,
+        sdt: item.agCustomer?.sdt || null,
+        tenKhachHang: item.customer?.tenKhachHang || null,
+        gioiTinh: item.customer?.gioiTinh || null,
+        soThe: item.card?.soThe || null,
+        taiKhoan: item.card?.taiKhoan || null,
+      }));
+      setData(table);
     } catch (error) {
       console.error("Error fetching data:", error);
     }
