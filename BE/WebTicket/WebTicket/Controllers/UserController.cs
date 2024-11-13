@@ -85,6 +85,7 @@ namespace WebTicket.Controllers
         }
 
         [HttpPost("refresh")]
+        [Authorize]
         public async Task<IActionResult> RefreshToken()
         {
             var refreshToken = Request.Cookies["refreshToken"];

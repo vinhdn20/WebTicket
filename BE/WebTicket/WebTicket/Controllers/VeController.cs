@@ -1,5 +1,7 @@
 ﻿// Import required modules
+using Castle.Core.Resource;
 using Common;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Repositories;
@@ -27,6 +29,7 @@ namespace Ve.Controllers
 
 
         [HttpPost("xuatVe")]
+        [Authorize]
         public async Task<IActionResult> CreateTicket([FromBody] ThongTinVe ticketInfo)
         {
             if (ticketInfo == null || string.IsNullOrEmpty(ticketInfo.ChangDi) ||
@@ -102,6 +105,7 @@ namespace Ve.Controllers
         }
 
         [HttpGet("bangVe")]
+        [Authorize]
         public async Task<IActionResult> GetTickets()
         {
             try
@@ -116,11 +120,74 @@ namespace Ve.Controllers
         }
 
         [HttpPost("filter")]
+        [Authorize]
         public async Task<IActionResult> Filter(TablePageParameter pageParameter)
         {
             try
             {
                 var result = await _veService.Filter(pageParameter);
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                return BadRequest("Server error: " + ex.Message);
+            }
+        }
+
+        [HttpPost("ag")]
+        [Authorize]
+        public async Task<IActionResult> AddAg(AGCustomer customer)
+        {
+            try
+            {
+                customer.Id = Guid.NewGuid();
+                var result = await _repository.AddAsync(customer);
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                return BadRequest("Server error: " + ex.Message);
+            }
+        }
+
+        [HttpGet("ag/{sdt}")]
+        [Authorize]
+        public async Task<IActionResult> GetAGInfo(string sdt)
+        {
+            try
+            {
+                var result = await _repository.GetAsync<AGCustomer>(x => x.SDT.Contains(sdt));
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                return BadRequest("Server error: " + ex.Message);
+            }
+        }
+
+        [HttpPost("card")]
+        [Authorize]
+        public async Task<IActionResult> AddAg(Card card)
+        {
+            try
+            {
+                card.Id = Guid.NewGuid();
+                var result = await _repository.AddAsync(card);
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                return BadRequest("Server error: " + ex.Message);
+            }
+        }
+
+        [HttpGet("ag/{cardNumber}")]
+        [Authorize]
+        public async Task<IActionResult> GetCardInfo(string cardNumber)
+        {
+            try
+            {
+                var result = await _repository.GetAsync<Card>(x => x.SoThe.Contains(cardNumber));
                 return Ok(result);
             }
             catch (Exception ex)

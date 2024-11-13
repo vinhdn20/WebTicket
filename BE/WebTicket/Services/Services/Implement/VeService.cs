@@ -1,5 +1,4 @@
 ﻿using Common;
-using Newtonsoft.Json.Linq;
 using Repositories.Entities;
 using Repositories.Interfaces;
 using Repositories.Models;
@@ -31,7 +30,11 @@ namespace Services.Services.Implement
             {
                 return filterExpression;
             }
-
+            filters = filters
+                        .ToDictionary(
+                            kvp => kvp.Key.ToLower(),  
+                            kvp => kvp.Value  
+                        );
             if (tablePageParameter.Filters.Any())
             {
                 var stringProperties = typeof(ThongTinVe)
@@ -42,7 +45,7 @@ namespace Services.Services.Implement
 
                 foreach (var prop in stringProperties)
                 {
-                    var filterKey = prop.Name;
+                    var filterKey = prop.Name.ToLower();
                     if (filters.ContainsKey(filterKey))
                     {
                         var values = filters[filterKey].Select(s => s.ToLower()).ToList();
@@ -51,7 +54,7 @@ namespace Services.Services.Implement
                             filterExpression = FilterWithString(filterExpression, values, prop);
                         }
                     }
-                    else if(prop.PropertyType != typeof(string))
+                    else if (prop.PropertyType != typeof(string))
                     {
                         var nestedProperties = prop.PropertyType
                         .GetProperties()
@@ -60,7 +63,7 @@ namespace Services.Services.Implement
 
                         foreach (var nestedProp in nestedProperties)
                         {
-                            var nestedFilterKey = nestedProp.Name;
+                            var nestedFilterKey = nestedProp.Name.ToLower();
 
                             if (filters.ContainsKey(nestedFilterKey))
                             {
@@ -91,7 +94,7 @@ namespace Services.Services.Implement
 
         private Expression<Func<ThongTinVe, bool>> FilterWithString(Expression<Func<ThongTinVe, bool>> filterExpression, List<string>? values, PropertyInfo? prop)
         {
-            if(values is null || values.Count() == 0) { return filterExpression; }
+            if (values is null || values.Count() == 0) { return filterExpression; }
             var parameter = Expression.Parameter(typeof(ThongTinVe));
             var property = Expression.Property(parameter, prop.Name);
             var toLowerMethod = typeof(string).GetMethod("ToLower", Type.EmptyTypes);
