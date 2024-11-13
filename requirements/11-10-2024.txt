@@ -1,5 +1,8 @@
 - search nhiều quá, chỉ cần search: Mã đặt chổ của hãng hàng không, mã đặt ota (mã đặt chỗ trip), tên hành khách bay, sdt của đại lí.
 -  thêm chức năng add data: 
 sdt, mail, tên AG và số thẻ
+- tự động điền data: 
+	+ nhập sdt => tự động điền mail, tên AG
+	+ nhập số thẻ -> hiển thị gợi ý
 - import data từ 1 text, từ tool có sẵn
 - xuất file excel

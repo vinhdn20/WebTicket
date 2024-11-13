@@ -156,7 +156,7 @@ namespace Ve.Controllers
         {
             try
             {
-                var result = await _repository.GetAsync<AGCustomer>(x => x.SDT.Contains(sdt));
+                var result = await _repository.GetAllWithAsync<AGCustomer>(x => x.SDT.Contains(sdt));
                 return Ok(result);
             }
             catch (Exception ex)
@@ -187,7 +187,7 @@ namespace Ve.Controllers
         {
             try
             {
-                var result = await _repository.GetAsync<Card>(x => x.SoThe.Contains(cardNumber));
+                var result = await _repository.GetAllWithAsync<Card>(x => x.SoThe.Contains(cardNumber));
                 return Ok(result);
             }
             catch (Exception ex)
