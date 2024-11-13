@@ -4,5 +4,6 @@ sdt, mail, tên AG và số thẻ
 - tự động điền data: 
 	+ nhập sdt => tự động điền mail, tên AG
 	+ nhập số thẻ -> hiển thị gợi ý
+lưu ý: Tài khoản user nhập bằng tay, tài khoản và số thẻ thanh toán không liên quan với nhau
 - import data từ 1 text, từ tool có sẵn
 - xuất file excel
