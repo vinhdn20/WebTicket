@@ -1,9 +1,11 @@
 ﻿using Common;
+using Newtonsoft.Json.Linq;
 using Repositories.Entities;
 using Repositories.Interfaces;
 using Repositories.Models;
 using Services.Services.Interfaces;
 using System.Linq.Expressions;
+using System.Reflection;
 
 namespace Services.Services.Implement
 {
@@ -34,7 +36,8 @@ namespace Services.Services.Implement
             {
                 var stringProperties = typeof(ThongTinVe)
         .GetProperties()
-        .Where(prop => prop.PropertyType == typeof(string))
+        .Where(prop => prop.PropertyType == typeof(string) ||
+                        (prop.PropertyType.IsClass && prop.PropertyType.IsSubclassOf(typeof(BaseEntity))))
         .ToList();
 
                 foreach (var prop in stringProperties)
@@ -43,46 +46,64 @@ namespace Services.Services.Implement
                     if (filters.ContainsKey(filterKey))
                     {
                         var values = filters[filterKey].Select(s => s.ToLower()).ToList();
+                        if (prop.PropertyType == typeof(string))
+                        {
+                            filterExpression = FilterWithString(filterExpression, values, prop);
+                        }
+                    }
+                    else if(prop.PropertyType != typeof(string))
+                    {
+                        var nestedProperties = prop.PropertyType
+                        .GetProperties()
+                        .Where(nestedProp => nestedProp.PropertyType == typeof(string))
+                        .ToList();
 
-                        // Sử dụng Expression để xây dựng điều kiện lọc
-                        var parameter = Expression.Parameter(typeof(ThongTinVe), "entity");
-                        var property = Expression.Property(parameter, prop.Name);
-                        var toLowerMethod = typeof(string).GetMethod("ToLower", Type.EmptyTypes);
-                        var lowerCaseProperty = Expression.Call(property, toLowerMethod);
+                        foreach (var nestedProp in nestedProperties)
+                        {
+                            var nestedFilterKey = nestedProp.Name;
 
-                        var containsMethod = typeof(List<string>).GetMethod("Contains", new[] { typeof(string) });
-                        var valuesExpression = Expression.Constant(values);
-                        var containsExpression = Expression.Call(valuesExpression, containsMethod, lowerCaseProperty);
+                            if (filters.ContainsKey(nestedFilterKey))
+                            {
+                                var nestedValues = filters[nestedFilterKey].Select(s => s.ToLower()).ToList();
 
-                        var lambda = Expression.Lambda<Func<ThongTinVe, bool>>(containsExpression, parameter);
-                        filterExpression = filterExpression.And(lambda);
+                                if (nestedValues is null || nestedValues.Count == 0) continue;
+                                var parameter = Expression.Parameter(typeof(ThongTinVe));
+
+                                var parentProperty = Expression.Property(parameter, prop.Name);
+                                var nestedProperty = Expression.Property(parentProperty, nestedProp.Name);
+
+                                var toLowerMethod = typeof(string).GetMethod("ToLower", Type.EmptyTypes);
+                                var lowerCaseNestedProperty = Expression.Call(nestedProperty, toLowerMethod);
+
+                                var containsMethod = typeof(string).GetMethod("Contains", new[] { typeof(string) });
+                                var nestedValuesExpression = Expression.Constant(nestedValues.FirstOrDefault());
+                                var containsNestedExpression = Expression.Call(lowerCaseNestedProperty, containsMethod, nestedValuesExpression);
+
+                                var nestedLambda = Expression.Lambda<Func<ThongTinVe, bool>>(containsNestedExpression, parameter);
+                                filterExpression = filterExpression.And(nestedLambda);
+                            }
+                        }
                     }
                 }
             }
+            return filterExpression;
+        }
 
-            var dateTimeProperties = typeof(ThongTinVe)
-        .GetProperties()
-        .Where(prop => prop.PropertyType == typeof(DateTime))
-        .ToList();
+        private Expression<Func<ThongTinVe, bool>> FilterWithString(Expression<Func<ThongTinVe, bool>> filterExpression, List<string>? values, PropertyInfo? prop)
+        {
+            if(values is null || values.Count() == 0) { return filterExpression; }
+            var parameter = Expression.Parameter(typeof(ThongTinVe));
+            var property = Expression.Property(parameter, prop.Name);
+            var toLowerMethod = typeof(string).GetMethod("ToLower", Type.EmptyTypes);
+            var lowerCaseProperty = Expression.Call(property, toLowerMethod);
 
+            var containsMethod = typeof(string).GetMethod("Contains", new[] { typeof(string) });
 
-            foreach (var prop in dateTimeProperties)
-            {
-                var filterKey = prop.Name;
-                if (filters.ContainsKey(filterKey) && DateTime.TryParse(filters[filterKey].FirstOrDefault(), out var dateValue))
-                {
-                    var parameter = Expression.Parameter(typeof(ThongTinVe), "entity");
-                    var property = Expression.Property(parameter, prop.Name);
-                    var dateConstant = Expression.Constant(dateValue);
+            var valuesExpression = Expression.Constant(values.FirstOrDefault());
+            var containsExpression = Expression.Call(lowerCaseProperty, containsMethod, valuesExpression);
 
-                    // So sánh bằng với giá trị DateTime
-                    var equalsExpression = Expression.Equal(property, dateConstant);
-
-                    var lambda = Expression.Lambda<Func<ThongTinVe, bool>>(equalsExpression, parameter);
-                    filterExpression = filterExpression.And(lambda);
-                }
-            }
-
+            var lambda = Expression.Lambda<Func<ThongTinVe, bool>>(containsExpression, parameter);
+            filterExpression = filterExpression.And(lambda);
             return filterExpression;
         }
 
