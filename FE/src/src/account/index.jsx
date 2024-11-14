@@ -13,6 +13,7 @@ const AccountCreation = () => {
     try {
       const response = await fetch("https://localhost:44331/login", {
         method: 'POST',
+        credentials: "include",
         headers: {
           'Content-Type': 'application/json'
         },
