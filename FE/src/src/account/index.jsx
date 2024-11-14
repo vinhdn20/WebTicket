@@ -11,7 +11,7 @@ const AccountCreation = () => {
     e.preventDefault();
     
     try {
-      const response = await fetch("https://localhost:7113/login", {
+      const response = await fetch("https://localhost:44331/login", {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
@@ -20,6 +20,8 @@ const AccountCreation = () => {
       });
 
       if (response.ok) {
+        const data = await response.json();
+        localStorage.setItem("accessToken", data.accessToken)
         navigate("/home");
       } else {
         alert("Login failed. Please check your email and password.");
