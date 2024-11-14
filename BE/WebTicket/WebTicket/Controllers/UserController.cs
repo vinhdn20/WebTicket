@@ -85,7 +85,6 @@ namespace WebTicket.Controllers
         }
 
         [HttpPost("refresh")]
-        [Authorize]
         public async Task<IActionResult> RefreshToken()
         {
             var refreshToken = Request.Cookies["refreshToken"];
@@ -124,7 +123,7 @@ namespace WebTicket.Controllers
             {
                 HttpOnly = true,
                 Secure = true, // Use Secure = true in production
-                SameSite = SameSiteMode.Strict,
+                SameSite = SameSiteMode.Lax,
                 Expires = DateTime.UtcNow.AddHours(validTime)
             };
 
