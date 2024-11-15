@@ -36,15 +36,6 @@ builder.Services.AddAuthentication()
                 IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtKey))
             };
         });
-//builder.Services.AddCors(options =>
-//{
-//    options.AddPolicy("AllowSpecificOrigin",
-//        builder => builder
-//            .WithOrigins("http://localhost:3000") // Địa chỉ frontend của bạn
-//            .AllowAnyHeader()
-//            .AllowAnyMethod()
-//            .AllowCredentials());
-//});
 builder.Services.ConfigureCORS();
 
 builder.Services.AddAuthorization();

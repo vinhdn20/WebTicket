@@ -7,13 +7,14 @@
             services.AddCors(options =>
             {
                 options.AddPolicy(name: "AllowedCorsOrigins",
-                    builder =>
-                    {
-                        builder
-                            .AllowAnyOrigin()
-                            .AllowAnyHeader()
-                            .AllowAnyMethod();
-                    });
+                        builder =>
+                        {
+                            builder
+                                .WithOrigins("http://localhost:3000")
+                                .AllowAnyHeader()
+                                .AllowAnyMethod()
+                                .AllowCredentials();
+                        });
             });
             return services;
         }
