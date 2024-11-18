@@ -45,7 +45,7 @@ namespace Ve.Controllers
             {
                 ticketInfo = InitCreationInfo(ticketInfo);
 
-                var card = await _repository.GetAsync<Card>(x => x.SoThe.Equals(ticketInfo.Card.SoThe) && x.TaiKhoan.ToLower().Equals(ticketInfo.Card.TaiKhoan.ToLower()));
+                var card = await _repository.GetAsync<Card>(x => x.SoThe.Equals(ticketInfo.Card.SoThe));
                 if (card is null)
                 {
                     ticketInfo.Card = InitCreationInfo(ticketInfo.Card);
@@ -136,13 +136,13 @@ namespace Ve.Controllers
 
         [HttpPost("ag")]
         [Authorize]
-        public async Task<IActionResult> AddAg(AGCustomer customer)
+        public async Task<IActionResult> AddAg(List<AGCustomer> customer)
         {
             try
             {
-                customer.Id = Guid.NewGuid();
-                var result = await _repository.AddAsync(customer);
-                return Ok(result);
+                customer.ForEach(x => x.Id = Guid.NewGuid());
+                var result = await _repository.AddRangeAsync(customer);
+                return Ok(customer);
             }
             catch (Exception ex)
             {
@@ -167,13 +167,13 @@ namespace Ve.Controllers
 
         [HttpPost("card")]
         [Authorize]
-        public async Task<IActionResult> AddAg(Card card)
+        public async Task<IActionResult> AddAg(List<Card> card)
         {
             try
             {
-                card.Id = Guid.NewGuid();
-                var result = await _repository.AddAsync(card);
-                return Ok(result);
+                card.ForEach(x => x.Id = Guid.NewGuid());
+                var result = await _repository.AddRangeAsync(card);
+                return Ok(card);
             }
             catch (Exception ex)
             {

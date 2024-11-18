@@ -29,5 +29,6 @@ namespace Repositories.Entities
 
         public Guid CardId { get; set; }
         public virtual Card Card { get; set; }
+        public string TaiKhoan { get; set; }
     }
 }
