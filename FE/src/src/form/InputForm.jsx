@@ -1,15 +1,18 @@
 import React, { useState } from "react";
 import "../style/table.css";
+import Button from '@mui/material/Button';
+import FullScreenDialog from "./AgInputForm";
+import { processResult, refreshAccessToken } from "../constant";
 
-const InputForm = () => {
+const InputForm = ({ onTicketCreated }) => {
   // Form state management
   const [data, setData] = useState({
     sdt: "",
     mail: "",
     tenAG: "",
-    changDi: "CXR Sân bay Cam Ranh T2 - TAS Sân bay quốc tế T2",
+    changDi: "",
     ngayGioBayDi: "",
-    changVe: "CXR Sân bay Cam Ranh T2 - TAS Sân bay quốc tế T2",
+    changVe: "",
     ngayGioBayDen: "",
     maDatChoHang: "",
     tenKhachHang: "",
@@ -23,30 +26,62 @@ const InputForm = () => {
     luuY: "",
     veHoanKhay: "Có",
   });
+  const [open, setOpen] = React.useState(false);
 
   // Handle input changes
   const handleInputChange = (e) => {
-    const { name, value } = e.target;
-    setData((prevData) => ({ ...prevData, [name]: value }));
-  };
+  const { name, value } = e.target;
+  setData((prevData) => ({
+    ...prevData,
+    [name]: value,
+  }));
+};
+
 
   async function callCreateTicketAPI(ticketData) {
+    let accessToken = localStorage.getItem("accessToken");
+
     try {
       const response = await fetch("https://localhost:44331/Ve/xuatVe", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
+          Authorization: `Bearer ${accessToken}`,
         },
 
         body: JSON.stringify(ticketData),
       });
+
+      if (response.status === 401) {
+        // Token expired or unauthorized, refresh the token
+        const newToken = await refreshAccessToken();
+        if (newToken) {
+          // Retry the original request with the new token
+          accessToken = newToken;
+          const retryResponse = await fetch("https://localhost:44331/ve/filter", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${accessToken}`,
+            },
+            body: JSON.stringify(ticketData),
+          });
+
+          if (!retryResponse.ok) {
+            throw new Error("Failed to fetch data after refreshing token: " + retryResponse.statusText);
+          }
+          const retryResult = await retryResponse.json();
+          return processResult(retryResult);
+        } else {
+          throw new Error("Failed to refresh access token");
+        }
+      }
 
       if (!response.ok) {
         throw new Error("Network response was not ok " + response.statusText);
       }
 
       const result = await response.json();
-      alert("Vé đã tạo thành công cho khách có sđt: " + result.agCustomer.sdt);
       return result;
     } catch (error) {
       console.error("Error creating ticket:", error);
@@ -55,92 +90,73 @@ const InputForm = () => {
   }
 
   // Handle form submission
-  const handleAddTicket = async () => {
-    const newTicket = {
-      ngayXuat: new Date().toISOString(),
-      sdt: document.querySelector('[name="sdt"]').value || "",
-      mail: document.querySelector('[name="mail"]').value || "",
-      tenAG: document.querySelector('[name="tenAG"]').value || "",
-      changDi: document.querySelector('[name="changDi"]').value || "",
-      ngayGioBayDi:
-        document.querySelector('[name="ngayGioBayDi"]').value ||
-        new Date().toISOString(),
-      changVe: document.querySelector('[name="changVe"]').value || "",
-      ngayGioBayDen:
-        document.querySelector('[name="ngayGioBayDen"]').value ||
-        new Date().toISOString(),
-      maDatChoHang: document.querySelector('[name="maDatChoHang"]').value || "",
-      tenKhachHang: document.querySelector('[name="tenKhachHang"]').value || "",
-      gioiTinh: document.querySelector('[name="gioiTinh"]').value || "",
-      addOn: document.querySelector('[name="addOn"]').value || "",
-      maDatChoTrip: document.querySelector('[name="maDatChoTrip"]').value || "",
-      thuAG: document.querySelector('[name="thuAG"]').value || "",
-      giaXuat: document.querySelector('[name="giaXuat"]').value || "",
-      soThe: document.querySelector('[name="soThe"]').value || "",
-      taiKhoan: document.querySelector('[name="taiKhoan"]').value || "",
-      luuY: document.querySelector('[name="luuY"]').value || "",
-      veHoanKhay: document.querySelector('[name="veHoanKhay"]').value || "",
-    };
+  const handleAddTicket = async (e) => {
+    e.preventDefault();
 
     const formattedTicket = {
-      ngayXuat: newTicket.ngayXuat,
-      changDi: newTicket.changDi,
-      ngayGioBayDi: new Date(newTicket.ngayGioBayDi).toISOString(),
-      changVe: newTicket.changVe,
-      ngayGioBayDen: new Date(newTicket.ngayGioBayDen).toISOString(),
-      maDatChoHang: newTicket.maDatChoHang,
-      addOn: newTicket.addOn,
-      maDatChoTrip: newTicket.maDatChoTrip,
-      thuAG: newTicket.thuAG,
-      giaXuat: newTicket.giaXuat,
-      luuY: newTicket.luuY,
-      veHoanKhay: newTicket.veHoanKhay,
+      ngayXuat: new Date().toISOString(),
+      changDi: data.changDi,
+      ngayGioBayDi: data.ngayGioBayDi ? new Date(data.ngayGioBayDi).toISOString() : new Date().toISOString(),
+      changVe: data.changVe,
+      ngayGioBayDen: data.ngayGioBayDen ? new Date(data.ngayGioBayDen).toISOString() : new Date().toISOString(),
+      maDatChoHang: data.maDatChoHang,
+      addOn: data.addOn,
+      maDatChoTrip: data.maDatChoTrip,
+      thuAG: data.thuAG,
+      giaXuat: data.giaXuat,
+      luuY: data.luuY,
+      veHoanKhay: data.veHoanKhay,
       agCustomer: {
-        tenAG: newTicket.tenAG,
-        mail: newTicket.mail,
-        sdt: newTicket.sdt,
+        tenAG: data.tenAG,
+        mail: data.mail,
+        sdt: data.sdt,
       },
       customer: {
-        tenKhachHang: newTicket.tenKhachHang,
-        gioiTinh: newTicket.gioiTinh,
+        tenKhachHang: data.tenKhachHang,
+        gioiTinh: data.gioiTinh,
       },
       card: {
-        soThe: newTicket.soThe,
-        taiKhoan: newTicket.taiKhoan,
+        soThe: data.soThe,
       },
+      taiKhoan: data.taiKhoan,
     };
 
     try {
-      const createdTicket = await callCreateTicketAPI(formattedTicket);
-      setData((prevData) => [
-        ...prevData,
-        {
-          ...createdTicket,
-          ngayXuat: createdTicket.ngayXuat,
-          changDi: createdTicket.changDi,
-          ngayGioBayDi: new Date(createdTicket.ngayGioBayDi).toISOString(),
-          changVe: createdTicket.changVe,
-          ngayGioBayDen: new Date(createdTicket.ngayGioBayDen).toISOString(),
-          maDatChoHang: createdTicket.maDatChoHang,
-          addOn: createdTicket.addOn,
-          maDatChoTrip: createdTicket.maDatChoTrip,
-          thuAG: createdTicket.thuAG,
-          giaXuat: createdTicket.giaXuat,
-          luuY: createdTicket.luuY,
-          veHoanKhay: createdTicket.veHoanKhay,
-          tenAG: createdTicket.agCustomer.tenAG,
-          mail: createdTicket.agCustomer.mail,
-          sdt: createdTicket.agCustomer.sdt,
-          tenKhachHang: createdTicket.customer?.tenKhachHang,
-          gioiTinh: createdTicket.customer?.gioiTinh,
-          soThe: createdTicket.card?.soThe,
-          taiKhoan: createdTicket.card?.taiKhoan,
-        },
-      ]); // Re-render the table with new data
-      
+      await callCreateTicketAPI(formattedTicket);
+      setData({
+        sdt: "",
+        mail: "",
+        tenAG: "",
+        changDi: "",
+        ngayGioBayDi: "",
+        changVe: "",
+        ngayGioBayDen: "",
+        maDatChoHang: "",
+        tenKhachHang: "",
+        gioiTinh: "Nam",
+        addOn: "",
+        maDatChoTrip: "",
+        thuAG: "",
+        giaXuat: "",
+        soThe: "",
+        taiKhoan: "",
+        luuY: "",
+        veHoanKhay: "Có",
+      });
+      alert("Vé đã tạo thành công!");
+      onTicketCreated();
     } catch (error) {
-      console.error("Error adding ticket:", error);
+      alert("Có lỗi xảy ra khi tạo vé. Vui lòng thử lại.");
     }
+  };
+  
+
+  const handleClickOpen = () => {
+    setOpen(true);
+  };
+
+  const handleDialogClose = (updatedData) => {
+    setOpen(false);
   };
 
   return (
@@ -150,6 +166,10 @@ const InputForm = () => {
       <div className="tittle">
         <h3>Nhập Liệu</h3>
       </div>
+      <Button variant="outlined" onClick={handleClickOpen} className="button-container" style={{ marginBottom: "15px" }}>
+        Nhập bảng AG
+      </Button>
+      <FullScreenDialog open={open} setOpen={setOpen} onClose={handleDialogClose} data={data} />
       <form className="form-container" onSubmit={handleAddTicket}>
         <div>
           <label>Ngày xuất:</label>

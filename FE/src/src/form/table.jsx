@@ -24,8 +24,7 @@ const columns = [
     { Header: "Vé hoàn khay", accessor: "veHoanKhay" },
 ];
 
-const DataTable = ({data}) => {
-
+const DataTable = ({ data, pageSize, pageIndex, setPageSize, setPageIndex }) => {
     const {
         getTableProps,
         getTableBodyProps,
@@ -37,47 +36,45 @@ const DataTable = ({data}) => {
         pageOptions,
         nextPage,
         previousPage,
-        setPageSize,
-        state: { pageIndex, pageSize },
-        selectedFlatRows,
+        state,
     } = useTable(
         {
             columns,
             data,
-            initialState: { pageIndex: 0 },
+            initialState: { pageIndex: pageIndex - 1, pageSize }, // Sync with parent state
+            manualPagination: true, // Prevent React Table from handling pagination
         },
-        usePagination,
-        useRowSelect,
-        (hooks) => {
-            hooks.visibleColumns.push((columns) => [
-                {
-                    id: "selection",
-                    Header: ({ getToggleAllRowsSelectedProps }) => (
-                        <input type="checkbox" {...getToggleAllRowsSelectedProps()} />
-                    ),
-                    Cell: ({ row }) => (
-                        <input type="checkbox" {...row.getToggleRowSelectedProps()} />
-                    ),
-                },
-                ...columns,
-            ]);
-        }
+        usePagination
     );
+
+    // Handle page size change
+    const handlePageSizeChange = (e) => {
+        setPageSize(Number(e.target.value));
+        setPageIndex(1); // Reset to first page when page size changes
+    };
+
+    // Handle page navigation
+    const handlePreviousPage = () => {
+        if (pageIndex > 1) {
+          setPageIndex(pageIndex - 1);
+        }
+      };
+
+      const handleNextPage = () => {
+        if (pageIndex < pageOptions.length) {
+          setPageIndex(pageIndex + 1);
+        }
+      };
 
     return (
         <div>
-            <div className="tittle">
-                <h3>Bảng Dữ Liệu</h3>
-            </div>
             <div className="table-wrapper">
                 <table {...getTableProps()} className="table-container">
                     <thead>
                         {headerGroups.map((headerGroup) => (
                             <tr {...headerGroup.getHeaderGroupProps()}>
                                 {headerGroup.headers.map((column) => (
-                                    <th {...column.getHeaderProps()}>
-                                        {column.render("Header")}
-                                    </th>
+                                    <th {...column.getHeaderProps()}>{column.render("Header")}</th>
                                 ))}
                             </tr>
                         ))}
@@ -99,38 +96,27 @@ const DataTable = ({data}) => {
 
             {/* Pagination */}
             <div style={{ marginTop: "20px" }}>
-                <button onClick={() => previousPage()} disabled={!canPreviousPage}>
+                <button onClick={handlePreviousPage} disabled={!canPreviousPage}>
                     Previous
                 </button>
-                <button onClick={() => nextPage()} disabled={!canNextPage}>
+                <button onClick={handleNextPage} disabled={!canNextPage}>
                     Next
                 </button>
                 <span style={{ marginRight: "10px" }}>
-                    Trang {pageIndex + 1} của {pageOptions.length}
+                    Page {pageIndex} of {pageOptions.length || 1}
                 </span>
-                <select
-                    value={pageSize}
-                    onChange={(e) => setPageSize(Number(e.target.value))}
-                >
-                    {[10, 20, 30].map((size) => (
+                <select value={pageSize} onChange={handlePageSizeChange}>
+                    {[10, 20, 50, 100].map((size) => (
                         <option key={size} value={size}>
-                            Hiển thị {size}
+                            Show {size}
                         </option>
                     ))}
                 </select>
-            </div>
-
-            {/* Các hàng đã chọn */}
-            <div style={{ marginTop: "20px" }}>
-                <h3>Các hàng đã chọn:</h3>
-                <ul>
-                    {selectedFlatRows.map((row) => (
-                        <li key={row.original.maDatChoHang}>{row.original.tenKhachHang}</li>
-                    ))}
-                </ul>
             </div>
         </div>
     );
 };
 
 export default DataTable;
+
+

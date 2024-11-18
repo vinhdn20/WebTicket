@@ -3,6 +3,7 @@ import "../style/table.css";
 import InputForm from "./InputForm";
 import DataTable from "./table";
 import SearchComponent from "./search";
+import { processResult, refreshAccessToken } from "../constant";
 
 const initTable = {
   pageIndex: 1,
@@ -21,6 +22,8 @@ const initTable = {
 const TicketTable2 = () => {
   const [data, setData] = useState([]);
   const [columnFilters, setColumnFilters] = useState(initTable);
+  const [pageSize, setPageSize] = useState(10);
+  const [pageIndex, setPageIndex] = useState(1);
 
   async function fetchInitialData(filters) {
     let accessToken = localStorage.getItem("accessToken");
@@ -73,67 +76,33 @@ const TicketTable2 = () => {
     }
   }
 
-  async function refreshAccessToken() {
-    try {
-      const refreshResponse = await fetch("https://localhost:44331/refresh", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-      });
-
-      if (!refreshResponse.ok) {
-        throw new Error("Failed to refresh access token: " + refreshResponse.statusText);
-      }
-
-      const refreshData = await refreshResponse.json();
-      const newAccessToken = refreshData.accessToken;
-      localStorage.setItem("accessToken", newAccessToken); // Save new token to localStorage
-      return newAccessToken;
-    } catch (error) {
-      console.error("Error refreshing access token:", error);
-      return null;
-    }
-  }
-
-  function processResult(result) {
-    return result.items.map((item) => ({
-      ngayXuat: item.ngayXuat,
-      changDi: item.changDi,
-      ngayGioBayDi: item.ngayGioBayDi,
-      changVe: item.changVe,
-      ngayGioBayDen: item.ngayGioBayDen,
-      maDatChoHang: item.maDatChoHang,
-      addOn: item.addOn,
-      maDatChoTrip: item.maDatChoTrip,
-      thuAG: item.thuAG,
-      giaXuat: item.giaXuat,
-      luuY: item.luuY,
-      veHoanKhay: item.veHoanKhay,
-      tenAG: item.agCustomer?.tenAG || null,
-      mail: item.agCustomer?.mail || null,
-      sdt: item.agCustomer?.sdt || null,
-      tenKhachHang: item.customer?.tenKhachHang || null,
-      gioiTinh: item.customer?.gioiTinh || null,
-      soThe: item.card?.soThe || null,
-      taiKhoan: item.card?.taiKhoan || null,
-    }));
-  }
+  const loadData = async () => {
+    const payload = {
+      ...columnFilters,
+      pageIndex,
+      pageSize,
+    };
+    const initialData = await fetchInitialData(payload);
+    setData(initialData);
+  }; 
+  
 
   // Load data when component mounts or columnFilters change
   useEffect(() => {
-    const loadData = async () => {
-      const initialData = await fetchInitialData(columnFilters);
-      setData(initialData);
-    };
     loadData();
-  }, [columnFilters]);
+  }, [pageSize, pageIndex]);
 
   return (
     <div className="container">
-      <InputForm />
+     <InputForm onTicketCreated={loadData} />
       <SearchComponent setColumnFilters={setColumnFilters} />
-      <DataTable data={data} />
+      <DataTable
+        data={data}
+        pageSize={pageSize}
+        pageIndex={pageIndex}
+        setPageSize={setPageSize}
+        setPageIndex={setPageIndex}
+      />
     </div>
   );
 };

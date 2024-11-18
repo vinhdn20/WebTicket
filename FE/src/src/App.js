@@ -9,6 +9,7 @@ function App() {
       <Routes>
         <Route path="/" element={<AccountCreation />} />
         <Route path="/home" element={<TicketTable2 />} />
+        <Route path="*" element={<div>Page Not Found</div>} />
       </Routes>
     </BrowserRouter>
   );
