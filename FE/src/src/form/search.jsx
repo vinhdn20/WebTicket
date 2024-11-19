@@ -8,7 +8,7 @@ const columnSearch = [
     { Header: "Mã đặt chỗ trip", accessor: "maDatChoTrip" },
 ];
 
-const SearchComponent = ({ setColumnFilters }) => {
+const SearchComponent = ({ setColumnFilters, setPageIndex }) => {
     const [filters, setFilters] = useState({
         sdt: "",
         maDatChoHang: "",
@@ -24,6 +24,7 @@ const SearchComponent = ({ setColumnFilters }) => {
     };
 
     const handleSearch = () => {
+        setPageIndex(1);
         const formattedFilters = {
           sdt: [filters.sdt],
           maDatChoHang: [filters.maDatChoHang],

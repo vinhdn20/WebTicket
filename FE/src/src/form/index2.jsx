@@ -15,8 +15,8 @@ const initTable = {
     sdt: [""],
     maDatChoHang: [""],
     tenKhachHang: [""],
-    maDatChoTrip: [""]
-  }
+    maDatChoTrip: [""],
+  },
 };
 
 const TicketTable2 = () => {
@@ -24,12 +24,13 @@ const TicketTable2 = () => {
   const [columnFilters, setColumnFilters] = useState(initTable);
   const [pageSize, setPageSize] = useState(10);
   const [pageIndex, setPageIndex] = useState(1);
+  const [pageCount, setPageCount] = useState(0);
 
   async function fetchInitialData(filters) {
     let accessToken = localStorage.getItem("accessToken");
 
     try {
-      const response = await fetch("https://localhost:44331/ve/filter", {
+      const response = await fetch("https://localhost:7113/ve/filter", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -44,17 +45,23 @@ const TicketTable2 = () => {
         if (newToken) {
           // Retry the original request with the new token
           accessToken = newToken;
-          const retryResponse = await fetch("https://localhost:44331/ve/filter", {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-              Authorization: `Bearer ${accessToken}`,
-            },
-            body: JSON.stringify(filters),
-          });
+          const retryResponse = await fetch(
+            "https://localhost:7113/ve/filter",
+            {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+                Authorization: `Bearer ${accessToken}`,
+              },
+              body: JSON.stringify(filters),
+            }
+          );
 
           if (!retryResponse.ok) {
-            throw new Error("Failed to fetch data after refreshing token: " + retryResponse.statusText);
+            throw new Error(
+              "Failed to fetch data after refreshing token: " +
+                retryResponse.statusText
+            );
           }
           const retryResult = await retryResponse.json();
           return processResult(retryResult);
@@ -68,8 +75,8 @@ const TicketTable2 = () => {
       }
 
       const result = await response.json();
+      setPageCount(result.pageCount);
       return processResult(result);
-      
     } catch (error) {
       console.error("Error fetching initial data:", error);
       return [];
@@ -84,24 +91,28 @@ const TicketTable2 = () => {
     };
     const initialData = await fetchInitialData(payload);
     setData(initialData);
-  }; 
-  
+  };
 
   // Load data when component mounts or columnFilters change
   useEffect(() => {
+    console.log(pageIndex);
     loadData();
-  }, [pageSize, pageIndex]);
+  }, [pageSize, pageIndex, columnFilters]);
 
   return (
     <div className="container">
-     <InputForm onTicketCreated={loadData} />
-      <SearchComponent setColumnFilters={setColumnFilters} />
+      <InputForm onTicketCreated={loadData} />
+      <SearchComponent
+        setColumnFilters={setColumnFilters}
+        setPageIndex={setPageIndex}
+      />
       <DataTable
         data={data}
         pageSize={pageSize}
         pageIndex={pageIndex}
         setPageSize={setPageSize}
         setPageIndex={setPageIndex}
+        pageCount={pageCount}
       />
     </div>
   );
