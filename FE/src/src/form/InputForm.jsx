@@ -1,8 +1,10 @@
 import React, { useState } from "react";
 import "../style/table.css";
 import Button from '@mui/material/Button';
+import Autocomplete from '@mui/material/Autocomplete';
 import FullScreenDialog from "./AgInputForm";
 import { processResult, refreshAccessToken } from "../constant";
+import { TextField } from "@mui/material";
 
 const InputForm = ({ onTicketCreated }) => {
   // Form state management
@@ -27,22 +29,24 @@ const InputForm = ({ onTicketCreated }) => {
     veHoanKhay: "Có",
   });
   const [open, setOpen] = React.useState(false);
+  const [options, setOptions] = useState([]);
 
   // Handle input changes
   const handleInputChange = (e) => {
-  const { name, value } = e.target;
-  setData((prevData) => ({
-    ...prevData,
-    [name]: value,
-  }));
-};
+    const { name, value } = e.target;
+    console.log("thanh cong")
+    setData((prevData) => ({
+      ...prevData,
+      [name]: value,
+    }));
+  };
 
 
   async function callCreateTicketAPI(ticketData) {
     let accessToken = localStorage.getItem("accessToken");
 
     try {
-      const response = await fetch("https://localhost:7113/Ve/xuatVe", {
+      const response = await fetch("https://localhost:44331/Ve/xuatVe", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -58,7 +62,7 @@ const InputForm = ({ onTicketCreated }) => {
         if (newToken) {
           // Retry the original request with the new token
           accessToken = newToken;
-          const retryResponse = await fetch("https://localhost:7113/ve/filter", {
+          const retryResponse = await fetch("https://localhost:44331/ve/filter", {
             method: "POST",
             headers: {
               "Content-Type": "application/json",
@@ -149,7 +153,7 @@ const InputForm = ({ onTicketCreated }) => {
       alert("Có lỗi xảy ra khi tạo vé. Vui lòng thử lại.");
     }
   };
-  
+
 
   const handleClickOpen = () => {
     setOpen(true);
@@ -157,6 +161,62 @@ const InputForm = ({ onTicketCreated }) => {
 
   const handleDialogClose = (updatedData) => {
     setOpen(false);
+  };
+
+  const fetchPhoneNumbers = async () => {
+    let accessToken = localStorage.getItem("accessToken");
+    try {
+      const response = await fetch("https://localhost:44331/Ve/ag", {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${accessToken}`,
+        },
+      });
+      if (!response.ok) {
+        throw new Error("Failed to fetch phone numbers.");
+      }
+      if (response.status === 401) {
+        const newToken = await refreshAccessToken();
+        if (newToken) {
+          accessToken = newToken;
+          const retryResponse = await fetch("https://localhost:44331/Ve/ag", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${accessToken}`,
+            },
+          });
+
+          if (!retryResponse.ok) {
+            throw new Error(
+              "Failed to fetch data after refreshing token: " +
+                retryResponse.statusText
+            );
+          }
+          const retryResult = await retryResponse.json();
+          return processResult(retryResult);
+        } else {
+          throw new Error("Failed to refresh access token");
+        }
+      }
+      const result = await response.json();
+      setOptions(result);
+      console.log(result);
+    } catch (error) {
+      alert("Không thể tải dữ liệu số điện thoại.");
+    }
+  };
+
+  const handlePhoneSelect = (event, newValue) => {
+    if (newValue) {
+      setData((prev) => ({
+        ...prev,
+        sdt: newValue.sdt,
+        mail: newValue.mail,
+        tenAG: newValue.tenAG,
+      }));
+    }
   };
 
   return (
@@ -177,7 +237,31 @@ const InputForm = ({ onTicketCreated }) => {
         </div>
         <div>
           <label>Liên hệ (SĐT):</label>
-          <input type="text" name="sdt" value={data.sdt} onChange={handleInputChange} />
+          <Autocomplete
+            options={options}
+            getOptionLabel={(option) => option.sdt || ""}
+            onFocus={fetchPhoneNumbers} // Gọi API khi focus vào ô input
+            onChange={handlePhoneSelect} // Gắn dữ liệu khi chọn một số
+            renderInput={(params) => (
+              <TextField
+                {...params}
+                variant="outlined"
+                sx={{
+                  '& .MuiInputBase-input': {
+                    minWidth: "100%!important",
+                    border: 'none',
+                  },
+                  '& .MuiInputBase-root': {
+                    height: "33px !important",
+                    marginTop: "5px",
+                    justifyContent: "center"
+                  }
+                }}
+                value={data.sdt}
+                onChange={handleInputChange}
+              />
+            )}
+          />
         </div>
         <div>
           <label>Mail:</label>

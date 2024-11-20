@@ -47,11 +47,6 @@ const DataTable = ({ data, pageSize, pageIndex, setPageSize, setPageIndex, pageC
     headerGroups,
     prepareRow,
     page,
-    canPreviousPage,
-    canNextPage,
-    nextPage,
-    previousPage,
-    state,
   } = useTable(
     {
       columns,
