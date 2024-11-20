@@ -141,7 +141,7 @@ namespace Ve.Controllers
             try
             {
                 customer.ForEach(x => x.Id = Guid.NewGuid());
-                var result = await _repository.AddRangeAsync(customer);
+                var result = await _repository.AddRangeAsync(customer, true);
                 return Ok(customer);
             }
             catch (Exception ex)
@@ -180,7 +180,7 @@ namespace Ve.Controllers
             try
             {
                 card.ForEach(x => x.Id = Guid.NewGuid());
-                var result = await _repository.AddRangeAsync(card);
+                var result = await _repository.AddRangeAsync(card, true);
                 return Ok(card);
             }
             catch (Exception ex)
