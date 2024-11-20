@@ -123,7 +123,7 @@ namespace WebTicket.Controllers
             {
                 HttpOnly = true,
                 Secure = true, // Use Secure = true in production
-                SameSite = SameSiteMode.Lax,
+                SameSite = SameSiteMode.None,
                 Expires = DateTime.UtcNow.AddHours(validTime)
             };
 
