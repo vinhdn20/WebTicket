@@ -150,14 +150,22 @@ namespace Ve.Controllers
             }
         }
 
-        [HttpGet("ag/{sdt}")]
+        [HttpGet("ag")]
         [Authorize]
-        public async Task<IActionResult> GetAGInfo(string sdt)
+        public async Task<IActionResult> GetAGInfo(string? sdt)
         {
             try
             {
-                var result = await _repository.GetAllWithAsync<AGCustomer>(x => x.SDT.Contains(sdt));
-                return Ok(result);
+                if (string.IsNullOrEmpty(sdt))
+                {
+                    var result = await _repository.Context.AgCustomers.ToListAsync();
+                    return Ok(result);
+                }
+                else
+                {
+                    var result = await _repository.GetAllWithAsync<AGCustomer>(x => x.SDT.Contains(sdt));
+                    return Ok(result);
+                }
             }
             catch (Exception ex)
             {
