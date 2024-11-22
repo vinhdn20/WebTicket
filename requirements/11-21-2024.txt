@@ -1,0 +1,8 @@
+- add on: không phải nhập 1 text mà là 1 bảng
+- mã đặt chỗ hãng đổi tên thành BNR
+- thu ag là 1 bảng
+- Số thẻ thanh toán: thêm 1 chỗ add data giống với AG. 
+	Ví dụ của số thẻ thanh toán: JCB-3544-VTIN-Nguyen van A
+- tài khoản: tự động gợi ý
+
+- Cần tìm giải pháp: tính năng "xuất vé" có thể thêm nhiều hàng cùng 1 lúc, có thể paste data từ excel sang
