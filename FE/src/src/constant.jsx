@@ -24,6 +24,9 @@ export async function refreshAccessToken() {
 export function processResult(result) {
     return result.items.map((item) => ({
         id: item.id,
+        cardId: item.cardId,
+        agCustomerId: item.agId,
+        customerId: item.customerId,
         ngayXuat: item.ngayXuat,
         changDi: item.changDi,
         ngayGioBayDi: item.ngayGioBayDi,
