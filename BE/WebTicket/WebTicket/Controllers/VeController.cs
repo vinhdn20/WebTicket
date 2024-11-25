@@ -3,6 +3,7 @@ using Common;
 using Mapster;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.Filters;
 using Microsoft.EntityFrameworkCore;
 using Repositories;
 using Repositories.Entities;
@@ -114,7 +115,7 @@ namespace Ve.Controllers
 
         [HttpPut("xuatve")]
         [Authorize]
-        public async Task<IActionResult> UpdateTicket([FromBody] List<AddVe> putModel)
+        public async Task<IActionResult> UpdateTicket([FromBody] List<UpdateVe> putModel)
         {
             try
             {
