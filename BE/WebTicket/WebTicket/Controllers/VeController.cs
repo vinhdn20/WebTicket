@@ -114,10 +114,11 @@ namespace Ve.Controllers
 
         [HttpPut("xuatve")]
         [Authorize]
-        public async Task<IActionResult> UpdateTicket([FromBody] List<ThongTinVe> ticketInfos)
+        public async Task<IActionResult> UpdateTicket([FromBody] List<AddVe> putModel)
         {
             try
             {
+                var ticketInfos = putModel.Adapt<List<ThongTinVe>>();
                 for (int i = 0; i < ticketInfos.Count; i++)
                 {
                     var ticketInfo = ticketInfos[i];
