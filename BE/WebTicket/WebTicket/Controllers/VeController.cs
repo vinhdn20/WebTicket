@@ -1,5 +1,6 @@
 ﻿// Import required modules
 using Common;
+using Mapster;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -9,6 +10,7 @@ using Repositories.Interfaces;
 using Repositories.Models;
 using Services.Services.Interfaces;
 using WebTicket.Controllers;
+using WebTicket.Models;
 
 namespace Ve.Controllers
 {
@@ -29,12 +31,13 @@ namespace Ve.Controllers
 
         [HttpPost("xuatVe")]
         [Authorize]
-        public async Task<IActionResult> CreateTicket([FromBody] List<ThongTinVe> ticketInfos)
+        public async Task<IActionResult> CreateTicket([FromBody] List<AddVe> addModel)
         {
 
 
             try
             {
+                var ticketInfos = addModel.Adapt<List<ThongTinVe>>();
                 for (int i = 0; i < ticketInfos.Count; i++)
                 {
                     var ticketInfo = ticketInfos[i];
