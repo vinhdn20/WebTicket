@@ -30,7 +30,7 @@ const TicketTable2 = () => {
     let accessToken = localStorage.getItem("accessToken");
 
     try {
-      const response = await fetch("https://localhost:7113/ve/filter", {
+      const response = await fetch("https://localhost:44331/ve/filter", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -45,7 +45,7 @@ const TicketTable2 = () => {
         if (newToken) {
           accessToken = newToken;
           const retryResponse = await fetch(
-            "https://localhost:7113/ve/filter",
+            "https://localhost:44331/ve/filter",
             {
               method: "POST",
               headers: {

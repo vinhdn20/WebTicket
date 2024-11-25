@@ -4,9 +4,40 @@ import Button from "@mui/material/Button";
 import Autocomplete from "@mui/material/Autocomplete";
 import FullScreenDialog from "./AgInputForm";
 import { TextField } from "@mui/material";
+import { refreshAccessToken } from "../constant";
+
+
+const getCurrentDateTimeLocal = () => {
+  const now = new Date();
+  const offset = now.getTimezoneOffset() * 60000; // Lấy độ lệch múi giờ
+  const localDateTime = new Date(now.getTime() - offset)
+    .toISOString()
+    .slice(0, 16); // Định dạng YYYY-MM-DDTHH:mm
+  return localDateTime;
+};
 
 const InputTable = ({ onTicketCreated }) => {
-  const [data, setData] = useState([]);
+  const [data, setData] = useState([{
+    ngayXuat: getCurrentDateTimeLocal(),
+    sdt: "",
+    mail: "",
+    tenAG: "",
+    changDi: "",
+    ngayGioBayDi: "",
+    changVe: "",
+    ngayGioBayDen: "",
+    maDatChoHang: "",
+    tenKhachHang: "",
+    gioiTinh: "Nam",
+    addOn: "",
+    maDatChoTrip: "",
+    thuAG: "",
+    giaXuat: "",
+    soThe: "",
+    taiKhoan: "",
+    luuY: "",
+    veHoanKhay: "Có",
+  }]);
   const [selectedRows, setSelectedRows] = useState([]); // Danh sách hàng được chọn
   const [phoneOptions, setPhoneOptions] = useState([]);
   const [open, setOpen] = React.useState(false);
@@ -34,11 +65,110 @@ const InputTable = ({ onTicketCreated }) => {
     { Header: "Vé hoàn khay", accessor: "veHoanKhay" },
   ];
 
+  async function callCreateTicketAPI(ticketDataArray) {
+    let accessToken = localStorage.getItem("accessToken");
+
+    try {
+      const response = await fetch("https://localhost:44331/Ve/xuatVe", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${accessToken}`,
+        },
+        body: JSON.stringify(ticketDataArray), // Gửi toàn bộ mảng payload
+      });
+
+      if (response.status === 401) {
+        const newToken = await refreshAccessToken();
+        if (newToken) {
+          accessToken = newToken;
+          const retryResponse = await fetch("https://localhost:44331/Ve/xuatVe", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${accessToken}`,
+            },
+            body: JSON.stringify(ticketDataArray),
+          });
+
+          if (!retryResponse.ok) {
+            throw new Error("Failed after token refresh: " + retryResponse.statusText);
+          }
+          return await retryResponse.json();
+        } else {
+          throw new Error("Failed to refresh access token");
+        }
+      }
+
+      if (!response.ok) {
+        throw new Error("Network response was not ok " + response.statusText);
+      }
+
+      return await response.json();
+    } catch (error) {
+      console.error("Error creating tickets:", error);
+      throw error;
+    }
+  }
+
+
+  const handleAddTicket = async (e) => {
+    e.preventDefault();
+    for (const row of data) {
+      if (!row.ngayGioBayDi || !row.ngayGioBayDen) {
+        alert("Vui lòng nhập đầy đủ ngày giờ bay đi và ngày giờ bay đến.");
+        return;
+      }
+    }
+
+    const formattedTickets = data.map((row) => ({
+      ngayXuat: new Date().toISOString(),
+      changDi: row.changDi,
+      ngayGioBayDi: row.ngayGioBayDi ? new Date(row.ngayGioBayDi).toISOString() : new Date().toISOString(),
+      changVe: row.changVe,
+      ngayGioBayDen: row.ngayGioBayDen ? new Date(row.ngayGioBayDen).toISOString() : new Date().toISOString(),
+      maDatChoHang: row.maDatChoHang,
+      addOn: row.addOn,
+      maDatChoTrip: row.maDatChoTrip,
+      thuAG: row.thuAG,
+      giaXuat: row.giaXuat,
+      luuY: row.luuY,
+      veHoanKhay: row.veHoanKhay,
+      agCustomer: {
+        tenAG: row.tenAG,
+        mail: row.mail,
+        sdt: row.sdt,
+      },
+      customer: {
+        tenKhachHang: row.tenKhachHang,
+        gioiTinh: row.gioiTinh,
+      },
+      card: {
+        soThe: row.soThe,
+      },
+      taiKhoan: row.taiKhoan,
+    }));
+
+    try {
+      // Gửi mảng payload đến API
+      await callCreateTicketAPI(formattedTickets);
+      alert("Vé đã tạo thành công!");
+
+      // Reset lại dữ liệu bảng sau khi gửi thành công
+      setData([]); // Xóa toàn bộ dữ liệu trong bảng
+    } catch (error) {
+      alert("Có lỗi xảy ra khi tạo vé. Vui lòng thử lại.");
+      console.error("Error creating tickets:", error);
+    }
+  };
+
+
+
   // Hàm fetch danh sách số điện thoại
   const fetchPhoneNumbers = async () => {
     try {
       const accessToken = localStorage.getItem("accessToken");
-      const response = await fetch("https://localhost:7113/Ve/ag", {
+      const response = await fetch("https://localhost:44331/Ve/ag", {
         method: "GET",
         headers: {
           "Content-Type": "application/json",
@@ -63,12 +193,12 @@ const InputTable = ({ onTicketCreated }) => {
     const newRow = columns.reduce((acc, col) => {
       acc[col.accessor] =
         col.accessor === "ngayXuat"
-          ? new Date().toLocaleString()
+          ? getCurrentDateTimeLocal()
           : col.accessor === "gioiTinh"
-          ? "Nam"
-          : col.accessor === "veHoanKhay"
-          ? "Có"
-          : "";
+            ? "Nam"
+            : col.accessor === "veHoanKhay"
+              ? "Có"
+              : "";
       return acc;
     }, {});
     setData((prevData) => [...prevData, newRow]);
@@ -80,9 +210,14 @@ const InputTable = ({ onTicketCreated }) => {
     updatedData[rowIndex] = {
       ...updatedData[rowIndex],
       [columnId]: value,
+      error: {
+        ...updatedData[rowIndex].error,
+        [columnId]: columnId === "ngayGioBayDi" || columnId === "ngayGioBayDen" ? !value : false,
+      },
     };
     setData(updatedData);
   };
+
 
   // Hàm xử lý chọn số điện thoại từ Autocomplete
   const handlePhoneSelect = (rowIndex, newValue) => {
@@ -214,25 +349,22 @@ const InputTable = ({ onTicketCreated }) => {
                       </select>
                     ) : column.accessor === "ngayGioBayDi" ||
                       column.accessor === "ngayGioBayDen" ? (
+                      <td key={column.accessor}>
+                        <input
+                          type="datetime-local"
+                          value={row[column.accessor] ? row[column.accessor].slice(0, 16) : ""}
+                          required
+                          onChange={(e) => handleCellEdit(rowIndex, column.accessor, e.target.value)}
+                        />
+                      </td>
+                    ) : column.accessor === "ngayXuat" ? (
                       <input
                         type="datetime-local"
-                        value={
-                          row[column.accessor]
-                            ? new Date(row[column.accessor])
-                                .toISOString()
-                                .slice(0, -1)
-                            : ""
-                        }
+                        value={row.ngayXuat || new Date().toISOString().slice(0, -1)}
                         onChange={(e) =>
-                          handleCellEdit(
-                            rowIndex,
-                            column.accessor,
-                            e.target.value
-                          )
+                          handleCellEdit(rowIndex, "ngayXuat", e.target.value)
                         }
                       />
-                    ) : column.accessor === "ngayXuat" ? (
-                      row[column.accessor]
                     ) : (
                       <input
                         type="text"
@@ -269,7 +401,7 @@ const InputTable = ({ onTicketCreated }) => {
         >
           Xóa Hàng Đã Chọn
         </Button>
-        <Button onClick={() => {}} variant="contained" color="primary">
+        <Button onClick={handleAddTicket} variant="contained" color="primary">
           Xuất Vé
         </Button>
       </div>
