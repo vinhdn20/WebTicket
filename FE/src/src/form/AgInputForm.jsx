@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import Dialog from "@mui/material/Dialog";
 import AppBar from "@mui/material/AppBar";
 import Toolbar from "@mui/material/Toolbar";
@@ -6,54 +6,46 @@ import Typography from "@mui/material/Typography";
 import IconButton from "@mui/material/IconButton";
 import CloseIcon from "@mui/icons-material/Close";
 import Slide from "@mui/material/Slide";
-import TextField from "@mui/material/TextField";
 import Button from "@mui/material/Button";
-import { processResult, refreshAccessToken } from "../constant";
+import { refreshAccessToken } from "../constant";
 
 const Transition = React.forwardRef(function Transition(props, ref) {
   return <Slide direction="up" ref={ref} {...props} />;
 });
 
-export default function FullScreenDialog({ open, onClose, data }) {
-  const [formData, setFormData] = React.useState([{
-    tenAG: "",
-    sdt: "",
-    mail: "",
-  }]);
+export default function FullScreenDialog({ open, onClose }) {
+  const [formData, setFormData] = React.useState([
+    { tenAG: "", sdt: "", mail: "" },
+  ]);
+  const [apiData, setApiData] = useState([]); // State để lưu dữ liệu từ API
 
-  const handleChange = (e) => {
-    const { name, value } = e.target;
+  // Fetch dữ liệu từ API khi dialog mở
+  useEffect(() => {
+    if (open) {
+      fetchApiData();
+    }
+  }, [open]);
 
-    setFormData((prev) => {
-      const updatedForm = { ...prev[0], [name]: value };
-      return [updatedForm];
-    });
-  };
-
-  const handleSave = async () => {
+  const fetchApiData = async () => {
     let accessToken = localStorage.getItem("accessToken");
     try {
-      const response = await fetch("https://localhost:44331/Ve/ag", {
-        method: "POST",
+      const response = await fetch("https://localhost:7113/Ve/ag", {
+        method: "GET",
         headers: {
           "Content-Type": "application/json",
           Authorization: `Bearer ${accessToken}`,
         },
-        body: JSON.stringify(formData),
       });
       if (response.status === 401) {
-        // Token expired or unauthorized, refresh the token
         const newToken = await refreshAccessToken();
         if (newToken) {
-          // Retry the original request with the new token
           accessToken = newToken;
-          const retryResponse = await fetch("https://localhost:44331/Ve/ag", {
-            method: "POST",
+          const retryResponse = await fetch("https://localhost:7113/Ve/ag", {
+            method: "GET",
             headers: {
               "Content-Type": "application/json",
               Authorization: `Bearer ${accessToken}`,
             },
-            body: JSON.stringify(formData),
           });
 
           if (!retryResponse.ok) {
@@ -63,18 +55,51 @@ export default function FullScreenDialog({ open, onClose, data }) {
             );
           }
           const retryResult = await retryResponse.json();
-          return processResult(retryResult);
+          setApiData(retryResult);
+          return;
         } else {
           throw new Error("Failed to refresh access token");
         }
       }
-
       if (!response.ok) {
         throw new Error("Network response was not ok");
       }
-      const data = await response.json();
-      alert("Save success", data);
+      const result = await response.json();
+      setApiData(result); // Lưu dữ liệu vào state
+    } catch (error) {
+      console.error("Error fetching data", error);
+    }
+  };
+
+  const handleCellChange = (rowIndex, field, value) => {
+    setFormData((prev) =>
+      prev.map((row, idx) =>
+        idx === rowIndex ? { ...row, [field]: value } : row
+      )
+    );
+  };
+
+  const handleAddRow = () => {
+    setFormData((prev) => [...prev, { tenAG: "", sdt: "", mail: "" }]);
+  };
+
+  const handleSave = async () => {
+    let accessToken = localStorage.getItem("accessToken");
+    try {
+      const response = await fetch("https://localhost:7113/Ve/ag", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${accessToken}`,
+        },
+        body: JSON.stringify(formData),
+      });
+      if (!response.ok) {
+        throw new Error("Network response was not ok");
+      }
+      alert("Save success");
       onClose(null);
+      fetchApiData(); // Fetch lại dữ liệu sau khi lưu thành công
     } catch (error) {
       console.error("Error saving data", error);
     }
@@ -82,20 +107,20 @@ export default function FullScreenDialog({ open, onClose, data }) {
 
   return (
     <Dialog
-    open={open}
-    TransitionComponent={Transition}
-    PaperProps={{
+      open={open}
+      TransitionComponent={Transition}
+      PaperProps={{
         sx: {
-            position: 'absolute',
-            bottom: 0,
-            margin: 0,
-            minWidth: '100%', 
-            height: '33.33vh', 
-            borderRadius: '10px 10px 0 0', 
-            boxShadow: 3,
+          position: "absolute",
+          bottom: 0,
+          margin: 0,
+          minWidth: "100%",
+          height: "80vh",
+          borderRadius: "10px 10px 0 0",
+          boxShadow: 3,
         },
-    }}
->
+      }}
+    >
       <AppBar sx={{ position: "relative" }}>
         <Toolbar>
           <IconButton
@@ -114,45 +139,116 @@ export default function FullScreenDialog({ open, onClose, data }) {
           </Button>
         </Toolbar>
       </AppBar>
-      <div style={{ display: "flex" }}>
-        <div style={{ margin: "50px" }}>
-          <TextField
-            id="outlined-multiline-flexible"
-            label="Tên AG"
-            name="tenAG"
-            value={formData.tenAG}
-            onChange={handleChange}
-            multiline
-            maxRows={4}
-          />
-        </div>
-        <div style={{ margin: "50px" }}>
-          <TextField
-            id="outlined-multiline-flexible"
-            label="Số điện thoại"
-            name="sdt"
-            value={formData.sdt}
-            onChange={handleChange}
-            multiline
-            maxRows={4}
-          />
-        </div>
-        <div style={{ margin: "50px" }}>
-          <TextField
-            id="outlined-multiline-flexible"
-            label="Email"
-            name="mail"
-            value={formData.mail}
-            onChange={handleChange}
-            multiline
-            maxRows={4}
-          />
-        </div>
-        <div style={{ margin: "50px" }}>
-          <button onClick={handleSave}>Lưu AG</button>
-        </div>
+
+      {/* Table for Input */}
+      <div style={{ padding: "20px" }}>
+        <Typography variant="h6">Thêm mới AG</Typography>
+        <table style={{ width: "100%", borderCollapse: "collapse" }}>
+          <thead>
+            <tr>
+              <th style={{ border: "1px solid #ddd", padding: "8px" }}>
+                Tên AG
+              </th>
+              <th style={{ border: "1px solid #ddd", padding: "8px" }}>
+                Số điện thoại
+              </th>
+              <th style={{ border: "1px solid #ddd", padding: "8px" }}>Email</th>
+            </tr>
+          </thead>
+          <tbody>
+            {formData.map((row, rowIndex) => (
+              <tr key={rowIndex}>
+                <td style={{ border: "1px solid #ddd", padding: "8px" }}>
+                  <input
+                    type="text"
+                    value={row.tenAG}
+                    onChange={(e) =>
+                      handleCellChange(rowIndex, "tenAG", e.target.value)
+                    }
+                    style={{
+                      width: "100%",
+                      border: "none",
+                      outline: "none",
+                      padding: "4px",
+                    }}
+                  />
+                </td>
+                <td style={{ border: "1px solid #ddd", padding: "8px" }}>
+                  <input
+                    type="text"
+                    value={row.sdt}
+                    onChange={(e) =>
+                      handleCellChange(rowIndex, "sdt", e.target.value)
+                    }
+                    style={{
+                      width: "100%",
+                      border: "none",
+                      outline: "none",
+                      padding: "4px",
+                    }}
+                  />
+                </td>
+                <td style={{ border: "1px solid #ddd", padding: "8px" }}>
+                  <input
+                    type="text"
+                    value={row.mail}
+                    onChange={(e) =>
+                      handleCellChange(rowIndex, "mail", e.target.value)
+                    }
+                    style={{
+                      width: "100%",
+                      border: "none",
+                      outline: "none",
+                      padding: "4px",
+                    }}
+                  />
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+        <Button
+          onClick={handleAddRow}
+          variant="contained"
+          color="primary"
+          style={{ marginTop: "20px" }}
+        >
+          Thêm Hàng
+        </Button>
       </div>
-      <hr width="30%" align="center" style={{ marginBottom: "25px" }} />
+
+      {/* Table for API Data */}
+      <div style={{ padding: "20px" }}>
+        <Typography variant="h6">Dữ liệu từ API</Typography>
+        <table style={{ width: "100%", borderCollapse: "collapse" }}>
+          <thead>
+            <tr>
+              <th style={{ border: "1px solid #ddd", padding: "8px" }}>
+                Tên AG
+              </th>
+              <th style={{ border: "1px solid #ddd", padding: "8px" }}>
+                Số điện thoại
+              </th>
+              <th style={{ border: "1px solid #ddd", padding: "8px" }}>Email</th>
+            </tr>
+          </thead>
+          <tbody>
+            {apiData.map((row, index) => (
+              <tr key={index}>
+                <td style={{ border: "1px solid #ddd", padding: "8px" }}>
+                  {row.tenAG}
+                </td>
+                <td style={{ border: "1px solid #ddd", padding: "8px" }}>
+                  {row.sdt}
+                </td>
+                <td style={{ border: "1px solid #ddd", padding: "8px" }}>
+                  {row.mail}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
     </Dialog>
   );
 }

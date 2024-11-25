@@ -1,0 +1,92 @@
+/* Định dạng chung */
+.table-wrapper-input {
+    margin: 20px auto;
+    padding: 20px;
+    max-width: 1200px;
+    border: 1px solid #ccc;
+    border-radius: 8px;
+    background-color: #f8f9fa;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+  }
+  
+  h1 {
+    text-align: center;
+    font-size: 24px;
+    color: #333;
+    margin-bottom: 20px;
+  }
+  
+  .table-container {
+    width: 100%;
+    border-collapse: collapse;
+  }
+  
+  .table-container thead th {
+    background-color: #007bff;
+    color: #fff;
+    text-align: center;
+    padding: 10px;
+    font-size: 14px;
+    border: 1px solid #ccc;
+  }
+  
+  .table-container tbody td {
+    text-align: left;
+    padding: 10px;
+    font-size: 14px;
+    border: 1px solid #ddd;
+    vertical-align: middle;
+  }
+  
+  .table-container tbody tr:nth-child(even) {
+    background-color: #f9f9f9;
+  }
+  
+  .table-container tbody tr:hover {
+    background-color: #eef;
+  }
+  
+  /* Ô input */
+  input[type="text"] {
+    width: calc(100% - 8px);
+    padding: 8px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    font-size: 14px;
+    background-color: #fff;
+  }
+  
+  /* Autocomplete */
+  .MuiAutocomplete-root {
+    width: 100%;
+  }
+  
+  .MuiOutlinedInput-root {
+    padding: 5px 8px;
+    font-size: 14px;
+  }
+  
+  /* Button */
+  button, .MuiButton-root {
+    padding: 10px 20px;
+    font-size: 14px;
+    border-radius: 5px;
+  }
+  
+  button:hover, .MuiButton-root:hover {
+    background-color: #0056b3;
+    color: #fff;
+  }
+  
+  button:disabled, .MuiButton-root:disabled {
+    background-color: #ddd;
+    color: #666;
+  }
+  
+  /* Canh giữa nút bấm */
+  button-container {
+    text-align: center;
+    margin-top: 20px;
+  }
+  
+  

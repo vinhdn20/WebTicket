@@ -1,159 +1,129 @@
 import React, { useState } from "react";
 import "../style/table.css";
-import Button from '@mui/material/Button';
-import Autocomplete from '@mui/material/Autocomplete';
+import Button from "@mui/material/Button";
+import Autocomplete from "@mui/material/Autocomplete";
 import FullScreenDialog from "./AgInputForm";
-import { processResult, refreshAccessToken } from "../constant";
 import { TextField } from "@mui/material";
 
-const InputForm = ({ onTicketCreated }) => {
-  // Form state management
-  const [data, setData] = useState({
-    sdt: "",
-    mail: "",
-    tenAG: "",
-    changDi: "",
-    ngayGioBayDi: "",
-    changVe: "",
-    ngayGioBayDen: "",
-    maDatChoHang: "",
-    tenKhachHang: "",
-    gioiTinh: "Nam",
-    addOn: "",
-    maDatChoTrip: "",
-    thuAG: "",
-    giaXuat: "",
-    soThe: "",
-    taiKhoan: "",
-    luuY: "",
-    veHoanKhay: "Có",
-  });
+const InputTable = ({ onTicketCreated }) => {
+  const [data, setData] = useState([]);
+  const [selectedRows, setSelectedRows] = useState([]); // Danh sách hàng được chọn
+  const [phoneOptions, setPhoneOptions] = useState([]);
   const [open, setOpen] = React.useState(false);
-  const [options, setOptions] = useState([]);
 
-  // Handle input changes
-  const handleInputChange = (e) => {
-    const { name, value } = e.target;
-    console.log("thanh cong")
-    setData((prevData) => ({
-      ...prevData,
-      [name]: value,
-    }));
-  };
+  const columns = [
+    { Header: "Chọn", accessor: "select" },
+    { Header: "Ngày xuất", accessor: "ngayXuat" },
+    { Header: "Liên hệ (SĐT)", accessor: "sdt" },
+    { Header: "Mail", accessor: "mail" },
+    { Header: "Tên AG", accessor: "tenAG" },
+    { Header: "Chặng bay đi", accessor: "changDi" },
+    { Header: "Ngày giờ bay đi", accessor: "ngayGioBayDi" },
+    { Header: "Chặng bay đến", accessor: "changVe" },
+    { Header: "Ngày giờ bay đến", accessor: "ngayGioBayDen" },
+    { Header: "Mã đặt chỗ hãng", accessor: "maDatChoHang" },
+    { Header: "Tên khách hàng", accessor: "tenKhachHang" },
+    { Header: "Giới tính", accessor: "gioiTinh" },
+    { Header: "Add on", accessor: "addOn" },
+    { Header: "Mã đặt chỗ trip", accessor: "maDatChoTrip" },
+    { Header: "Thu AG", accessor: "thuAG" },
+    { Header: "Giá xuất", accessor: "giaXuat" },
+    { Header: "Số thẻ thanh toán", accessor: "soThe" },
+    { Header: "Tài khoản", accessor: "taiKhoan" },
+    { Header: "Lưu ý", accessor: "luuY" },
+    { Header: "Vé hoàn khay", accessor: "veHoanKhay" },
+  ];
 
-
-  async function callCreateTicketAPI(ticketData) {
-    let accessToken = localStorage.getItem("accessToken");
-
+  // Hàm fetch danh sách số điện thoại
+  const fetchPhoneNumbers = async () => {
     try {
-      const response = await fetch("https://localhost:44331/Ve/xuatVe", {
-        method: "POST",
+      const accessToken = localStorage.getItem("accessToken");
+      const response = await fetch("https://localhost:7113/Ve/ag", {
+        method: "GET",
         headers: {
           "Content-Type": "application/json",
           Authorization: `Bearer ${accessToken}`,
         },
-
-        body: JSON.stringify(ticketData),
       });
 
-      if (response.status === 401) {
-        // Token expired or unauthorized, refresh the token
-        const newToken = await refreshAccessToken();
-        if (newToken) {
-          // Retry the original request with the new token
-          accessToken = newToken;
-          const retryResponse = await fetch("https://localhost:44331/ve/filter", {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-              Authorization: `Bearer ${accessToken}`,
-            },
-            body: JSON.stringify(ticketData),
-          });
-
-          if (!retryResponse.ok) {
-            throw new Error("Failed to fetch data after refreshing token: " + retryResponse.statusText);
-          }
-          const retryResult = await retryResponse.json();
-          return processResult(retryResult);
-        } else {
-          throw new Error("Failed to refresh access token");
-        }
-      }
-
       if (!response.ok) {
-        throw new Error("Network response was not ok " + response.statusText);
+        throw new Error("Failed to fetch phone numbers.");
       }
 
       const result = await response.json();
-      return result;
+      setPhoneOptions(result);
     } catch (error) {
-      console.error("Error creating ticket:", error);
-      throw error;
-    }
-  }
-
-  // Handle form submission
-  const handleAddTicket = async (e) => {
-    e.preventDefault();
-
-    const formattedTicket = {
-      ngayXuat: new Date().toISOString(),
-      changDi: data.changDi,
-      ngayGioBayDi: data.ngayGioBayDi ? new Date(data.ngayGioBayDi).toISOString() : new Date().toISOString(),
-      changVe: data.changVe,
-      ngayGioBayDen: data.ngayGioBayDen ? new Date(data.ngayGioBayDen).toISOString() : new Date().toISOString(),
-      maDatChoHang: data.maDatChoHang,
-      addOn: data.addOn,
-      maDatChoTrip: data.maDatChoTrip,
-      thuAG: data.thuAG,
-      giaXuat: data.giaXuat,
-      luuY: data.luuY,
-      veHoanKhay: data.veHoanKhay,
-      agCustomer: {
-        tenAG: data.tenAG,
-        mail: data.mail,
-        sdt: data.sdt,
-      },
-      customer: {
-        tenKhachHang: data.tenKhachHang,
-        gioiTinh: data.gioiTinh,
-      },
-      card: {
-        soThe: data.soThe,
-      },
-      taiKhoan: data.taiKhoan,
-    };
-
-    try {
-      await callCreateTicketAPI(formattedTicket);
-      setData({
-        sdt: "",
-        mail: "",
-        tenAG: "",
-        changDi: "",
-        ngayGioBayDi: "",
-        changVe: "",
-        ngayGioBayDen: "",
-        maDatChoHang: "",
-        tenKhachHang: "",
-        gioiTinh: "Nam",
-        addOn: "",
-        maDatChoTrip: "",
-        thuAG: "",
-        giaXuat: "",
-        soThe: "",
-        taiKhoan: "",
-        luuY: "",
-        veHoanKhay: "Có",
-      });
-      alert("Vé đã tạo thành công!");
-      onTicketCreated();
-    } catch (error) {
-      alert("Có lỗi xảy ra khi tạo vé. Vui lòng thử lại.");
+      console.error("Error fetching phone numbers:", error);
+      alert("Không thể tải danh sách số điện thoại.");
     }
   };
 
+  // Hàm thêm hàng mới
+  const handleAddRow = () => {
+    const newRow = columns.reduce((acc, col) => {
+      acc[col.accessor] =
+        col.accessor === "ngayXuat"
+          ? new Date().toLocaleString()
+          : col.accessor === "gioiTinh"
+          ? "Nam"
+          : col.accessor === "veHoanKhay"
+          ? "Có"
+          : "";
+      return acc;
+    }, {});
+    setData((prevData) => [...prevData, newRow]);
+  };
+
+  // Hàm cập nhật dữ liệu
+  const handleCellEdit = (rowIndex, columnId, value) => {
+    const updatedData = [...data];
+    updatedData[rowIndex] = {
+      ...updatedData[rowIndex],
+      [columnId]: value,
+    };
+    setData(updatedData);
+  };
+
+  // Hàm xử lý chọn số điện thoại từ Autocomplete
+  const handlePhoneSelect = (rowIndex, newValue) => {
+    const updatedData = [...data];
+    if (newValue) {
+      updatedData[rowIndex] = {
+        ...updatedData[rowIndex],
+        sdt: newValue.sdt || "",
+        tenAG: newValue.tenAG || "",
+        mail: newValue.mail || "",
+      };
+    } else {
+      updatedData[rowIndex] = {
+        ...updatedData[rowIndex],
+        sdt: "",
+        tenAG: "",
+        mail: "",
+      };
+    }
+    setData(updatedData);
+  };
+
+  // Hàm xử lý chọn hàng
+  const handleSelectRow = (rowIndex, isSelected) => {
+    if (isSelected) {
+      setSelectedRows((prevSelected) => [...prevSelected, rowIndex]);
+    } else {
+      setSelectedRows((prevSelected) =>
+        prevSelected.filter((index) => index !== rowIndex)
+      );
+    }
+  };
+
+  // Hàm xóa các hàng đã chọn
+  const handleDeleteRows = () => {
+    const updatedData = data.filter(
+      (_, index) => !selectedRows.includes(index)
+    );
+    setData(updatedData);
+    setSelectedRows([]); // Reset danh sách hàng được chọn
+  };
 
   const handleClickOpen = () => {
     setOpen(true);
@@ -163,186 +133,148 @@ const InputForm = ({ onTicketCreated }) => {
     setOpen(false);
   };
 
-  const fetchPhoneNumbers = async () => {
-    let accessToken = localStorage.getItem("accessToken");
-    try {
-      const response = await fetch("https://localhost:44331/Ve/ag", {
-        method: "GET",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${accessToken}`,
-        },
-      });
-      if (!response.ok) {
-        throw new Error("Failed to fetch phone numbers.");
-      }
-      if (response.status === 401) {
-        const newToken = await refreshAccessToken();
-        if (newToken) {
-          accessToken = newToken;
-          const retryResponse = await fetch("https://localhost:44331/Ve/ag", {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-              Authorization: `Bearer ${accessToken}`,
-            },
-          });
-
-          if (!retryResponse.ok) {
-            throw new Error(
-              "Failed to fetch data after refreshing token: " +
-                retryResponse.statusText
-            );
-          }
-          const retryResult = await retryResponse.json();
-          return processResult(retryResult);
-        } else {
-          throw new Error("Failed to refresh access token");
-        }
-      }
-      const result = await response.json();
-      setOptions(result);
-      console.log(result);
-    } catch (error) {
-      alert("Không thể tải dữ liệu số điện thoại.");
-    }
-  };
-
-  const handlePhoneSelect = (event, newValue) => {
-    if (newValue) {
-      setData((prev) => ({
-        ...prev,
-        sdt: newValue.sdt,
-        mail: newValue.mail,
-        tenAG: newValue.tenAG,
-      }));
-    }
-  };
-
   return (
-    <div className="container">
-      <h1>Hệ thống xuất vé</h1>
-      <hr width="30%" align="center" style={{ marginBottom: "25px" }} />
-      <div className="tittle">
-        <h3>Nhập Liệu</h3>
+    <>
+      <div className="table-wrapper">
+        <h1>Bảng Nhập Dữ Liệu</h1>
+        <Button
+          variant="outlined"
+          onClick={handleClickOpen}
+          className="button-container"
+          style={{ marginBottom: "15px" }}
+        >
+          Nhập bảng AG
+        </Button>
+        <FullScreenDialog
+          open={open}
+          setOpen={setOpen}
+          onClose={handleDialogClose}
+          data={data}
+        />
+        <table className="table-container">
+          <thead>
+            <tr>
+              {columns.map((column) => (
+                <th key={column.accessor}>{column.Header}</th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {data.map((row, rowIndex) => (
+              <tr key={rowIndex}>
+                {columns.map((column) => (
+                  <td key={column.accessor}>
+                    {column.accessor === "select" ? (
+                      <input
+                        type="checkbox"
+                        checked={selectedRows.includes(rowIndex)}
+                        onChange={(e) =>
+                          handleSelectRow(rowIndex, e.target.checked)
+                        }
+                      />
+                    ) : column.accessor === "sdt" ? (
+                      <Autocomplete
+                        options={phoneOptions}
+                        getOptionLabel={(option) => option.sdt || ""}
+                        value={
+                          phoneOptions.find((opt) => opt.sdt === row.sdt) ||
+                          null
+                        } // Hiển thị giá trị khớp với `sdt`
+                        onFocus={fetchPhoneNumbers} // Gọi API khi focus
+                        onChange={(event, newValue) =>
+                          handlePhoneSelect(rowIndex, newValue)
+                        } // Cập nhật khi chọn
+                        renderInput={(params) => (
+                          <TextField
+                            {...params}
+                            variant="outlined"
+                            placeholder="Nhập số điện thoại"
+                          />
+                        )}
+                      />
+                    ) : column.accessor === "gioiTinh" ? (
+                      <select
+                        value={row.gioiTinh || "Nam"}
+                        onChange={(e) =>
+                          handleCellEdit(rowIndex, "gioiTinh", e.target.value)
+                        }
+                      >
+                        <option value="Nam">Nam</option>
+                        <option value="Nữ">Nữ</option>
+                      </select>
+                    ) : column.accessor === "veHoanKhay" ? (
+                      <select
+                        value={row.veHoanKhay || "Có"}
+                        onChange={(e) =>
+                          handleCellEdit(rowIndex, "veHoanKhay", e.target.value)
+                        }
+                      >
+                        <option value="Có">Có</option>
+                        <option value="Không">Không</option>
+                      </select>
+                    ) : column.accessor === "ngayGioBayDi" ||
+                      column.accessor === "ngayGioBayDen" ? (
+                      <input
+                        type="datetime-local"
+                        value={
+                          row[column.accessor]
+                            ? new Date(row[column.accessor])
+                                .toISOString()
+                                .slice(0, -1)
+                            : ""
+                        }
+                        onChange={(e) =>
+                          handleCellEdit(
+                            rowIndex,
+                            column.accessor,
+                            e.target.value
+                          )
+                        }
+                      />
+                    ) : column.accessor === "ngayXuat" ? (
+                      row[column.accessor]
+                    ) : (
+                      <input
+                        type="text"
+                        value={row[column.accessor] || ""}
+                        onChange={(e) =>
+                          handleCellEdit(
+                            rowIndex,
+                            column.accessor,
+                            e.target.value
+                          )
+                        }
+                      />
+                    )}
+                  </td>
+                ))}
+              </tr>
+            ))}
+          </tbody>
+        </table>
       </div>
-      <Button variant="outlined" onClick={handleClickOpen} className="button-container" style={{ marginBottom: "15px" }}>
-        Nhập bảng AG
-      </Button>
-      <FullScreenDialog open={open} setOpen={setOpen} onClose={handleDialogClose} data={data} />
-      <form className="form-container" onSubmit={handleAddTicket}>
-        <div>
-          <label>Ngày xuất:</label>
-          <input type="text" value={new Date().toLocaleString()} disabled />
-        </div>
-        <div>
-          <label>Liên hệ (SĐT):</label>
-          <Autocomplete
-            options={options}
-            getOptionLabel={(option) => option.sdt || ""}
-            onFocus={fetchPhoneNumbers} // Gọi API khi focus vào ô input
-            onChange={handlePhoneSelect} // Gắn dữ liệu khi chọn một số
-            renderInput={(params) => (
-              <TextField
-                {...params}
-                variant="outlined"
-                sx={{
-                  '& .MuiInputBase-input': {
-                    minWidth: "100%!important",
-                    border: 'none',
-                  },
-                  '& .MuiInputBase-root': {
-                    height: "33px !important",
-                    marginTop: "5px",
-                    justifyContent: "center"
-                  }
-                }}
-                value={data.sdt}
-                onChange={handleInputChange}
-              />
-            )}
-          />
-        </div>
-        <div>
-          <label>Mail:</label>
-          <input type="email" name="mail" value={data.mail} onChange={handleInputChange} />
-        </div>
-        <div>
-          <label>Tên AG:</label>
-          <input type="text" name="tenAG" value={data.tenAG} onChange={handleInputChange} />
-        </div>
-        <div>
-          <label>Chặng bay đi:</label>
-          <input type="text" name="changDi" value={data.changDi} onChange={handleInputChange} />
-        </div>
-        <div>
-          <label>Ngày giờ bay đi:</label>
-          <input type="datetime-local" name="ngayGioBayDi" value={data.ngayGioBayDi} onChange={handleInputChange} />
-        </div>
-        <div>
-          <label>Chặng bay đến:</label>
-          <input type="text" name="changVe" value={data.changVe} onChange={handleInputChange} />
-        </div>
-        <div>
-          <label>Ngày giờ bay đến:</label>
-          <input type="datetime-local" name="ngayGioBayDen" value={data.ngayGioBayDen} onChange={handleInputChange} />
-        </div>
-        <div>
-          <label>Mã đặt chỗ hãng:</label>
-          <input type="text" name="maDatChoHang" value={data.maDatChoHang} onChange={handleInputChange} />
-        </div>
-        <div>
-          <label>Tên khách hàng:</label>
-          <input type="text" name="tenKhachHang" value={data.tenKhachHang} onChange={handleInputChange} />
-        </div>
-        <div>
-          <label>Giới tính:</label>
-          <select name="gioiTinh" value={data.gioiTinh} onChange={handleInputChange}>
-            <option value="Nam">Nam</option>
-            <option value="Nữ">Nữ</option>
-          </select>
-        </div>
-        <div>
-          <label>Add on:</label>
-          <input type="text" name="addOn" value={data.addOn} onChange={handleInputChange} />
-        </div>
-        <div>
-          <label>Mã đặt chỗ trip:</label>
-          <input type="text" name="maDatChoTrip" value={data.maDatChoTrip} onChange={handleInputChange} />
-        </div>
-        <div>
-          <label>Thu AG:</label>
-          <input type="number" name="thuAG" value={data.thuAG} onChange={handleInputChange} />
-        </div>
-        <div>
-          <label>Giá xuất:</label>
-          <input type="number" name="giaXuat" value={data.giaXuat} onChange={handleInputChange} />
-        </div>
-        <div>
-          <label>Số thẻ thanh toán:</label>
-          <textarea rows="1" name="soThe" value={data.soThe} onChange={handleInputChange}></textarea>
-        </div>
-        <div>
-          <label>Tài khoản:</label>
-          <textarea rows="3" name="taiKhoan" value={data.taiKhoan} onChange={handleInputChange}></textarea>
-        </div>
-        <div>
-          <label>Lưu ý:</label>
-          <textarea rows="3" name="luuY" value={data.luuY} onChange={handleInputChange}></textarea>
-        </div>
-        <div>
-          <label>Vé có hoàn hay không:</label>
-          <select name="veHoanKhay" value={data.veHoanKhay} onChange={handleInputChange}>
-            <option value="Có">Có</option>
-            <option value="Không">Không</option>
-          </select>
-        </div>
-        <div className="button-container">
-          <button type="submit">Xuất Vé</button>
-        </div>
-      </form>
-    </div>
+      <div style={{ marginTop: "20px", textAlign: "center" }}>
+        <Button
+          onClick={handleAddRow}
+          variant="contained"
+          style={{ marginRight: "10px" }}
+        >
+          Thêm Hàng
+        </Button>
+        <Button
+          onClick={handleDeleteRows}
+          variant="contained"
+          color="secondary"
+          style={{ marginRight: "10px" }}
+        >
+          Xóa Hàng Đã Chọn
+        </Button>
+        <Button onClick={() => {}} variant="contained" color="primary">
+          Xuất Vé
+        </Button>
+      </div>
+    </>
   );
 };
 
-export default InputForm;
+export default InputTable;

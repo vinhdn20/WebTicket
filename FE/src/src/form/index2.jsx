@@ -30,7 +30,7 @@ const TicketTable2 = () => {
     let accessToken = localStorage.getItem("accessToken");
 
     try {
-      const response = await fetch("https://localhost:44331/ve/filter", {
+      const response = await fetch("https://localhost:7113/ve/filter", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -43,10 +43,9 @@ const TicketTable2 = () => {
         // Token expired or unauthorized, refresh the token
         const newToken = await refreshAccessToken();
         if (newToken) {
-          // Retry the original request with the new token
           accessToken = newToken;
           const retryResponse = await fetch(
-            "https://localhost:44331/ve/filter",
+            "https://localhost:7113/ve/filter",
             {
               method: "POST",
               headers: {
@@ -93,7 +92,6 @@ const TicketTable2 = () => {
     setData(initialData);
   };
 
-  // Load data when component mounts or columnFilters change
   useEffect(() => {
     console.log(pageIndex);
     loadData();
@@ -108,6 +106,7 @@ const TicketTable2 = () => {
       />
       <DataTable
         data={data}
+        setData={setData}
         pageSize={pageSize}
         pageIndex={pageIndex}
         setPageSize={setPageSize}

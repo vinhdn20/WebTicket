@@ -1,0 +1,57 @@
+.App {
+    font-family: Arial, sans-serif;
+    text-align: center;
+    margin: 20px;
+  }
+  
+  table {
+    border-collapse: collapse;
+    margin: 20px auto;
+    width: 80%;
+  }
+  
+  td, th {
+    border: 1px solid #ddd;
+    padding: 8px;
+    text-align: center;
+  }
+  
+  td input {
+    width: 100%;
+    border: none;
+    outline: none;
+    text-align: center;
+    padding: 4px;
+  }
+  
+  td input:focus {
+    border: 1px solid #4caf50;
+    background-color: #f9f9f9;
+  }
+  
+  tr:nth-child(even) {
+    background-color: #f2f2f2;
+  }
+  
+  tr:hover {
+    background-color: #e2e2e2;
+  }
+  
+  .actions {
+    margin-top: 20px;
+  }
+  
+  .actions button {
+    margin: 5px;
+    padding: 10px 20px;
+    border: none;
+    background-color: #4caf50;
+    color: white;
+    cursor: pointer;
+    font-size: 16px;
+  }
+  
+  .actions button:hover {
+    background-color: #45a049;
+  }
+  
