@@ -44,9 +44,13 @@ const EditableTable = ({
   setPageSize,
   setPageIndex,
   pageCount,
+  selectedRows,
+  setSelectedRows,
+  handleDeleteSelectedRows,
+  handleSaveEditedRows
 }) => {
-  const [isEditing, setIsEditing] = useState(false); // Chế độ chỉnh sửa
-
+  const [isEditing, setIsEditing] = useState(false);
+  const [editedRows, setEditedRows] = useState([]); 
   const { getTableProps, getTableBodyProps, headerGroups, prepareRow, page } =
     useTable(
       {
@@ -58,16 +62,47 @@ const EditableTable = ({
       usePagination
     );
 
+  const toggleRowSelection = (id) => {
+    setSelectedRows(
+      (prev) =>
+        prev.includes(id)
+          ? prev.filter((rowId) => rowId !== id)
+          : [...prev, id]
+    );
+  };
+
+  const toggleSelectAll = () => {
+    if (selectedRows.length === data.length) {
+      setSelectedRows([]);
+    } else {
+      setSelectedRows(data.map((row) => row.id));
+    }
+  };
+
   const handleCellEdit = (rowIndex, columnId, value) => {
     const updatedData = [...data];
     updatedData[rowIndex][columnId] = value;
     setData(updatedData);
+
+    // Track edited rows
+    setEditedRows((prev) => {
+      const rowId = updatedData[rowIndex].id;
+      const existingIndex = prev.findIndex((row) => row.id === rowId);
+      if (existingIndex >= 0) {
+        // Update existing edited row
+        const newEditedRows = [...prev];
+        newEditedRows[existingIndex] = updatedData[rowIndex];
+        return newEditedRows;
+      }
+      // Add new edited row
+      return [...prev, updatedData[rowIndex]];
+    });
   };
 
   const handleAddRow = () => {
     const emptyRow = {};
     columnsConfig.forEach((col) => {
-      emptyRow[col.accessor] = ""; // Giá trị trống cho mỗi ô
+      emptyRow[col.accessor] = "";
     });
     setData([...data, emptyRow]);
   };
@@ -76,7 +111,7 @@ const EditableTable = ({
     setPageSize(Number(e.target.value));
     setPageIndex(1);
   };
-
+  
   const handlePreviousPage = () => {
     if (pageIndex > 1) {
       setPageIndex(pageIndex - 1);
@@ -90,11 +125,13 @@ const EditableTable = ({
   };
 
   const toggleEditMode = () => {
+    if (isEditing) {
+      handleSaveEditedRows(editedRows); 
+      setEditedRows([]);
+    }
     setIsEditing(!isEditing);
   };
-
-  console.log(data);
-
+  const isAllSelected = selectedRows.length === data.length && data.length > 0;
   return (
     <div>
       {data.length === 0 ? (
@@ -107,10 +144,14 @@ const EditableTable = ({
             <table {...getTableProps()} className="table-container">
               <thead>
                 {headerGroups.map((headerGroup) => (
-                  <tr
-                    {...headerGroup.getHeaderGroupProps()}
-                    key={headerGroup.id}
-                  >
+                  <tr {...headerGroup.getHeaderGroupProps()} key={headerGroup.id}>
+                    <th style={{ width: "50px", textAlign: "center" }}>
+                      <input
+                        type="checkbox"
+                        checked={isAllSelected}
+                        onChange={toggleSelectAll}
+                      />
+                    </th>
                     {headerGroup.headers.map((column) => (
                       <th {...column.getHeaderProps()} key={column.id}>
                         {column.render("Header")}
@@ -124,9 +165,16 @@ const EditableTable = ({
                   prepareRow(row);
                   return (
                     <tr {...row.getRowProps()} key={row.id}>
+                      <td style={{ textAlign: "center" }}>
+                        <input
+                          type="checkbox"
+                          checked={selectedRows.includes(row.original.id)}
+                          onChange={() => toggleRowSelection(row.original.id)}
+                        />
+                      </td>
                       {row.cells.map((cell) => (
                         <td {...cell.getCellProps()} key={cell.column.id}>
-                          {isEditing ? (
+                          {isEditing && selectedRows.includes(row.original.id) ? (
                             <input
                               type="text"
                               value={cell.value || ""}
@@ -156,7 +204,7 @@ const EditableTable = ({
               </tbody>
             </table>
           </div>
-
+  
           {/* Pagination */}
           <div style={{ marginTop: "20px", textAlign: "center" }}>
             <button
@@ -194,17 +242,36 @@ const EditableTable = ({
               ))}
             </select>
           </div>
-
-          {/* Add Row and Edit Buttons */}
+  
+          {/* Add Row, Edit, and Delete Buttons */}
           <div style={{ marginTop: "20px", textAlign: "center" }}>
-            <button onClick={handleAddRow} style={{ marginRight: "10px" }} disabled={!isEditing}>
+            <button
+              onClick={handleAddRow}
+              style={{ marginRight: "10px" }}
+              disabled={!isEditing}
+            >
               Add Row
             </button>
             <button onClick={toggleEditMode} style={{ marginRight: "10px" }}>
               {isEditing ? "Save" : "Edit"}
             </button>
+            <button
+              onClick={handleDeleteSelectedRows}
+              style={{
+                marginRight: "10px",
+                backgroundColor: "red",
+                color: "white",
+                padding: "5px 10px",
+                border: "none",
+                cursor: selectedRows.length > 0 ? "pointer" : "not-allowed",
+                opacity: selectedRows.length > 0 ? 1 : 0.5,
+              }}
+              disabled={selectedRows.length === 0}
+            >
+              Delete Selected
+            </button>
           </div>
-
+  
           {/* Export to Excel */}
           <button
             onClick={() => exportTableToExcel(data)}
@@ -220,6 +287,7 @@ const EditableTable = ({
       )}
     </div>
   );
+   
 };
 
 export default EditableTable;

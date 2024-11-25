@@ -69,7 +69,7 @@ const InputTable = ({ onTicketCreated }) => {
     let accessToken = localStorage.getItem("accessToken");
 
     try {
-      const response = await fetch("https://localhost:44331/Ve/xuatVe", {
+      const response = await fetch("https://localhost:7113/Ve/xuatVe", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -82,7 +82,7 @@ const InputTable = ({ onTicketCreated }) => {
         const newToken = await refreshAccessToken();
         if (newToken) {
           accessToken = newToken;
-          const retryResponse = await fetch("https://localhost:44331/Ve/xuatVe", {
+          const retryResponse = await fetch("https://localhost:7113/Ve/xuatVe", {
             method: "POST",
             headers: {
               "Content-Type": "application/json",
@@ -117,6 +117,14 @@ const InputTable = ({ onTicketCreated }) => {
     for (const row of data) {
       if (!row.ngayGioBayDi || !row.ngayGioBayDen) {
         alert("Vui lòng nhập đầy đủ ngày giờ bay đi và ngày giờ bay đến.");
+        return;
+      }
+      if(!row.soThe){
+        alert("Vui lòng nhập số thẻ thanh toán.");
+        return;
+      }
+      if(!row.tenKhachHang){
+        alert("Vui lòng nhập tên khách hàng.");
         return;
       }
     }
@@ -168,7 +176,7 @@ const InputTable = ({ onTicketCreated }) => {
   const fetchPhoneNumbers = async () => {
     try {
       const accessToken = localStorage.getItem("accessToken");
-      const response = await fetch("https://localhost:44331/Ve/ag", {
+      const response = await fetch("https://localhost:7113/Ve/ag", {
         method: "GET",
         headers: {
           "Content-Type": "application/json",

@@ -25,12 +25,13 @@ const TicketTable2 = () => {
   const [pageSize, setPageSize] = useState(10);
   const [pageIndex, setPageIndex] = useState(1);
   const [pageCount, setPageCount] = useState(0);
+  const [selectedRows, setSelectedRows] = useState([]);
 
   async function fetchInitialData(filters) {
     let accessToken = localStorage.getItem("accessToken");
 
     try {
-      const response = await fetch("https://localhost:44331/ve/filter", {
+      const response = await fetch("https://localhost:7113/ve/filter", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -45,7 +46,7 @@ const TicketTable2 = () => {
         if (newToken) {
           accessToken = newToken;
           const retryResponse = await fetch(
-            "https://localhost:44331/ve/filter",
+            "https://localhost:7113/ve/filter",
             {
               method: "POST",
               headers: {
@@ -82,6 +83,61 @@ const TicketTable2 = () => {
     }
   }
 
+  const handleSaveEditedRows = async () => {
+    const payload = data.filter((row) => selectedRows.includes(row.id));
+    console.log(payload);
+    let accessToken = localStorage.getItem("accessToken");
+  
+    try {
+      const response = await fetch("https://localhost:7113/Ve/xuatve", {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${accessToken}`,
+        },
+        body: JSON.stringify(payload),
+      });
+  
+      if (!response.ok) {
+        throw new Error("Failed to update rows: " + response.statusText);
+      }
+  
+      alert("Edited rows saved successfully!");
+      setSelectedRows([]); 
+      loadData();
+    } catch (error) {
+      console.error("Error saving edited rows:", error);
+    }
+  };
+  
+
+  const handleDeleteSelectedRows = async () => {
+    console.log(selectedRows);
+    const payload = selectedRows;
+    let accessToken = localStorage.getItem("accessToken");
+
+    try {
+      const response = await fetch("https://localhost:7113/Ve/xuatve", {
+        method: "DELETE",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${accessToken}`,
+        },
+        body: JSON.stringify(payload),
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to delete rows: " + response.statusText);
+      }
+
+      alert("Selected rows deleted successfully!");
+      setSelectedRows([]); // Clear selected rows
+      loadData(); // Reload data to refresh the table
+    } catch (error) {
+      console.error("Error deleting rows:", error);
+    }
+  };
+
   const loadData = async () => {
     const payload = {
       ...columnFilters,
@@ -112,6 +168,10 @@ const TicketTable2 = () => {
         setPageSize={setPageSize}
         setPageIndex={setPageIndex}
         pageCount={pageCount}
+        selectedRows={selectedRows}
+        setSelectedRows={setSelectedRows}
+        handleDeleteSelectedRows={handleDeleteSelectedRows}
+        handleSaveEditedRows={handleSaveEditedRows}
       />
     </div>
   );

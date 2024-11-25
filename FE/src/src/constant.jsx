@@ -1,6 +1,6 @@
 export async function refreshAccessToken() {
     try {
-        const refreshResponse = await fetch("https://localhost:44331/refresh", {
+        const refreshResponse = await fetch("https://localhost:7113/refresh", {
             method: "POST",
             headers: {
                 "Content-Type": "application/json",
@@ -23,6 +23,7 @@ export async function refreshAccessToken() {
 
 export function processResult(result) {
     return result.items.map((item) => ({
+        id: item.id,
         ngayXuat: item.ngayXuat,
         changDi: item.changDi,
         ngayGioBayDi: item.ngayGioBayDi,

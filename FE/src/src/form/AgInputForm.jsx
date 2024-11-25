@@ -14,22 +14,30 @@ const Transition = React.forwardRef(function Transition(props, ref) {
 });
 
 export default function FullScreenDialog({ open, onClose }) {
-  const [formData, setFormData] = React.useState([
+  const [formData, setFormData] = useState([
     { tenAG: "", sdt: "", mail: "" },
   ]);
-  const [apiData, setApiData] = useState([]); // State để lưu dữ liệu từ API
+  const [apiData, setApiData] = useState([
+    { id: "", tenAG: "", sdt: "", mail: "" }
+  ]);
+  const [selectedRows, setSelectedRows] = useState([]); // Lưu các hàng được chọn
+  const [selectedApiRows, setSelectedApiRows] = useState([]);
 
-  // Fetch dữ liệu từ API khi dialog mở
   useEffect(() => {
     if (open) {
       fetchApiData();
+    }else{
+      setFormData([{ tenAG: "", sdt: "", mail: "" }]);
+      setSelectedRows([]);
+      setSelectedApiRows([]);
     }
   }, [open]);
+  
 
   const fetchApiData = async () => {
     let accessToken = localStorage.getItem("accessToken");
     try {
-      const response = await fetch("https://localhost:44331/Ve/ag", {
+      const response = await fetch("https://localhost:7113/Ve/ag", {
         method: "GET",
         headers: {
           "Content-Type": "application/json",
@@ -40,7 +48,7 @@ export default function FullScreenDialog({ open, onClose }) {
         const newToken = await refreshAccessToken();
         if (newToken) {
           accessToken = newToken;
-          const retryResponse = await fetch("https://localhost:44331/Ve/ag", {
+          const retryResponse = await fetch("https://localhost:7113/Ve/ag", {
             method: "GET",
             headers: {
               "Content-Type": "application/json",
@@ -55,7 +63,7 @@ export default function FullScreenDialog({ open, onClose }) {
             );
           }
           const retryResult = await retryResponse.json();
-          setApiData(retryResult);
+          updateFormData(retryResult);
           return;
         } else {
           throw new Error("Failed to refresh access token");
@@ -65,10 +73,20 @@ export default function FullScreenDialog({ open, onClose }) {
         throw new Error("Network response was not ok");
       }
       const result = await response.json();
-      setApiData(result); // Lưu dữ liệu vào state
+      updateFormData(result);
     } catch (error) {
       console.error("Error fetching data", error);
     }
+  };
+
+  const updateFormData = (apiData) => {
+    const mappedData = apiData.map((item) => ({
+      id: item.id,
+      tenAG: item.tenAG || "",
+      sdt: item.sdt || "",
+      mail: item.mail || "",
+    }));
+    setApiData(mappedData);
   };
 
   const handleCellChange = (rowIndex, field, value) => {
@@ -86,7 +104,7 @@ export default function FullScreenDialog({ open, onClose }) {
   const handleSave = async () => {
     let accessToken = localStorage.getItem("accessToken");
     try {
-      const response = await fetch("https://localhost:44331/Ve/ag", {
+      const response = await fetch("https://localhost:7113/Ve/ag", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -99,11 +117,51 @@ export default function FullScreenDialog({ open, onClose }) {
       }
       alert("Save success");
       onClose(null);
-      fetchApiData(); // Fetch lại dữ liệu sau khi lưu thành công
+      fetchApiData();
     } catch (error) {
       console.error("Error saving data", error);
     }
   };
+
+  const handleCheckboxChange = (rowIndex) => {
+    setSelectedRows((prev) =>
+      prev.includes(rowIndex)
+        ? prev.filter((index) => index !== rowIndex)
+        : [...prev, rowIndex]
+    );
+  };
+
+  const handleDeleteSelectedRows = () => {
+    setFormData((prev) => prev.filter((_, idx) => !selectedRows.includes(idx)));
+    setSelectedRows([]);
+  };
+
+  const handleApiCheckboxChange = (id) => {
+    setSelectedApiRows((prev) =>
+      prev.includes(id) ? prev.filter((itemId) => itemId !== id) : [...prev, id]
+    );
+  };
+
+  const handleDeleteSelectedApiRows = async () => {
+    let accessToken = localStorage.getItem("accessToken");
+    try {
+      const response = await fetch("https://localhost:7113/Ve/ag", {
+        method: "DELETE",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${accessToken}`,
+        },
+        body: JSON.stringify(selectedApiRows),
+      });
+      if (!response.ok) throw new Error("Delete failed");
+      alert("Delete success");
+      fetchApiData(); // Refresh data after deletion
+      setSelectedApiRows([]); // Clear selected rows
+    } catch (error) {
+      console.error("Error deleting data", error);
+    }
+  };
+
 
   return (
     <Dialog
@@ -146,9 +204,12 @@ export default function FullScreenDialog({ open, onClose }) {
         <table style={{ width: "100%", borderCollapse: "collapse" }}>
           <thead>
             <tr>
-              <th style={{ border: "1px solid #ddd", padding: "8px" }}>
-                Tên AG
+              <th
+                style={{ border: "1px solid #ddd", padding: "8px", textAlign: "center" }}
+              >
+                Chọn
               </th>
+              <th style={{ border: "1px solid #ddd", padding: "8px" }}>Tên AG</th>
               <th style={{ border: "1px solid #ddd", padding: "8px" }}>
                 Số điện thoại
               </th>
@@ -158,6 +219,15 @@ export default function FullScreenDialog({ open, onClose }) {
           <tbody>
             {formData.map((row, rowIndex) => (
               <tr key={rowIndex}>
+                <td
+                  style={{ border: "1px solid #ddd", padding: "8px", textAlign: "center" }}
+                >
+                  <input
+                    type="checkbox"
+                    checked={selectedRows.includes(rowIndex)}
+                    onChange={() => handleCheckboxChange(rowIndex)}
+                  />
+                </td>
                 <td style={{ border: "1px solid #ddd", padding: "8px" }}>
                   <input
                     type="text"
@@ -215,6 +285,15 @@ export default function FullScreenDialog({ open, onClose }) {
         >
           Thêm Hàng
         </Button>
+        <Button
+          onClick={handleDeleteSelectedRows}
+          variant="contained"
+          color="secondary"
+          style={{ marginTop: "20px", marginLeft: "10px" }}
+          disabled={selectedRows.length === 0}
+        >
+          Xóa Hàng Đã Chọn
+        </Button>
       </div>
 
       {/* Table for API Data */}
@@ -223,9 +302,12 @@ export default function FullScreenDialog({ open, onClose }) {
         <table style={{ width: "100%", borderCollapse: "collapse" }}>
           <thead>
             <tr>
-              <th style={{ border: "1px solid #ddd", padding: "8px" }}>
-                Tên AG
+              <th
+                style={{ border: "1px solid #ddd", padding: "8px", textAlign: "center" }}
+              >
+                Chọn
               </th>
+              <th style={{ border: "1px solid #ddd", padding: "8px" }}>Tên AG</th>
               <th style={{ border: "1px solid #ddd", padding: "8px" }}>
                 Số điện thoại
               </th>
@@ -233,8 +315,17 @@ export default function FullScreenDialog({ open, onClose }) {
             </tr>
           </thead>
           <tbody>
-            {apiData.map((row, index) => (
-              <tr key={index}>
+            {apiData.map((row) => (
+              <tr key={row.id}>
+                <td
+                  style={{ border: "1px solid #ddd", padding: "8px", textAlign: "center" }}
+                >
+                  <input
+                    type="checkbox"
+                    checked={selectedApiRows.includes(row.id)}
+                    onChange={() => handleApiCheckboxChange(row.id)}
+                  />
+                </td>
                 <td style={{ border: "1px solid #ddd", padding: "8px" }}>
                   {row.tenAG}
                 </td>
@@ -248,6 +339,15 @@ export default function FullScreenDialog({ open, onClose }) {
             ))}
           </tbody>
         </table>
+        <Button
+          onClick={handleDeleteSelectedApiRows}
+          variant="contained"
+          color="secondary"
+          style={{ marginTop: "20px" }}
+          disabled={selectedApiRows.length === 0}
+        >
+          Xóa Hàng Đã Chọn
+        </Button>
       </div>
     </Dialog>
   );
