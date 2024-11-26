@@ -3,6 +3,7 @@ import { saveAs } from "file-saver";
 import * as XLSX from "xlsx";
 import { useTable, usePagination } from "react-table";
 import "../style/table.css";
+import { formatDate } from "../constant";
 
 const exportTableToExcel = (tableData, fileName = "table_data.xlsx") => {
   const worksheet = XLSX.utils.json_to_sheet(tableData);
@@ -97,14 +98,6 @@ const EditableTable = ({
       // Add new edited row
       return [...prev, updatedData[rowIndex]];
     });
-  };
-
-  const handleAddRow = () => {
-    const emptyRow = {};
-    columnsConfig.forEach((col) => {
-      emptyRow[col.accessor] = "";
-    });
-    setData([...data, emptyRow]);
   };
 
   const handlePageSizeChange = (e) => {
@@ -227,7 +220,7 @@ const EditableTable = ({
                               }}
                             />
                           ) : (
-                            cell.render("Cell")
+                            cell.column.id === 'ngayXuat' ||  cell.column.id === "ngayGioBayDen" ||  cell.column.id === "ngayGioBayDen" ? formatDate(cell.value) : cell.render('Cell')
                           )}
                         </td>
                       ))}
@@ -238,7 +231,6 @@ const EditableTable = ({
             </table>
           </div>
 
-          {/* Pagination */}
           <div style={{ marginTop: "20px", textAlign: "center" }}>
             <button
               onClick={handlePreviousPage}
@@ -278,40 +270,29 @@ const EditableTable = ({
 
           {/* Add Row, Edit, and Delete Buttons */}
           <div style={{ marginTop: "20px", textAlign: "center" }}>
-            <button
-              onClick={handleAddRow}
-              style={{ marginRight: "10px" }}
-              disabled={!isEditing}
-            >
-              Add Row
-            </button>
-            <button onClick={toggleEditMode} style={{ marginRight: "10px" }}>
+            <button onClick={toggleEditMode}
+              style={{
+                marginRight: "10px", cursor: selectedRows.length === 0 ? "not-allowed" : "pointer",
+              }}
+              disabled={selectedRows.length === 0}>
               {isEditing ? "Save" : "Edit"}
             </button>
             <button
               onClick={handleDeleteSelectedRows}
-              style={{
-                marginRight: "10px",
-                backgroundColor: "red",
-                color: "white",
-                padding: "5px 10px",
-                border: "none",
-                cursor: selectedRows.length > 0 ? "pointer" : "not-allowed",
-                opacity: selectedRows.length > 0 ? 1 : 0.5,
-              }}
               disabled={selectedRows.length === 0}
+              style={{
+                marginRight: "10px", cursor: selectedRows.length === 0 ? "not-allowed" : "pointer",
+              }}
             >
               Delete Selected
             </button>
           </div>
 
-          {/* Export to Excel */}
           <button
             onClick={() => exportTableToExcel(data)}
             style={{
               marginTop: "20px",
               display: "block",
-              margin: "0 auto",
             }}
           >
             Export to Excel
