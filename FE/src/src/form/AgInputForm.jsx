@@ -13,15 +13,38 @@ const Transition = React.forwardRef(function Transition(props, ref) {
   return <Slide direction="up" ref={ref} {...props} />;
 });
 
+const generateMatrixValues = (rows, cols, startValue = 11) => {
+  const matrix = [];
+  let value = startValue; // Bắt đầu từ 11
+  for (let i = 0; i < rows; i++) {
+    const row = [];
+    for (let j = 0; j < cols; j++) {
+      row.push(value++);
+    }
+    matrix.push(row);
+  }
+  return matrix;
+};
+
+
 export default function FullScreenDialog({ open, onClose }) {
-  const [formData, setFormData] = useState([
-    { tenAG: "", sdt: "", mail: "" },
-  ]);
+  const [formData, setFormData] = useState(() => {
+    const rows = 1; // Số hàng ban đầu
+    const cols = 3; // Số cột (tenAG, sdt, mail)
+    const matrix = generateMatrixValues(rows, cols);
+    return Array.from({ length: rows }, (_, rowIndex) => ({
+      tenAG: "",
+      sdt: "",
+      mail: "",
+      matrixValue: matrix[rowIndex], // Gán matrixValue cho mỗi hàng
+    }));
+  });
   const [apiData, setApiData] = useState([
     { id: "", tenAG: "", sdt: "", mail: "" }
   ]);
   const [selectedRows, setSelectedRows] = useState([]); // Lưu các hàng được chọn
   const [selectedApiRows, setSelectedApiRows] = useState([]);
+  const [currentFocusRow, setCurrentFocusRow] = useState(null); // Lưu vị trí hàng được focus
 
   useEffect(() => {
     if (open) {
@@ -32,12 +55,43 @@ export default function FullScreenDialog({ open, onClose }) {
       setSelectedApiRows([]);
     }
   }, [open]);
+
+  const handlePaste = (e) => {
+    e.preventDefault();
+  
+    // Lấy dữ liệu từ clipboard
+    const clipboardData = e.clipboardData.getData("text");
+    const rows = clipboardData.split("\n").map((row) => row.split("\t")); // Chia dòng và cột từ Excel
+  
+    if (currentFocusRow === null) return; // Kiểm tra nếu chưa có hàng focus
+  
+    // Cập nhật dữ liệu vào bảng
+    const updatedFormData = [...formData];
+    rows.forEach((rowValues, rowOffset) => {
+      const targetRow = currentFocusRow + rowOffset; // Xác định hàng bắt đầu
+      if (updatedFormData[targetRow]) {
+        // Cập nhật các cột
+        rowValues.forEach((cellValue, colOffset) => {
+          if (colOffset === 0) {
+            updatedFormData[targetRow].tenAG = cellValue; // Cột tên AG
+          } else if (colOffset === 1) {
+            updatedFormData[targetRow].sdt = cellValue; // Cột số điện thoại
+          } else if (colOffset === 2) {
+            updatedFormData[targetRow].mail = cellValue; // Cột email
+          }
+        });
+      }
+    });
+  
+    setFormData(updatedFormData); // Cập nhật state
+  };
+  
   
 
   const fetchApiData = async () => {
     let accessToken = localStorage.getItem("accessToken");
     try {
-      const response = await fetch("https://localhost:44331/Ve/ag", {
+      const response = await fetch("https://localhost:7113/Ve/ag", {
         method: "GET",
         headers: {
           "Content-Type": "application/json",
@@ -48,7 +102,7 @@ export default function FullScreenDialog({ open, onClose }) {
         const newToken = await refreshAccessToken();
         if (newToken) {
           accessToken = newToken;
-          const retryResponse = await fetch("https://localhost:44331/Ve/ag", {
+          const retryResponse = await fetch("https://localhost:7113/Ve/ag", {
             method: "GET",
             headers: {
               "Content-Type": "application/json",
@@ -98,13 +152,26 @@ export default function FullScreenDialog({ open, onClose }) {
   };
 
   const handleAddRow = () => {
-    setFormData((prev) => [...prev, { tenAG: "", sdt: "", mail: "" }]);
+    const currentRows = formData.length;
+    const cols = 3; // Số cột (tenAG, sdt, mail)
+    const matrix = generateMatrixValues(currentRows + 1, cols, 11);
+  
+    setFormData((prev) => [
+      ...prev,
+      {
+        tenAG: "",
+        sdt: "",
+        mail: "",
+        matrixValue: matrix[currentRows], // Gán matrixValue mới
+      },
+    ]);
   };
+  
 
   const handleSave = async () => {
     let accessToken = localStorage.getItem("accessToken");
     try {
-      const response = await fetch("https://localhost:44331/Ve/ag", {
+      const response = await fetch("https://localhost:7113/Ve/ag", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -145,7 +212,7 @@ export default function FullScreenDialog({ open, onClose }) {
   const handleDeleteSelectedApiRows = async () => {
     let accessToken = localStorage.getItem("accessToken");
     try {
-      const response = await fetch("https://localhost:44331/Ve/ag", {
+      const response = await fetch("https://localhost:7113/Ve/ag", {
         method: "DELETE",
         headers: {
           "Content-Type": "application/json",
@@ -199,7 +266,7 @@ export default function FullScreenDialog({ open, onClose }) {
       </AppBar>
 
       {/* Table for Input */}
-      <div style={{ padding: "20px" }}>
+      <div style={{ padding: "20px" }} onPaste={handlePaste}>
         <Typography variant="h6">Thêm mới AG</Typography>
         <table style={{ width: "100%", borderCollapse: "collapse" }}>
           <thead>
@@ -235,6 +302,7 @@ export default function FullScreenDialog({ open, onClose }) {
                     onChange={(e) =>
                       handleCellChange(rowIndex, "tenAG", e.target.value)
                     }
+                    onFocus={() => setCurrentFocusRow(rowIndex)}
                     style={{
                       width: "100%",
                       border: "none",
@@ -250,6 +318,7 @@ export default function FullScreenDialog({ open, onClose }) {
                     onChange={(e) =>
                       handleCellChange(rowIndex, "sdt", e.target.value)
                     }
+                    onFocus={() => setCurrentFocusRow(rowIndex)}
                     style={{
                       width: "100%",
                       border: "none",
@@ -265,6 +334,7 @@ export default function FullScreenDialog({ open, onClose }) {
                     onChange={(e) =>
                       handleCellChange(rowIndex, "mail", e.target.value)
                     }
+                    onFocus={() => setCurrentFocusRow(rowIndex)}
                     style={{
                       width: "100%",
                       border: "none",
