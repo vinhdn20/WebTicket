@@ -50,7 +50,7 @@ const EditableTable = ({
   handleSaveEditedRows
 }) => {
   const [isEditing, setIsEditing] = useState(false);
-  const [editedRows, setEditedRows] = useState([]); 
+  const [editedRows, setEditedRows] = useState([]);
   const { getTableProps, getTableBodyProps, headerGroups, prepareRow, page } =
     useTable(
       {
@@ -111,7 +111,7 @@ const EditableTable = ({
     setPageSize(Number(e.target.value));
     setPageIndex(1);
   };
-  
+
   const handlePreviousPage = () => {
     if (pageIndex > 1) {
       setPageIndex(pageIndex - 1);
@@ -125,8 +125,40 @@ const EditableTable = ({
   };
 
   const toggleEditMode = () => {
+    const formattedTickets = editedRows.map((row) => ({
+      id: row.id,
+      ngayXuat: new Date().toISOString(),
+      changDi: row.changDi,
+      ngayGioBayDi: row.ngayGioBayDi ? new Date(row.ngayGioBayDi).toISOString() : new Date().toISOString(),
+      changVe: row.changVe,
+      ngayGioBayDen: row.ngayGioBayDen ? new Date(row.ngayGioBayDen).toISOString() : new Date().toISOString(),
+      maDatChoHang: row.maDatChoHang,
+      addOn: row.addOn,
+      maDatChoTrip: row.maDatChoTrip,
+      thuAG: row.thuAG,
+      giaXuat: row.giaXuat,
+      luuY: row.luuY,
+      veHoanKhay: row.veHoanKhay,
+      agCustomer: {
+        agCustomerId: row.agCustomerId,
+        tenAG: row.tenAG,
+        mail: row.mail,
+        sdt: row.sdt,
+      },
+      customer: {
+        customerId: row.customerId,
+        tenKhachHang: row.tenKhachHang,
+        gioiTinh: row.gioiTinh,
+      },
+      card: {
+        cardId: row.cardId,
+        soThe: row.soThe,
+      },
+      taiKhoan: row.taiKhoan,
+    }));
     if (isEditing) {
-      handleSaveEditedRows(editedRows); 
+      console.log(formattedTickets, 'formattedTickets')
+      handleSaveEditedRows(formattedTickets);
       setEditedRows([]);
     }
     setIsEditing(!isEditing);
@@ -205,7 +237,7 @@ const EditableTable = ({
               </tbody>
             </table>
           </div>
-  
+
           {/* Pagination */}
           <div style={{ marginTop: "20px", textAlign: "center" }}>
             <button
@@ -243,7 +275,7 @@ const EditableTable = ({
               ))}
             </select>
           </div>
-  
+
           {/* Add Row, Edit, and Delete Buttons */}
           <div style={{ marginTop: "20px", textAlign: "center" }}>
             <button
@@ -272,7 +304,7 @@ const EditableTable = ({
               Delete Selected
             </button>
           </div>
-  
+
           {/* Export to Excel */}
           <button
             onClick={() => exportTableToExcel(data)}
@@ -288,7 +320,7 @@ const EditableTable = ({
       )}
     </div>
   );
-   
+
 };
 
 export default EditableTable;

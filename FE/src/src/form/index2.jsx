@@ -1,9 +1,10 @@
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import "../style/table.css";
 import InputForm from "./InputForm";
 import DataTable from "./table";
 import SearchComponent from "./search";
 import { processResult, refreshAccessToken } from "../constant";
+import { debounce } from "lodash";
 
 const initTable = {
   pageIndex: 1,
@@ -31,7 +32,7 @@ const TicketTable2 = () => {
     let accessToken = localStorage.getItem("accessToken");
 
     try {
-      const response = await fetch("https://localhost:7113/ve/filter", {
+      const response = await fetch("https://localhost:44331/ve/filter", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -46,7 +47,7 @@ const TicketTable2 = () => {
         if (newToken) {
           accessToken = newToken;
           const retryResponse = await fetch(
-            "https://localhost:7113/ve/filter",
+            "https://localhost:44331/ve/filter",
             {
               method: "POST",
               headers: {
@@ -83,13 +84,10 @@ const TicketTable2 = () => {
     }
   }
 
-  const handleSaveEditedRows = async () => {
-    const payload = data.filter((row) => selectedRows.includes(row.id));
-    console.log(payload);
+  const handleSaveEditedRows = async (payload) => {
     let accessToken = localStorage.getItem("accessToken");
-  
     try {
-      const response = await fetch("https://localhost:7113/Ve/xuatve", {
+      const response = await fetch("https://localhost:44331/Ve/xuatve", {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
@@ -112,12 +110,11 @@ const TicketTable2 = () => {
   
 
   const handleDeleteSelectedRows = async () => {
-    console.log(selectedRows);
     const payload = selectedRows;
     let accessToken = localStorage.getItem("accessToken");
 
     try {
-      const response = await fetch("https://localhost:7113/Ve/xuatve", {
+      const response = await fetch("https://localhost:44331/Ve/xuatve", {
         method: "DELETE",
         headers: {
           "Content-Type": "application/json",
@@ -131,27 +128,26 @@ const TicketTable2 = () => {
       }
 
       alert("Selected rows deleted successfully!");
-      setSelectedRows([]); // Clear selected rows
-      loadData(); // Reload data to refresh the table
+      setSelectedRows([]); 
+      loadData();
     } catch (error) {
       console.error("Error deleting rows:", error);
     }
   };
 
-  const loadData = async () => {
+  const loadData = useCallback(debounce(async () => {
     const payload = {
       ...columnFilters,
       pageIndex,
       pageSize,
     };
     const initialData = await fetchInitialData(payload);
-    setData(initialData);
-  };
+    setData(initialData);  // Update the data state
+  }, 500), [columnFilters, pageIndex, pageSize]);  // Depend on columnFilters, pageIndex, pageSize
 
   useEffect(() => {
-    console.log(pageIndex);
-    loadData();
-  }, [pageSize, pageIndex, columnFilters]);
+    loadData();  // Fetch data whenever relevant state changes
+  }, [loadData]);
 
   return (
     <div className="container">

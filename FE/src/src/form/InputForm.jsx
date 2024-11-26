@@ -69,7 +69,7 @@ const InputTable = ({ onTicketCreated }) => {
     let accessToken = localStorage.getItem("accessToken");
 
     try {
-      const response = await fetch("https://localhost:7113/Ve/xuatVe", {
+      const response = await fetch("https://localhost:44331/Ve/xuatVe", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -82,7 +82,7 @@ const InputTable = ({ onTicketCreated }) => {
         const newToken = await refreshAccessToken();
         if (newToken) {
           accessToken = newToken;
-          const retryResponse = await fetch("https://localhost:7113/Ve/xuatVe", {
+          const retryResponse = await fetch("https://localhost:44331/Ve/xuatVe", {
             method: "POST",
             headers: {
               "Content-Type": "application/json",
@@ -99,11 +99,9 @@ const InputTable = ({ onTicketCreated }) => {
           throw new Error("Failed to refresh access token");
         }
       }
-
       if (!response.ok) {
         throw new Error("Network response was not ok " + response.statusText);
       }
-
       return await response.json();
     } catch (error) {
       console.error("Error creating tickets:", error);
@@ -119,11 +117,11 @@ const InputTable = ({ onTicketCreated }) => {
         alert("Vui lòng nhập đầy đủ ngày giờ bay đi và ngày giờ bay đến.");
         return;
       }
-      if(!row.soThe){
+      if (!row.soThe) {
         alert("Vui lòng nhập số thẻ thanh toán.");
         return;
       }
-      if(!row.tenKhachHang){
+      if (!row.tenKhachHang) {
         alert("Vui lòng nhập tên khách hàng.");
         return;
       }
@@ -158,25 +156,20 @@ const InputTable = ({ onTicketCreated }) => {
     }));
 
     try {
-      // Gửi mảng payload đến API
       await callCreateTicketAPI(formattedTickets);
+      onTicketCreated();
       alert("Vé đã tạo thành công!");
-
-      // Reset lại dữ liệu bảng sau khi gửi thành công
-      setData([]); // Xóa toàn bộ dữ liệu trong bảng
+      setData([]);
     } catch (error) {
       alert("Có lỗi xảy ra khi tạo vé. Vui lòng thử lại.");
       console.error("Error creating tickets:", error);
     }
   };
 
-
-
-  // Hàm fetch danh sách số điện thoại
   const fetchPhoneNumbers = async () => {
     try {
       const accessToken = localStorage.getItem("accessToken");
-      const response = await fetch("https://localhost:7113/Ve/ag", {
+      const response = await fetch("https://localhost:44331/Ve/ag", {
         method: "GET",
         headers: {
           "Content-Type": "application/json",
