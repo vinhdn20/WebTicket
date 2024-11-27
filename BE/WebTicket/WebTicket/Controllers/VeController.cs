@@ -291,6 +291,28 @@ namespace Ve.Controllers
                 return BadRequest("Server error: " + ex.Message);
             }
         }
+        [HttpGet("card")]
+        [Authorize]
+        public async Task<IActionResult> GetCardInfo(string? soThe)
+        {
+            try
+            {
+                if (string.IsNullOrEmpty(soThe))
+                {
+                    var result = await _repository.Context.Cards.ToListAsync();
+                    return Ok(result);
+                }
+                else
+                {
+                    var result = await _repository.GetAllWithAsync<Card>(x => x.SoThe.Contains(soThe));
+                    return Ok(result);
+                }
+            }
+            catch (Exception ex)
+            {
+                return BadRequest("Server error: " + ex.Message);
+            }
+        }
 
         [HttpPost("card")]
         [Authorize]
@@ -308,20 +330,20 @@ namespace Ve.Controllers
             }
         }
 
-        [HttpGet("ag/{cardNumber}")]
-        [Authorize]
-        public async Task<IActionResult> GetCardInfo(string cardNumber)
-        {
-            try
-            {
-                var result = await _repository.GetAllWithAsync<Card>(x => x.SoThe.Contains(cardNumber));
-                return Ok(result);
-            }
-            catch (Exception ex)
-            {
-                return BadRequest("Server error: " + ex.Message);
-            }
-        }
+        //[HttpGet("ag/{cardNumber}")]
+        //[Authorize]
+        //public async Task<IActionResult> GetCardInfo(string cardNumber)
+        //{
+        //    try
+        //    {
+        //        var result = await _repository.GetAllWithAsync<Card>(x => x.SoThe.Contains(cardNumber));
+        //        return Ok(result);
+        //    }
+        //    catch (Exception ex)
+        //    {
+        //        return BadRequest("Server error: " + ex.Message);
+        //    }
+        //}
 
         [HttpDelete("card")]
         [Authorize]

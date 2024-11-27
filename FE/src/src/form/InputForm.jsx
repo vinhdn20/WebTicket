@@ -1,35 +1,32 @@
 import React, { useState } from "react";
 import "../style/table.css";
 import Button from "@mui/material/Button";
-import Autocomplete from "@mui/material/Autocomplete";
-import FullScreenDialog from "./AgInputForm";
-import { TextField } from "@mui/material";
 import { refreshAccessToken } from "../constant";
-
+import FullScreenAGDialog from "./AgInputForm";
+import FullScreenSoTheDialog from "./SoTheInputForm";
 
 const getCurrentDateTimeLocal = () => {
   const now = new Date();
-  const offset = now.getTimezoneOffset() * 60000; // Lấy độ lệch múi giờ
+  const offset = now.getTimezoneOffset() * 60000;
   const localDateTime = new Date(now.getTime() - offset)
     .toISOString()
-    .slice(0, 16); // Định dạng YYYY-MM-DDTHH:mm
+    .slice(0, 16);
   return localDateTime;
 };
 
 const createMatrix = (rows, cols) => {
   const matrix = [];
-  let value = 11; // Bắt đầu từ 11
+  let value = 11;
   for (let i = 0; i < rows; i++) {
     const row = [];
     for (let j = 0; j < cols; j++) {
-      row.push(value); // Gắn giá trị vào ô
-      value++; // Tăng giá trị cho ô tiếp theo
+      row.push(value);
+      value++;
     }
-    matrix.push(row); // Thêm dòng vào ma trận
+    matrix.push(row);
   }
   return matrix;
 };
-
 
 const InputTable = ({ onTicketCreated }) => {
   const [data, setData] = useState(() => {
@@ -57,19 +54,21 @@ const InputTable = ({ onTicketCreated }) => {
       },
     ];
 
-    const matrix = createMatrix(initialData.length, Object.keys(initialData[0]).length);
+    const matrix = createMatrix(
+      initialData.length,
+      Object.keys(initialData[0]).length
+    );
 
-    // Gắn thuộc tính `matrixValue` cho mỗi ô
     return initialData.map((row, rowIndex) => {
       const updatedRow = { ...row };
       Object.keys(row).forEach((key, colIndex) => {
-        updatedRow[`${key}MatrixValue`] = matrix[rowIndex][colIndex]; // Thêm matrixValue
+        updatedRow[`${key}MatrixValue`] = matrix[rowIndex][colIndex];
       });
       return updatedRow;
     });
   });
   const [currentFocusCell, setCurrentFocusCell] = useState(null);
-  const [selectedRows, setSelectedRows] = useState([]); // Danh sách hàng được chọn
+  const [selectedRows, setSelectedRows] = useState([]);
   const [phoneOptions, setPhoneOptions] = useState([]);
   const [open, setOpen] = React.useState(false);
 
@@ -100,30 +99,35 @@ const InputTable = ({ onTicketCreated }) => {
     let accessToken = localStorage.getItem("accessToken");
 
     try {
-      const response = await fetch("https://localhost:44331/Ve/xuatVe", {
+      const response = await fetch("https://localhost:7113/Ve/xuatVe", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
           Authorization: `Bearer ${accessToken}`,
         },
-        body: JSON.stringify(ticketDataArray), // Gửi toàn bộ mảng payload
+        body: JSON.stringify(ticketDataArray),
       });
 
       if (response.status === 401) {
         const newToken = await refreshAccessToken();
         if (newToken) {
           accessToken = newToken;
-          const retryResponse = await fetch("https://localhost:44331/Ve/xuatVe", {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-              Authorization: `Bearer ${accessToken}`,
-            },
-            body: JSON.stringify(ticketDataArray),
-          });
+          const retryResponse = await fetch(
+            "https://localhost:7113/Ve/xuatVe",
+            {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+                Authorization: `Bearer ${accessToken}`,
+              },
+              body: JSON.stringify(ticketDataArray),
+            }
+          );
 
           if (!retryResponse.ok) {
-            throw new Error("Failed after token refresh: " + retryResponse.statusText);
+            throw new Error(
+              "Failed after token refresh: " + retryResponse.statusText
+            );
           }
           return await retryResponse.json();
         } else {
@@ -139,7 +143,6 @@ const InputTable = ({ onTicketCreated }) => {
       throw error;
     }
   }
-
 
   const handleAddTicket = async (e) => {
     e.preventDefault();
@@ -161,9 +164,13 @@ const InputTable = ({ onTicketCreated }) => {
     const formattedTickets = data.map((row) => ({
       ngayXuat: new Date().toISOString(),
       changDi: row.changDi,
-      ngayGioBayDi: row.ngayGioBayDi ? new Date(row.ngayGioBayDi).toISOString() : new Date().toISOString(),
+      ngayGioBayDi: row.ngayGioBayDi
+        ? new Date(row.ngayGioBayDi).toISOString()
+        : new Date().toISOString(),
       changVe: row.changVe,
-      ngayGioBayDen: row.ngayGioBayDen ? new Date(row.ngayGioBayDen).toISOString() : new Date().toISOString(),
+      ngayGioBayDen: row.ngayGioBayDen
+        ? new Date(row.ngayGioBayDen).toISOString()
+        : new Date().toISOString(),
       maDatChoHang: row.maDatChoHang,
       addOn: row.addOn,
       maDatChoTrip: row.maDatChoTrip,
@@ -200,7 +207,7 @@ const InputTable = ({ onTicketCreated }) => {
   const fetchPhoneNumbers = async () => {
     try {
       const accessToken = localStorage.getItem("accessToken");
-      const response = await fetch("https://localhost:44331/Ve/ag", {
+      const response = await fetch("https://localhost:7113/Ve/ag", {
         method: "GET",
         headers: {
           "Content-Type": "application/json",
@@ -220,32 +227,27 @@ const InputTable = ({ onTicketCreated }) => {
     }
   };
 
-  // Hàm thêm hàng mới
   const handleAddRow = () => {
     const newRow = columns.reduce((acc, col) => {
       acc[col.accessor] =
         col.accessor === "ngayXuat"
           ? getCurrentDateTimeLocal()
           : col.accessor === "gioiTinh"
-            ? "Nam"
-            : col.accessor === "veHoanKhay"
-              ? "Có"
-              : "";
+          ? "Nam"
+          : col.accessor === "veHoanKhay"
+          ? "Có"
+          : "";
       return acc;
     }, {});
     const newMatrix = createMatrix(data.length + 1, Object.keys(newRow).length);
-
-    // Gắn thuộc tính `matrixValue` vào hàng mới
     const updatedNewRow = { ...newRow };
     Object.keys(newRow).forEach((key, colIndex) => {
-      updatedNewRow[`${key}MatrixValue`] = newMatrix[data.length][colIndex]; // Gắn giá trị ma trận
+      updatedNewRow[`${key}MatrixValue`] = newMatrix[data.length][colIndex];
     });
 
-    // Thêm hàng mới vào bảng
     setData((prevData) => [...prevData, updatedNewRow]);
   };
 
-  // Hàm cập nhật dữ liệu
   const handleCellEdit = (rowIndex, columnId, value) => {
     const updatedData = [...data];
     updatedData[rowIndex] = {
@@ -253,35 +255,40 @@ const InputTable = ({ onTicketCreated }) => {
       [columnId]: value,
       error: {
         ...updatedData[rowIndex].error,
-        [columnId]: columnId === "ngayGioBayDi" || columnId === "ngayGioBayDen" ? !value : false,
+        [columnId]:
+          columnId === "ngayGioBayDi" || columnId === "ngayGioBayDen"
+            ? !value
+            : false,
       },
     };
     setData(updatedData);
   };
 
-
-  // Hàm xử lý chọn số điện thoại từ Autocomplete
   const handlePhoneSelect = (rowIndex, newValue) => {
+    const selectedPhoneOption = phoneOptions.find(
+      (option) => option.sdt === newValue.sdt
+    );
+
     const updatedData = [...data];
-    if (newValue) {
+    if (selectedPhoneOption) {
       updatedData[rowIndex] = {
         ...updatedData[rowIndex],
-        sdt: newValue.sdt || "",
-        tenAG: newValue.tenAG || "",
-        mail: newValue.mail || "",
+        sdt: selectedPhoneOption.sdt,
+        tenAG: selectedPhoneOption.tenAG || "",
+        mail: selectedPhoneOption.mail || "",
       };
     } else {
       updatedData[rowIndex] = {
         ...updatedData[rowIndex],
-        sdt: "",
+        sdt: newValue.sdt || "",
         tenAG: "",
         mail: "",
       };
     }
+
     setData(updatedData);
   };
 
-  // Hàm xử lý chọn hàng
   const handleSelectRow = (rowIndex, isSelected) => {
     if (isSelected) {
       setSelectedRows((prevSelected) => [...prevSelected, rowIndex]);
@@ -292,13 +299,12 @@ const InputTable = ({ onTicketCreated }) => {
     }
   };
 
-  // Hàm xóa các hàng đã chọn
   const handleDeleteRows = () => {
     const updatedData = data.filter(
       (_, index) => !selectedRows.includes(index)
     );
     setData(updatedData);
-    setSelectedRows([]); // Reset danh sách hàng được chọn
+    setSelectedRows([]);
   };
 
   const handleClickOpen = () => {
@@ -309,28 +315,14 @@ const InputTable = ({ onTicketCreated }) => {
     setOpen(false);
   };
 
-  const extractMatrixFromData = (data, columns) => {
-    return data.map((row) => {
-      return columns.map((column) => row[`${column.accessor}MatrixValue`] || ""); // Lấy `matrixValue` từ từng cột
-    });
-  };
-
-  const handleLogMatrix = () => {
-    const matrix = extractMatrixFromData(data, columns);
-    console.log("Matrix Values:");
-    console.table(matrix); // Hiển thị ma trận dưới dạng bảng trong console
-  };
-
   const handlePaste = (e) => {
     e.preventDefault();
 
-    // Lấy dữ liệu từ clipboard
     const clipboardData = e.clipboardData.getData("text");
     const rows = clipboardData.split("\n").map((row) => row.split("\t"));
 
-    if (!currentFocusCell) return; // Kiểm tra nếu không có ô nào được focus
+    if (!currentFocusCell) return;
 
-    // Tìm vị trí hàng và cột bắt đầu từ currentFocusCell
     let startRow = null;
     let startCol = null;
 
@@ -338,20 +330,19 @@ const InputTable = ({ onTicketCreated }) => {
       Object.keys(rowData).forEach((key, colIndex) => {
         if (rowData[`${key}MatrixValue`] === currentFocusCell) {
           startRow = rowIndex;
-          startCol = columns.findIndex((col) => col.accessor === key); // Xác định cột bắt đầu
+          startCol = columns.findIndex((col) => col.accessor === key);
         }
       });
     });
-
 
     if (startRow === null || startCol === null) return;
 
     const updatedData = [...data];
     rows.forEach((rowValues, rowOffset) => {
       rowValues.forEach((cellValue, colOffset) => {
-        const targetRow = startRow + rowOffset; 
+        const targetRow = startRow + rowOffset;
         const targetCol = startCol + colOffset;
-    
+
         if (updatedData[targetRow]) {
           const targetKey = columns[targetCol]?.accessor;
           if (targetKey) {
@@ -360,12 +351,9 @@ const InputTable = ({ onTicketCreated }) => {
         }
       });
     });
-    
+
     setData(updatedData);
   };
-
-
-
 
   return (
     <>
@@ -375,11 +363,25 @@ const InputTable = ({ onTicketCreated }) => {
           variant="outlined"
           onClick={handleClickOpen}
           className="button-container"
-          style={{ marginBottom: "15px" }}
+          style={{ marginBottom: "15px", width: "200px" }}
         >
           Nhập bảng AG
         </Button>
-        <FullScreenDialog
+        <FullScreenAGDialog
+          open={open}
+          setOpen={setOpen}
+          onClose={handleDialogClose}
+          data={data}
+        />
+        <Button
+          variant="outlined"
+          onClick={handleClickOpen}
+          className="button-container"
+          style={{ marginBottom: "15px", marginLeft: "15px", width: "300px" }}
+        >
+          Nhập số thẻ thanh toán
+        </Button>
+        <FullScreenSoTheDialog
           open={open}
           setOpen={setOpen}
           onClose={handleDialogClose}
@@ -406,30 +408,30 @@ const InputTable = ({ onTicketCreated }) => {
                           handleSelectRow(rowIndex, e.target.checked)
                         }
                         onFocus={() =>
-                          setCurrentFocusCell(row[`${column.accessor}MatrixValue`]) // Lưu giá trị matrix của ô focus
+                          setCurrentFocusCell(
+                            row[`${column.accessor}MatrixValue`]
+                          )
                         }
                       />
                     ) : column.accessor === "sdt" ? (
-                      <Autocomplete
-                        options={phoneOptions}
-                        getOptionLabel={(option) => option.sdt || ""}
-                        value={
-                          phoneOptions.find((opt) => opt.sdt === row.sdt) ||
-                          null
-                        }
-                        onFocus={fetchPhoneNumbers}
-                        onChange={(event, newValue) =>
-                          handlePhoneSelect(rowIndex, newValue)
-                        }
-                        renderInput={(params) => (
-                          <TextField
-                            {...params}
-                            variant="outlined"
-                            placeholder="Nhập số điện thoại"
-                          />
-                        )}
-                        style={{ width: '220px' }}
-                      />
+                      <td>
+                        <input
+                          list={`phone-options-${rowIndex}`}
+                          value={row.sdt}
+                          onChange={(e) => {
+                            handlePhoneSelect(rowIndex, {
+                              sdt: e.target.value,
+                            });
+                          }}
+                          onFocus={fetchPhoneNumbers}
+                          placeholder="Nhập số điện thoại"
+                        />
+                        <datalist id={`phone-options-${rowIndex}`}>
+                          {phoneOptions.map((option, idx) => (
+                            <option key={idx} value={option.sdt} />
+                          ))}
+                        </datalist>
+                      </td>
                     ) : column.accessor === "gioiTinh" ? (
                       <select
                         value={row.gioiTinh || "Nam"}
@@ -437,7 +439,9 @@ const InputTable = ({ onTicketCreated }) => {
                           handleCellEdit(rowIndex, "gioiTinh", e.target.value)
                         }
                         onFocus={() =>
-                          setCurrentFocusCell(row[`${column.accessor}MatrixValue`]) // Lưu giá trị matrix của ô focus
+                          setCurrentFocusCell(
+                            row[`${column.accessor}MatrixValue`]
+                          )
                         }
                       >
                         <option value="Nam">Nam</option>
@@ -450,7 +454,9 @@ const InputTable = ({ onTicketCreated }) => {
                           handleCellEdit(rowIndex, "veHoanKhay", e.target.value)
                         }
                         onFocus={() =>
-                          setCurrentFocusCell(row[`${column.accessor}MatrixValue`]) // Lưu giá trị matrix của ô focus
+                          setCurrentFocusCell(
+                            row[`${column.accessor}MatrixValue`]
+                          )
                         }
                       >
                         <option value="Có">Có</option>
@@ -461,23 +467,39 @@ const InputTable = ({ onTicketCreated }) => {
                       <td key={column.accessor}>
                         <input
                           type="datetime-local"
-                          value={row[column.accessor] ? row[column.accessor].slice(0, 16) : ""}
+                          value={
+                            row[column.accessor]
+                              ? row[column.accessor].slice(0, 16)
+                              : ""
+                          }
                           required
-                          onChange={(e) => handleCellEdit(rowIndex, column.accessor, e.target.value)}
+                          onChange={(e) =>
+                            handleCellEdit(
+                              rowIndex,
+                              column.accessor,
+                              e.target.value
+                            )
+                          }
                           onFocus={() =>
-                            setCurrentFocusCell(row[`${column.accessor}MatrixValue`]) // Lưu giá trị matrix của ô focus
+                            setCurrentFocusCell(
+                              row[`${column.accessor}MatrixValue`]
+                            )
                           }
                         />
                       </td>
                     ) : column.accessor === "ngayXuat" ? (
                       <input
                         type="datetime-local"
-                        value={row.ngayXuat || new Date().toISOString().slice(0, -1)}
+                        value={
+                          row.ngayXuat || new Date().toISOString().slice(0, -1)
+                        }
                         onChange={(e) =>
                           handleCellEdit(rowIndex, "ngayXuat", e.target.value)
                         }
                         onFocus={() =>
-                          setCurrentFocusCell(row[`${column.accessor}MatrixValue`]) // Lưu giá trị matrix của ô focus
+                          setCurrentFocusCell(
+                            row[`${column.accessor}MatrixValue`]
+                          )
                         }
                       />
                     ) : (
@@ -492,7 +514,9 @@ const InputTable = ({ onTicketCreated }) => {
                           )
                         }
                         onFocus={() =>
-                          setCurrentFocusCell(row[`${column.accessor}MatrixValue`]) // Lưu giá trị matrix của ô focus
+                          setCurrentFocusCell(
+                            row[`${column.accessor}MatrixValue`]
+                          )
                         }
                       />
                     )}
@@ -501,7 +525,6 @@ const InputTable = ({ onTicketCreated }) => {
               </tr>
             ))}
           </tbody>
-
         </table>
       </div>
       <div style={{ marginTop: "20px", textAlign: "center" }}>
@@ -522,9 +545,6 @@ const InputTable = ({ onTicketCreated }) => {
         </Button>
         <Button onClick={handleAddTicket} variant="contained" color="primary">
           Xuất Vé
-        </Button>
-        <Button onClick={handleLogMatrix} variant="contained" color="info">
-          Log Ma Trận
         </Button>
       </div>
     </>

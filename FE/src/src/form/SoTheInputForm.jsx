@@ -27,30 +27,28 @@ const generateMatrixValues = (rows, cols, startValue = 11) => {
 };
 
 
-export default function FullScreenAGDialog({ open, onClose }) {
+export default function FullScreenSoTheDialog({ open, onClose }) {
   const [formData, setFormData] = useState(() => {
-    const rows = 1; // Số hàng ban đầu
-    const cols = 3; // Số cột (tenAG, sdt, mail)
+    const rows = 1;
+    const cols = 1;
     const matrix = generateMatrixValues(rows, cols);
     return Array.from({ length: rows }, (_, rowIndex) => ({
-      tenAG: "",
-      sdt: "",
-      mail: "",
-      matrixValue: matrix[rowIndex], // Gán matrixValue cho mỗi hàng
+      soThe: "",
+      matrixValue: matrix[rowIndex],
     }));
   });
   const [apiData, setApiData] = useState([
-    { id: "", tenAG: "", sdt: "", mail: "" }
+    { id: "", soThe: "" }
   ]);
-  const [selectedRows, setSelectedRows] = useState([]); // Lưu các hàng được chọn
+  const [selectedRows, setSelectedRows] = useState([]); 
   const [selectedApiRows, setSelectedApiRows] = useState([]);
-  const [currentFocusRow, setCurrentFocusRow] = useState(null); // Lưu vị trí hàng được focus
+  const [currentFocusRow, setCurrentFocusRow] = useState(null);
 
   useEffect(() => {
     if (open) {
       fetchApiData();
     }else{
-      setFormData([{ tenAG: "", sdt: "", mail: "" }]);
+      setFormData([{ soThe: "" }]);
       setSelectedRows([]);
       setSelectedApiRows([]);
     }
@@ -59,31 +57,21 @@ export default function FullScreenAGDialog({ open, onClose }) {
   const handlePaste = (e) => {
     e.preventDefault();
   
-    // Lấy dữ liệu từ clipboard
     const clipboardData = e.clipboardData.getData("text");
-    const rows = clipboardData.split("\n").map((row) => row.split("\t")); // Chia dòng và cột từ Excel
+    const rows = clipboardData.split("\n").map((row) => row.split("\t"));
   
-    if (currentFocusRow === null) return; // Kiểm tra nếu chưa có hàng focus
-  
-    // Cập nhật dữ liệu vào bảng
+    if (currentFocusRow === null) return;
     const updatedFormData = [...formData];
     rows.forEach((rowValues, rowOffset) => {
-      const targetRow = currentFocusRow + rowOffset; // Xác định hàng bắt đầu
+      const targetRow = currentFocusRow + rowOffset;
       if (updatedFormData[targetRow]) {
-        // Cập nhật các cột
         rowValues.forEach((cellValue, colOffset) => {
-          if (colOffset === 0) {
-            updatedFormData[targetRow].tenAG = cellValue; // Cột tên AG
-          } else if (colOffset === 1) {
-            updatedFormData[targetRow].sdt = cellValue; // Cột số điện thoại
-          } else if (colOffset === 2) {
-            updatedFormData[targetRow].mail = cellValue; // Cột email
-          }
+            updatedFormData[targetRow].soThe = cellValue;
         });
       }
     });
   
-    setFormData(updatedFormData); // Cập nhật state
+    setFormData(updatedFormData);
   };
   
   
@@ -91,7 +79,7 @@ export default function FullScreenAGDialog({ open, onClose }) {
   const fetchApiData = async () => {
     let accessToken = localStorage.getItem("accessToken");
     try {
-      const response = await fetch("https://localhost:7113/Ve/ag", {
+      const response = await fetch("https://localhost:7113/Ve/card", {
         method: "GET",
         headers: {
           "Content-Type": "application/json",
@@ -102,7 +90,7 @@ export default function FullScreenAGDialog({ open, onClose }) {
         const newToken = await refreshAccessToken();
         if (newToken) {
           accessToken = newToken;
-          const retryResponse = await fetch("https://localhost:7113/Ve/ag", {
+          const retryResponse = await fetch("https://localhost:7113/Ve/card", {
             method: "GET",
             headers: {
               "Content-Type": "application/json",
@@ -136,9 +124,7 @@ export default function FullScreenAGDialog({ open, onClose }) {
   const updateFormData = (apiData) => {
     const mappedData = apiData.map((item) => ({
       id: item.id,
-      tenAG: item.tenAG || "",
-      sdt: item.sdt || "",
-      mail: item.mail || "",
+      soThe: item.soThe || "",
     }));
     setApiData(mappedData);
   };
@@ -153,16 +139,14 @@ export default function FullScreenAGDialog({ open, onClose }) {
 
   const handleAddRow = () => {
     const currentRows = formData.length;
-    const cols = 3; // Số cột (tenAG, sdt, mail)
+    const cols = 1;
     const matrix = generateMatrixValues(currentRows + 1, cols, 11);
   
     setFormData((prev) => [
       ...prev,
       {
-        tenAG: "",
-        sdt: "",
-        mail: "",
-        matrixValue: matrix[currentRows], // Gán matrixValue mới
+        soThe: "",
+        matrixValue: matrix[currentRows],
       },
     ]);
   };
@@ -171,7 +155,7 @@ export default function FullScreenAGDialog({ open, onClose }) {
   const handleSave = async () => {
     let accessToken = localStorage.getItem("accessToken");
     try {
-      const response = await fetch("https://localhost:7113/Ve/ag", {
+      const response = await fetch("https://localhost:7113/Ve/card", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -212,7 +196,7 @@ export default function FullScreenAGDialog({ open, onClose }) {
   const handleDeleteSelectedApiRows = async () => {
     let accessToken = localStorage.getItem("accessToken");
     try {
-      const response = await fetch("https://localhost:7113/Ve/ag", {
+      const response = await fetch("https://localhost:7113/Ve/card", {
         method: "DELETE",
         headers: {
           "Content-Type": "application/json",
@@ -222,8 +206,8 @@ export default function FullScreenAGDialog({ open, onClose }) {
       });
       if (!response.ok) throw new Error("Delete failed");
       alert("Delete success");
-      fetchApiData(); // Refresh data after deletion
-      setSelectedApiRows([]); // Clear selected rows
+      fetchApiData();
+      setSelectedApiRows([]);
     } catch (error) {
       console.error("Error deleting data", error);
     }
@@ -257,7 +241,7 @@ export default function FullScreenAGDialog({ open, onClose }) {
             <CloseIcon />
           </IconButton>
           <Typography sx={{ ml: 2, flex: 1 }} variant="h6" component="div">
-            Nhập bảng AG
+            Nhập bảng số thẻ thanh toán
           </Typography>
           <Button autoFocus color="inherit" onClick={handleSave}>
             Save
@@ -265,9 +249,8 @@ export default function FullScreenAGDialog({ open, onClose }) {
         </Toolbar>
       </AppBar>
 
-      {/* Table for Input */}
       <div style={{ padding: "20px" }} onPaste={handlePaste}>
-        <Typography variant="h6">Thêm mới AG</Typography>
+        <Typography variant="h6">Thêm mới số thẻ thanh toán</Typography>
         <table style={{ width: "100%", borderCollapse: "collapse" }}>
           <thead>
             <tr>
@@ -276,11 +259,7 @@ export default function FullScreenAGDialog({ open, onClose }) {
               >
                 Chọn
               </th>
-              <th style={{ border: "1px solid #ddd", padding: "8px" }}>Tên AG</th>
-              <th style={{ border: "1px solid #ddd", padding: "8px" }}>
-                Số điện thoại
-              </th>
-              <th style={{ border: "1px solid #ddd", padding: "8px" }}>Email</th>
+              <th style={{ border: "1px solid #ddd", padding: "8px" }}>Số thẻ thanh toán</th>
             </tr>
           </thead>
           <tbody>
@@ -298,41 +277,9 @@ export default function FullScreenAGDialog({ open, onClose }) {
                 <td style={{ border: "1px solid #ddd", padding: "8px" }}>
                   <input
                     type="text"
-                    value={row.tenAG}
+                    value={row.soThe}
                     onChange={(e) =>
-                      handleCellChange(rowIndex, "tenAG", e.target.value)
-                    }
-                    onFocus={() => setCurrentFocusRow(rowIndex)}
-                    style={{
-                      width: "100%",
-                      border: "none",
-                      outline: "none",
-                      padding: "4px",
-                    }}
-                  />
-                </td>
-                <td style={{ border: "1px solid #ddd", padding: "8px" }}>
-                  <input
-                    type="text"
-                    value={row.sdt}
-                    onChange={(e) =>
-                      handleCellChange(rowIndex, "sdt", e.target.value)
-                    }
-                    onFocus={() => setCurrentFocusRow(rowIndex)}
-                    style={{
-                      width: "100%",
-                      border: "none",
-                      outline: "none",
-                      padding: "4px",
-                    }}
-                  />
-                </td>
-                <td style={{ border: "1px solid #ddd", padding: "8px" }}>
-                  <input
-                    type="text"
-                    value={row.mail}
-                    onChange={(e) =>
-                      handleCellChange(rowIndex, "mail", e.target.value)
+                      handleCellChange(rowIndex, "soThe", e.target.value)
                     }
                     onFocus={() => setCurrentFocusRow(rowIndex)}
                     style={{
@@ -366,7 +313,6 @@ export default function FullScreenAGDialog({ open, onClose }) {
         </Button>
       </div>
 
-      {/* Table for API Data */}
       <div style={{ padding: "20px" }}>
         <Typography variant="h6">Dữ liệu từ API</Typography>
         <table style={{ width: "100%", borderCollapse: "collapse" }}>
@@ -377,11 +323,7 @@ export default function FullScreenAGDialog({ open, onClose }) {
               >
                 Chọn
               </th>
-              <th style={{ border: "1px solid #ddd", padding: "8px" }}>Tên AG</th>
-              <th style={{ border: "1px solid #ddd", padding: "8px" }}>
-                Số điện thoại
-              </th>
-              <th style={{ border: "1px solid #ddd", padding: "8px" }}>Email</th>
+              <th style={{ border: "1px solid #ddd", padding: "8px" }}>Số thẻ thanh toán</th>
             </tr>
           </thead>
           <tbody>
@@ -397,13 +339,7 @@ export default function FullScreenAGDialog({ open, onClose }) {
                   />
                 </td>
                 <td style={{ border: "1px solid #ddd", padding: "8px" }}>
-                  {row.tenAG}
-                </td>
-                <td style={{ border: "1px solid #ddd", padding: "8px" }}>
-                  {row.sdt}
-                </td>
-                <td style={{ border: "1px solid #ddd", padding: "8px" }}>
-                  {row.mail}
+                  {row.soThe}
                 </td>
               </tr>
             ))}
