@@ -7,7 +7,7 @@ services:
             - ASPNETCORE_ENVIRONMENT=Production
             - ASPNETCORE_URLS=http://+:80
         ports:
-          - 7113:80
+          - 44331:80
         depends_on:
             postgres:
                 condition: service_healthy
