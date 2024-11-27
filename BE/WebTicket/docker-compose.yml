@@ -1,46 +1,30 @@
-version: '3.9'
-
+name: webticket
 services:
-  api:
-    container_name: webticket-api
-    image: webticket-image:latest
-    environment:
-      - ASPNETCORE_ENVIRONMENT=Production
-      - ASPNETCORE_URLS=https://+:443;http://+:80
-    ports:
-      - "44331:443" # Map HTTPS port
-      - "8080:80"   # Optional: Map HTTP port if needed for testing
-    volumes:
-      - ./certs:/https-certs:ro # Mount SSL certificates
-    depends_on:
-      postgres:
-        condition: service_healthy
-    command: >
-      dotnet WebTicket.dll --urls "https://+:443;http://+:80" 
-    networks:
-      - web_network
-
-  postgres:
-    container_name: postgres
-    image: postgres:15-alpine
-    environment:
-      - POSTGRES_USER=postgres
-      - POSTGRES_PASSWORD=admin
-    ports:
-      - "5432:5432"
-    volumes:
-      - postgres-data:/var/lib/postgresql/data
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-    networks:
-      - web_network
-
+    api:
+        container_name: webticket-api
+        image: webticket-image:latest
+        environment:
+            - ASPNETCORE_ENVIRONMENT=Production
+            - ASPNETCORE_URLS=http://+:80
+        ports:
+          - 44331:80
+        depends_on:
+            postgres:
+                condition: service_healthy
+    postgres:
+        container_name: postgres
+        image: postgres:15-alpine
+        environment:
+          - POSTGRES_USER=postgres
+          - POSTGRES_PASSWORD=admin
+        ports:
+          - 5432:5432
+        volumes:
+          - postgres-data:/data/db
+        healthcheck:
+          test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER"]
+          interval: 10s
+          timeout: 5s
+          retries: 5
 volumes:
   postgres-data:
-  certs:
-
-networks:
-  web_network:
