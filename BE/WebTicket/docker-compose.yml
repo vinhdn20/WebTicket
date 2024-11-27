@@ -2,7 +2,7 @@ name: webticket
 services:
     api:
         container_name: webticket-api
-        image: flavorfy-image:latest
+        image: webticket-image:latest
         environment:
             - ASPNETCORE_ENVIRONMENT=Production
             - ASPNETCORE_URLS=http://+:80
