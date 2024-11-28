@@ -7,8 +7,7 @@ EXPOSE 8080
 EXPOSE 8081
 
 FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build
-ARG PASSWORD_ENV_SEEDED
-RUN dotnet dev-certs https -ep /https/aspnetapp.pfx -p ${PASSWORD_ENV_SEEDED}
+RUN dotnet dev-certs https -ep /https/aspnetapp.pfx -p 123456
 WORKDIR /src
 COPY ["WebTicket/WebTicket.csproj", "WebTicket/"]
 COPY ["Common/Common.csproj", "Common/"]
