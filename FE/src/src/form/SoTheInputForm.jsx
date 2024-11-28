@@ -52,6 +52,7 @@ export default function FullScreenSoTheDialog({ open, onClose }) {
       setSelectedRows([]);
       setSelectedApiRows([]);
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open]);
 
   const handlePaste = (e) => {

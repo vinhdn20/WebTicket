@@ -70,7 +70,9 @@ const InputTable = ({ onTicketCreated }) => {
   const [currentFocusCell, setCurrentFocusCell] = useState(null);
   const [selectedRows, setSelectedRows] = useState([]);
   const [phoneOptions, setPhoneOptions] = useState([]);
+  const [cardOptions, setCardOptions] = useState([]);
   const [open, setOpen] = React.useState(false);
+  const [openSoThe, setOpenSoThe] = React.useState(false);
 
   const columns = [
     { Header: "Chọn", accessor: "select" },
@@ -227,6 +229,29 @@ const InputTable = ({ onTicketCreated }) => {
     }
   };
 
+  const fetchCardNumbers = async () => {
+    try {
+      const accessToken = localStorage.getItem("accessToken");
+      const response = await fetch("https://localhost:7113/Ve/card", {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${accessToken}`,
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to fetch so the.");
+      }
+
+      const result = await response.json();
+      setCardOptions(result);
+    } catch (error) {
+      console.error("Error fetching so the:", error);
+      alert("Không thể tải danh sách số thẻ thanh toán.");
+    }
+  };
+
   const handleAddRow = () => {
     const newRow = columns.reduce((acc, col) => {
       acc[col.accessor] =
@@ -289,6 +314,27 @@ const InputTable = ({ onTicketCreated }) => {
     setData(updatedData);
   };
 
+  const handleSoTheSelect = (rowIndex, newValue) => {
+    const selectedCard = cardOptions.find(
+      (option) => option.soThe === newValue.soThe
+    );
+
+    const updatedData = [...data];
+    if (selectedCard) {
+      updatedData[rowIndex] = {
+        ...updatedData[rowIndex],
+        soThe: selectedCard.soThe,
+      };
+    } else {
+      updatedData[rowIndex] = {
+        ...updatedData[rowIndex],
+        soThe: newValue.soThe || "",
+      };
+    }
+
+    setData(updatedData);
+  };
+
   const handleSelectRow = (rowIndex, isSelected) => {
     if (isSelected) {
       setSelectedRows((prevSelected) => [...prevSelected, rowIndex]);
@@ -311,10 +357,17 @@ const InputTable = ({ onTicketCreated }) => {
     setOpen(true);
   };
 
+  const handleClickSoTheOpen = () => {
+    setOpenSoThe(true);
+  }; 
+
   const handleDialogClose = (updatedData) => {
     setOpen(false);
   };
 
+  const handleDialogSoTheClose = (updatedData) => {
+    setOpenSoThe(false);
+  };
   const handlePaste = (e) => {
     e.preventDefault();
 
@@ -375,16 +428,16 @@ const InputTable = ({ onTicketCreated }) => {
         />
         <Button
           variant="outlined"
-          onClick={handleClickOpen}
+          onClick={handleClickSoTheOpen}
           className="button-container"
           style={{ marginBottom: "15px", marginLeft: "15px", width: "300px" }}
         >
           Nhập số thẻ thanh toán
         </Button>
         <FullScreenSoTheDialog
-          open={open}
-          setOpen={setOpen}
-          onClose={handleDialogClose}
+          open={openSoThe}
+          setOpen={setOpenSoThe}
+          onClose={handleDialogSoTheClose}
           data={data}
         />
         <table className="table-container">
@@ -429,6 +482,25 @@ const InputTable = ({ onTicketCreated }) => {
                         <datalist id={`phone-options-${rowIndex}`}>
                           {phoneOptions.map((option, idx) => (
                             <option key={idx} value={option.sdt} />
+                          ))}
+                        </datalist>
+                      </td>
+                    ) : column.accessor === "soThe" ? (
+                      <td>
+                        <input
+                          list={`so-the-${rowIndex}`}
+                          value={row.soThe}
+                          onChange={(e) => {
+                            handleSoTheSelect(rowIndex, {
+                              soThe: e.target.value,
+                            });
+                          }}
+                          onFocus={fetchCardNumbers}
+                          placeholder="Nhập số thẻ"
+                        />
+                        <datalist id={`so-the-${rowIndex}`}>
+                          {cardOptions.map((option, idx) => (
+                            <option key={idx} value={option.soThe} />
                           ))}
                         </datalist>
                       </td>
