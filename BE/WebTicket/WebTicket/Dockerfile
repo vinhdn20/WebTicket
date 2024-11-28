@@ -23,4 +23,5 @@ RUN dotnet publish "WebTicket.csproj" -c Release -o /app/publish /p:UseAppHost=f
 FROM base AS final
 WORKDIR /app
 COPY --from=publish /app/publish .
+RUN dotnet dev-certs https --trust
 ENTRYPOINT ["dotnet", "WebTicket.dll"]
