@@ -8,9 +8,6 @@ services:
           - ASPNETCORE_URLS=https://+:443
         ports:
           - "44331:443"
-        volumes:
-          - /etc/ssl/certs:/etc/ssl/certs:ro
-          - /etc/ssl/private:/etc/ssl/private:ro
         depends_on:
             postgres:
                 condition: service_healthy
@@ -23,7 +20,7 @@ services:
         ports:
           - 5432:5432
         volumes:
-          - postgres-data:/var/lib/postgresql/data
+          - postgres-data:/data/db
         healthcheck:
           test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER"]
           interval: 10s
