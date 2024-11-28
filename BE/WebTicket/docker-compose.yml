@@ -4,7 +4,7 @@ services:
         container_name: webticket-api
         image: webticket-image:latest
         environment:
-            - ASPNETCORE_ENVIRONMENT=Production
+            - ASPNETCORE_ENVIRONMENT=Development
             - ASPNETCORE_URLS=http://+:80
         ports:
           - 44331:80
@@ -16,7 +16,7 @@ services:
         image: postgres:15-alpine
         environment:
           - POSTGRES_USER=postgres
-          - POSTGRES_PASSWORD=admin
+          - POSTGRES_PASSWORD=123456
         ports:
           - 5432:5432
         volumes:
