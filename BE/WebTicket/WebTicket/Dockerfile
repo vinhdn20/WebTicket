@@ -24,6 +24,6 @@ RUN dotnet publish "WebTicket.csproj" -c Release -o /app/publish /p:UseAppHost=f
 
 FROM base AS final
 WORKDIR /app
-COPY --chmod=0755 --from=build /https/*
+COPY --chmod=0755 --from=build /https/* /https/
 COPY --from=publish /app/publish .
 ENTRYPOINT ["dotnet", "WebTicket.dll"]
