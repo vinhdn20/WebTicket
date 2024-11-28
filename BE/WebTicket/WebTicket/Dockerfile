@@ -18,10 +18,10 @@ WORKDIR "/src/WebTicket"
 RUN dotnet build "WebTicket.csproj" -c Release -o /app/build
 
 FROM build AS publish
+RUN dotnet dev-certs https --trust
 RUN dotnet publish "WebTicket.csproj" -c Release -o /app/publish /p:UseAppHost=false
 
 FROM base AS final
 WORKDIR /app
 COPY --from=publish /app/publish .
-RUN dotnet dev-certs https --trust
 ENTRYPOINT ["dotnet", "WebTicket.dll"]
