@@ -84,6 +84,12 @@ builder.Services.AddSwaggerGen(c =>
     });
 });
 
+builder.WebHost.ConfigureKestrel(options =>
+{
+    var kestrelConfig = builder.Configuration.GetSection("Kestrel");
+    options.Configure(kestrelConfig);
+});
+
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.
