@@ -4,13 +4,20 @@ services:
         container_name: webticket-api
         image: webticket-image:latest
         environment:
-            - ASPNETCORE_ENVIRONMENT=Development
-            - ASPNETCORE_URLS=http://+:80
+          - ASPNETCORE_ENVIRONMENT=Development
+          - ASPNETCORE_URLS=https://+:443
         ports:
-          - 44331:80
+          - "44331:443"
+        volumes:
+          - /etc/ssl:/etc/ssl:ro
         depends_on:
             postgres:
                 condition: service_healthy
+        command: >
+          dotnet WebTicket.dll
+          --urls "https://+:443"
+          --cert "/etc/ssl/certs/apache-selfsigned.crt"
+          --key "/etc/ssl/private/apache-selfsigned.key"
     postgres:
         container_name: postgres
         image: postgres:15-alpine
