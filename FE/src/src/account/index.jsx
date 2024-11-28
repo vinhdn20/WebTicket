@@ -11,7 +11,7 @@ const AccountCreation = () => {
     e.preventDefault();
     
     try {
-      const response = await fetch("https://localhost:7113/login", {
+      const response = await fetch("http://localhost:44331/login", {
         method: 'POST',
         credentials: "include",
         headers: {

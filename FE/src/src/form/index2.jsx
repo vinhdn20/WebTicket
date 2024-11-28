@@ -32,7 +32,7 @@ const TicketTable2 = () => {
     let accessToken = localStorage.getItem("accessToken");
 
     try {
-      const response = await fetch("https://localhost:7113/ve/filter", {
+      const response = await fetch("http://localhost:44331/ve/filter", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -47,7 +47,7 @@ const TicketTable2 = () => {
         if (newToken) {
           accessToken = newToken;
           const retryResponse = await fetch(
-            "https://localhost:7113/ve/filter",
+            "http://localhost:44331/ve/filter",
             {
               method: "POST",
               headers: {
@@ -87,7 +87,7 @@ const TicketTable2 = () => {
   const handleSaveEditedRows = async (payload) => {
     let accessToken = localStorage.getItem("accessToken");
     try {
-      const response = await fetch("https://localhost:7113/Ve/xuatve", {
+      const response = await fetch("http://localhost:44331/Ve/xuatve", {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
@@ -114,7 +114,7 @@ const TicketTable2 = () => {
     let accessToken = localStorage.getItem("accessToken");
 
     try {
-      const response = await fetch("https://localhost:7113/Ve/xuatve", {
+      const response = await fetch("http://localhost:44331/Ve/xuatve", {
         method: "DELETE",
         headers: {
           "Content-Type": "application/json",

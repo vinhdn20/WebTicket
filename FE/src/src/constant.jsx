@@ -1,6 +1,6 @@
 export async function refreshAccessToken() {
     try {
-        const refreshResponse = await fetch("https://localhost:7113/refresh", {
+        const refreshResponse = await fetch("http://localhost:44331/refresh", {
             method: "POST",
             headers: {
                 "Content-Type": "application/json",

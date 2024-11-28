@@ -10,7 +10,7 @@
                         builder =>
                         {
                             builder
-                                .WithOrigins("http://localhost", "http://localhost:3000", "https://localhost:8443", "https://103.188.83.82:8443")
+                                .WithOrigins("http://localhost", "http://localhost:3000", "https://localhost:8443", "http://103.188.82.116")
                                 .AllowAnyHeader()
                                 .AllowAnyMethod()
                                 .AllowCredentials();
