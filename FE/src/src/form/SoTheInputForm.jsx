@@ -80,7 +80,7 @@ export default function FullScreenSoTheDialog({ open, onClose }) {
   const fetchApiData = async () => {
     let accessToken = localStorage.getItem("accessToken");
     try {
-      const response = await fetch("https://localhost:7113/Ve/card", {
+      const response = await fetch("https://localhost:44331/Ve/card", {
         method: "GET",
         headers: {
           "Content-Type": "application/json",
@@ -91,7 +91,7 @@ export default function FullScreenSoTheDialog({ open, onClose }) {
         const newToken = await refreshAccessToken();
         if (newToken) {
           accessToken = newToken;
-          const retryResponse = await fetch("https://localhost:7113/Ve/card", {
+          const retryResponse = await fetch("https://localhost:44331/Ve/card", {
             method: "GET",
             headers: {
               "Content-Type": "application/json",
@@ -156,7 +156,7 @@ export default function FullScreenSoTheDialog({ open, onClose }) {
   const handleSave = async () => {
     let accessToken = localStorage.getItem("accessToken");
     try {
-      const response = await fetch("https://localhost:7113/Ve/card", {
+      const response = await fetch("https://localhost:44331/Ve/card", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -197,7 +197,7 @@ export default function FullScreenSoTheDialog({ open, onClose }) {
   const handleDeleteSelectedApiRows = async () => {
     let accessToken = localStorage.getItem("accessToken");
     try {
-      const response = await fetch("https://localhost:7113/Ve/card", {
+      const response = await fetch("https://localhost:44331/Ve/card", {
         method: "DELETE",
         headers: {
           "Content-Type": "application/json",

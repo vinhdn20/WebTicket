@@ -4,6 +4,7 @@ import Button from "@mui/material/Button";
 import { refreshAccessToken } from "../constant";
 import FullScreenAGDialog from "./AgInputForm";
 import FullScreenSoTheDialog from "./SoTheInputForm";
+import AddOnTable from "./addOnTable";
 
 const getCurrentDateTimeLocal = () => {
   const now = new Date();
@@ -43,7 +44,7 @@ const InputTable = ({ onTicketCreated }) => {
         maDatChoHang: "",
         tenKhachHang: "",
         gioiTinh: "Nam",
-        addOn: "",
+        addOn: [],
         maDatChoTrip: "",
         thuAG: "",
         giaXuat: "",
@@ -73,6 +74,8 @@ const InputTable = ({ onTicketCreated }) => {
   const [cardOptions, setCardOptions] = useState([]);
   const [open, setOpen] = React.useState(false);
   const [openSoThe, setOpenSoThe] = React.useState(false);
+  const [openAddOn, setOpenAddOn] = React.useState(false);
+  const [selectedRowIndex, setSelectedRowIndex] = useState(0);
 
   const columns = [
     { Header: "Chọn", accessor: "select" },
@@ -101,7 +104,7 @@ const InputTable = ({ onTicketCreated }) => {
     let accessToken = localStorage.getItem("accessToken");
 
     try {
-      const response = await fetch("https://localhost:7113/Ve/xuatVe", {
+      const response = await fetch("https://localhost:44331/Ve/xuatVe", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -115,7 +118,7 @@ const InputTable = ({ onTicketCreated }) => {
         if (newToken) {
           accessToken = newToken;
           const retryResponse = await fetch(
-            "https://localhost:7113/Ve/xuatVe",
+            "https://localhost:44331/Ve/xuatVe",
             {
               method: "POST",
               headers: {
@@ -209,7 +212,7 @@ const InputTable = ({ onTicketCreated }) => {
   const fetchPhoneNumbers = async () => {
     try {
       const accessToken = localStorage.getItem("accessToken");
-      const response = await fetch("https://localhost:7113/Ve/ag", {
+      const response = await fetch("https://localhost:44331/Ve/ag", {
         method: "GET",
         headers: {
           "Content-Type": "application/json",
@@ -232,7 +235,7 @@ const InputTable = ({ onTicketCreated }) => {
   const fetchCardNumbers = async () => {
     try {
       const accessToken = localStorage.getItem("accessToken");
-      const response = await fetch("https://localhost:7113/Ve/card", {
+      const response = await fetch("https://localhost:44331/Ve/card", {
         method: "GET",
         headers: {
           "Content-Type": "application/json",
@@ -258,10 +261,10 @@ const InputTable = ({ onTicketCreated }) => {
         col.accessor === "ngayXuat"
           ? getCurrentDateTimeLocal()
           : col.accessor === "gioiTinh"
-          ? "Nam"
-          : col.accessor === "veHoanKhay"
-          ? "Có"
-          : "";
+            ? "Nam"
+            : col.accessor === "veHoanKhay"
+              ? "Có"
+              : "";
       return acc;
     }, {});
     const newMatrix = createMatrix(data.length + 1, Object.keys(newRow).length);
@@ -359,13 +362,22 @@ const InputTable = ({ onTicketCreated }) => {
 
   const handleClickSoTheOpen = () => {
     setOpenSoThe(true);
-  }; 
+  };
 
-  const handleDialogClose = (updatedData) => {
+  const handleClickAddOnOpen = (index) => {
+    setSelectedRowIndex(index);
+    setOpenAddOn(true);
+  };
+
+  const handleDialogClose = () => {
     setOpen(false);
   };
 
-  const handleDialogSoTheClose = (updatedData) => {
+  const handleDialogAddOnClose = () => {
+    setOpenAddOn(false);
+  };
+
+  const handleDialogSoTheClose = () => {
     setOpenSoThe(false);
   };
   const handlePaste = (e) => {
@@ -408,38 +420,45 @@ const InputTable = ({ onTicketCreated }) => {
     setData(updatedData);
   };
 
+  const handleSaveAddOnData = (newAddOnData) => {
+    const newData = [...data];
+    newData[selectedRowIndex].addOn = newAddOnData; 
+    setData(newData);
+    handleDialogAddOnClose();
+  };
+  console.log(data);
+
   return (
     <>
+      <Button
+        variant="outlined"
+        onClick={handleClickOpen}
+        className="button-container"
+        style={{ marginBottom: "15px", width: "200px" }}
+      >
+        Nhập bảng AG
+      </Button>
+      <FullScreenAGDialog
+        open={open}
+        setOpen={setOpen}
+        onClose={handleDialogClose}
+        data={data}
+      />
+      <Button
+        variant="outlined"
+        onClick={handleClickSoTheOpen}
+        className="button-container"
+        style={{ marginBottom: "15px", marginLeft: "15px", width: "300px" }}
+      >
+        Nhập số thẻ thanh toán
+      </Button>
+      <FullScreenSoTheDialog
+        open={openSoThe}
+        setOpen={setOpenSoThe}
+        onClose={handleDialogSoTheClose}
+        data={data}
+      />
       <div className="table-wrapper" onPaste={handlePaste} tabIndex={0}>
-        <h1>Bảng Nhập Dữ Liệu</h1>
-        <Button
-          variant="outlined"
-          onClick={handleClickOpen}
-          className="button-container"
-          style={{ marginBottom: "15px", width: "200px" }}
-        >
-          Nhập bảng AG
-        </Button>
-        <FullScreenAGDialog
-          open={open}
-          setOpen={setOpen}
-          onClose={handleDialogClose}
-          data={data}
-        />
-        <Button
-          variant="outlined"
-          onClick={handleClickSoTheOpen}
-          className="button-container"
-          style={{ marginBottom: "15px", marginLeft: "15px", width: "300px" }}
-        >
-          Nhập số thẻ thanh toán
-        </Button>
-        <FullScreenSoTheDialog
-          open={openSoThe}
-          setOpen={setOpenSoThe}
-          onClose={handleDialogSoTheClose}
-          data={data}
-        />
         <table className="table-container">
           <thead>
             <tr>
@@ -557,6 +576,24 @@ const InputTable = ({ onTicketCreated }) => {
                               row[`${column.accessor}MatrixValue`]
                             )
                           }
+                        />
+                      </td>
+                    ) : column.accessor === "addOn" ? (
+                      <td key={column.accessor}>
+                        <Button
+                          variant="outlined"
+                          onClick={handleClickAddOnOpen}
+                          className="button-container"
+                        >
+                          Nhập
+                        </Button>
+                        <AddOnTable
+                          open={openAddOn}
+                          setOpen={setOpenAddOn}
+                          onClose={handleDialogAddOnClose}
+                          data={data}
+                          initialData={data[selectedRowIndex]?.addOn || []}
+                          onSave={handleSaveAddOnData}
                         />
                       </td>
                     ) : column.accessor === "ngayXuat" ? (

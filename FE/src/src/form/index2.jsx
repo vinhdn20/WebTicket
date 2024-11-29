@@ -32,7 +32,7 @@ const TicketTable2 = () => {
     let accessToken = localStorage.getItem("accessToken");
 
     try {
-      const response = await fetch("https://localhost:7113/ve/filter", {
+      const response = await fetch("https://localhost:44331/ve/filter", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -47,7 +47,7 @@ const TicketTable2 = () => {
         if (newToken) {
           accessToken = newToken;
           const retryResponse = await fetch(
-            "https://localhost:7113/ve/filter",
+            "https://localhost:44331/ve/filter",
             {
               method: "POST",
               headers: {
@@ -87,7 +87,7 @@ const TicketTable2 = () => {
   const handleSaveEditedRows = async (payload) => {
     let accessToken = localStorage.getItem("accessToken");
     try {
-      const response = await fetch("https://localhost:7113/Ve/xuatve", {
+      const response = await fetch("https://localhost:44331/Ve/xuatve", {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
@@ -114,7 +114,7 @@ const TicketTable2 = () => {
     let accessToken = localStorage.getItem("accessToken");
 
     try {
-      const response = await fetch("https://localhost:7113/Ve/xuatve", {
+      const response = await fetch("https://localhost:44331/Ve/xuatve", {
         method: "DELETE",
         headers: {
           "Content-Type": "application/json",
@@ -143,15 +143,16 @@ const TicketTable2 = () => {
       pageSize,
     };
     const initialData = await fetchInitialData(payload);
-    setData(initialData);  // Update the data state
-  }, 500), [columnFilters, pageIndex, pageSize]);  // Depend on columnFilters, pageIndex, pageSize
+    setData(initialData);
+  }, 500), [columnFilters, pageIndex, pageSize]); 
 
   useEffect(() => {
-    loadData();  // Fetch data whenever relevant state changes
+    loadData();
   }, [loadData]);
 
   return (
     <div className="container">
+        <h1>Bảng Nhập Dữ Liệu</h1>
       <InputForm onTicketCreated={loadData} />
       <SearchComponent
         setColumnFilters={setColumnFilters}
