@@ -46,7 +46,7 @@ const InputForm = ({ onTicketCreated }) => {
     let accessToken = localStorage.getItem("accessToken");
 
     try {
-      const response = await fetch("https://localhost:44331/Ve/xuatVe", {
+      const response = await fetch("https://localhost:7113/Ve/xuatVe", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -62,7 +62,7 @@ const InputForm = ({ onTicketCreated }) => {
         if (newToken) {
           // Retry the original request with the new token
           accessToken = newToken;
-          const retryResponse = await fetch("https://localhost:44331/ve/filter", {
+          const retryResponse = await fetch("https://localhost:7113/ve/filter", {
             method: "POST",
             headers: {
               "Content-Type": "application/json",
@@ -77,7 +77,8 @@ const InputForm = ({ onTicketCreated }) => {
           const retryResult = await retryResponse.json();
           return processResult(retryResult);
         } else {
-          throw new Error("Failed to refresh access token");
+         window.location.href = "/";
+ throw new Error("Failed to refresh access token");
         }
       }
 
@@ -166,7 +167,7 @@ const InputForm = ({ onTicketCreated }) => {
   const fetchPhoneNumbers = async () => {
     let accessToken = localStorage.getItem("accessToken");
     try {
-      const response = await fetch("https://localhost:44331/Ve/ag", {
+      const response = await fetch("https://localhost:7113/Ve/ag", {
         method: "GET",
         headers: {
           "Content-Type": "application/json",
@@ -180,7 +181,7 @@ const InputForm = ({ onTicketCreated }) => {
         const newToken = await refreshAccessToken();
         if (newToken) {
           accessToken = newToken;
-          const retryResponse = await fetch("https://localhost:44331/Ve/ag", {
+          const retryResponse = await fetch("https://localhost:7113/Ve/ag", {
             method: "POST",
             headers: {
               "Content-Type": "application/json",
@@ -197,7 +198,8 @@ const InputForm = ({ onTicketCreated }) => {
           const retryResult = await retryResponse.json();
           return processResult(retryResult);
         } else {
-          throw new Error("Failed to refresh access token");
+         window.location.href = "/";
+ throw new Error("Failed to refresh access token");
         }
       }
       const result = await response.json();

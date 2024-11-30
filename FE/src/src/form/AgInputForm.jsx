@@ -26,7 +26,6 @@ const generateMatrixValues = (rows, cols, startValue = 11) => {
   return matrix;
 };
 
-
 export default function FullScreenAGDialog({ open, onClose }) {
   const [formData, setFormData] = useState(() => {
     const rows = 1; // Số hàng ban đầu
@@ -40,7 +39,7 @@ export default function FullScreenAGDialog({ open, onClose }) {
     }));
   });
   const [apiData, setApiData] = useState([
-    { id: "", tenAG: "", sdt: "", mail: "" }
+    { id: "", tenAG: "", sdt: "", mail: "" },
   ]);
   const [selectedRows, setSelectedRows] = useState([]); // Lưu các hàng được chọn
   const [selectedApiRows, setSelectedApiRows] = useState([]);
@@ -49,7 +48,7 @@ export default function FullScreenAGDialog({ open, onClose }) {
   useEffect(() => {
     if (open) {
       fetchApiData();
-    }else{
+    } else {
       setFormData([{ tenAG: "", sdt: "", mail: "" }]);
       setSelectedRows([]);
       setSelectedApiRows([]);
@@ -58,13 +57,13 @@ export default function FullScreenAGDialog({ open, onClose }) {
 
   const handlePaste = (e) => {
     e.preventDefault();
-  
+
     // Lấy dữ liệu từ clipboard
     const clipboardData = e.clipboardData.getData("text");
     const rows = clipboardData.split("\n").map((row) => row.split("\t")); // Chia dòng và cột từ Excel
-  
+
     if (currentFocusRow === null) return; // Kiểm tra nếu chưa có hàng focus
-  
+
     // Cập nhật dữ liệu vào bảng
     const updatedFormData = [...formData];
     rows.forEach((rowValues, rowOffset) => {
@@ -82,16 +81,14 @@ export default function FullScreenAGDialog({ open, onClose }) {
         });
       }
     });
-  
+
     setFormData(updatedFormData); // Cập nhật state
   };
-  
-  
 
   const fetchApiData = async () => {
     let accessToken = localStorage.getItem("accessToken");
     try {
-      const response = await fetch("https://localhost:44331/Ve/ag", {
+      const response = await fetch("https://localhost:7113/Ve/ag", {
         method: "GET",
         headers: {
           "Content-Type": "application/json",
@@ -102,7 +99,7 @@ export default function FullScreenAGDialog({ open, onClose }) {
         const newToken = await refreshAccessToken();
         if (newToken) {
           accessToken = newToken;
-          const retryResponse = await fetch("https://localhost:44331/Ve/ag", {
+          const retryResponse = await fetch("https://localhost:7113/Ve/ag", {
             method: "GET",
             headers: {
               "Content-Type": "application/json",
@@ -120,6 +117,7 @@ export default function FullScreenAGDialog({ open, onClose }) {
           updateFormData(retryResult);
           return;
         } else {
+          window.location.href = "/";
           throw new Error("Failed to refresh access token");
         }
       }
@@ -155,7 +153,7 @@ export default function FullScreenAGDialog({ open, onClose }) {
     const currentRows = formData.length;
     const cols = 3; // Số cột (tenAG, sdt, mail)
     const matrix = generateMatrixValues(currentRows + 1, cols, 11);
-  
+
     setFormData((prev) => [
       ...prev,
       {
@@ -166,12 +164,11 @@ export default function FullScreenAGDialog({ open, onClose }) {
       },
     ]);
   };
-  
 
   const handleSave = async () => {
     let accessToken = localStorage.getItem("accessToken");
     try {
-      const response = await fetch("https://localhost:44331/Ve/ag", {
+      const response = await fetch("https://localhost:7113/Ve/ag", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -212,7 +209,7 @@ export default function FullScreenAGDialog({ open, onClose }) {
   const handleDeleteSelectedApiRows = async () => {
     let accessToken = localStorage.getItem("accessToken");
     try {
-      const response = await fetch("https://localhost:44331/Ve/ag", {
+      const response = await fetch("https://localhost:7113/Ve/ag", {
         method: "DELETE",
         headers: {
           "Content-Type": "application/json",
@@ -228,7 +225,6 @@ export default function FullScreenAGDialog({ open, onClose }) {
       console.error("Error deleting data", error);
     }
   };
-
 
   return (
     <Dialog
@@ -272,22 +268,34 @@ export default function FullScreenAGDialog({ open, onClose }) {
           <thead>
             <tr>
               <th
-                style={{ border: "1px solid #ddd", padding: "8px", textAlign: "center" }}
+                style={{
+                  border: "1px solid #ddd",
+                  padding: "8px",
+                  textAlign: "center",
+                }}
               >
                 Chọn
               </th>
-              <th style={{ border: "1px solid #ddd", padding: "8px" }}>Tên AG</th>
+              <th style={{ border: "1px solid #ddd", padding: "8px" }}>
+                Tên AG
+              </th>
               <th style={{ border: "1px solid #ddd", padding: "8px" }}>
                 Số điện thoại
               </th>
-              <th style={{ border: "1px solid #ddd", padding: "8px" }}>Email</th>
+              <th style={{ border: "1px solid #ddd", padding: "8px" }}>
+                Email
+              </th>
             </tr>
           </thead>
           <tbody>
             {formData.map((row, rowIndex) => (
               <tr key={rowIndex}>
                 <td
-                  style={{ border: "1px solid #ddd", padding: "8px", textAlign: "center" }}
+                  style={{
+                    border: "1px solid #ddd",
+                    padding: "8px",
+                    textAlign: "center",
+                  }}
                 >
                   <input
                     type="checkbox"
@@ -373,22 +381,34 @@ export default function FullScreenAGDialog({ open, onClose }) {
           <thead>
             <tr>
               <th
-                style={{ border: "1px solid #ddd", padding: "8px", textAlign: "center" }}
+                style={{
+                  border: "1px solid #ddd",
+                  padding: "8px",
+                  textAlign: "center",
+                }}
               >
                 Chọn
               </th>
-              <th style={{ border: "1px solid #ddd", padding: "8px" }}>Tên AG</th>
+              <th style={{ border: "1px solid #ddd", padding: "8px" }}>
+                Tên AG
+              </th>
               <th style={{ border: "1px solid #ddd", padding: "8px" }}>
                 Số điện thoại
               </th>
-              <th style={{ border: "1px solid #ddd", padding: "8px" }}>Email</th>
+              <th style={{ border: "1px solid #ddd", padding: "8px" }}>
+                Email
+              </th>
             </tr>
           </thead>
           <tbody>
             {apiData.map((row) => (
               <tr key={row.id}>
                 <td
-                  style={{ border: "1px solid #ddd", padding: "8px", textAlign: "center" }}
+                  style={{
+                    border: "1px solid #ddd",
+                    padding: "8px",
+                    textAlign: "center",
+                  }}
                 >
                   <input
                     type="checkbox"

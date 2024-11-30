@@ -104,7 +104,7 @@ const InputTable = ({ onTicketCreated }) => {
     let accessToken = localStorage.getItem("accessToken");
 
     try {
-      const response = await fetch("https://localhost:44331/Ve/xuatVe", {
+      const response = await fetch("https://localhost:7113/Ve/xuatVe", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -118,7 +118,7 @@ const InputTable = ({ onTicketCreated }) => {
         if (newToken) {
           accessToken = newToken;
           const retryResponse = await fetch(
-            "https://localhost:44331/Ve/xuatVe",
+            "https://localhost:7113/Ve/xuatVe",
             {
               method: "POST",
               headers: {
@@ -136,7 +136,8 @@ const InputTable = ({ onTicketCreated }) => {
           }
           return await retryResponse.json();
         } else {
-          throw new Error("Failed to refresh access token");
+         window.location.href = "/";
+ throw new Error("Failed to refresh access token");
         }
       }
       if (!response.ok) {
@@ -212,7 +213,7 @@ const InputTable = ({ onTicketCreated }) => {
   const fetchPhoneNumbers = async () => {
     try {
       const accessToken = localStorage.getItem("accessToken");
-      const response = await fetch("https://localhost:44331/Ve/ag", {
+      const response = await fetch("https://localhost:7113/Ve/ag", {
         method: "GET",
         headers: {
           "Content-Type": "application/json",
@@ -235,7 +236,7 @@ const InputTable = ({ onTicketCreated }) => {
   const fetchCardNumbers = async () => {
     try {
       const accessToken = localStorage.getItem("accessToken");
-      const response = await fetch("https://localhost:44331/Ve/card", {
+      const response = await fetch("https://localhost:7113/Ve/card", {
         method: "GET",
         headers: {
           "Content-Type": "application/json",
