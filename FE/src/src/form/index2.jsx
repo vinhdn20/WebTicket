@@ -32,7 +32,7 @@ const TicketTable2 = () => {
     let accessToken = localStorage.getItem("accessToken");
 
     try {
-      const response = await fetch("https://localhost:44331/ve/filter", {
+      const response = await fetch("https://localhost:7113/ve/filter", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -47,7 +47,7 @@ const TicketTable2 = () => {
         if (newToken) {
           accessToken = newToken;
           const retryResponse = await fetch(
-            "https://localhost:44331/ve/filter",
+            "https://localhost:7113/ve/filter",
             {
               method: "POST",
               headers: {
@@ -67,6 +67,7 @@ const TicketTable2 = () => {
           const retryResult = await retryResponse.json();
           return processResult(retryResult);
         } else {
+          window.location.href = "/";
           throw new Error("Failed to refresh access token");
         }
       }
@@ -87,7 +88,7 @@ const TicketTable2 = () => {
   const handleSaveEditedRows = async (payload) => {
     let accessToken = localStorage.getItem("accessToken");
     try {
-      const response = await fetch("https://localhost:44331/Ve/xuatve", {
+      const response = await fetch("https://localhost:7113/Ve/xuatve", {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
@@ -95,26 +96,25 @@ const TicketTable2 = () => {
         },
         body: JSON.stringify(payload),
       });
-  
+
       if (!response.ok) {
         throw new Error("Failed to update rows: " + response.statusText);
       }
-  
+
       alert("Edited rows saved successfully!");
-      setSelectedRows([]); 
+      setSelectedRows([]);
       loadData();
     } catch (error) {
       console.error("Error saving edited rows:", error);
     }
   };
-  
 
   const handleDeleteSelectedRows = async () => {
     const payload = selectedRows;
     let accessToken = localStorage.getItem("accessToken");
 
     try {
-      const response = await fetch("https://localhost:44331/Ve/xuatve", {
+      const response = await fetch("https://localhost:7113/Ve/xuatve", {
         method: "DELETE",
         headers: {
           "Content-Type": "application/json",
@@ -128,7 +128,7 @@ const TicketTable2 = () => {
       }
 
       alert("Selected rows deleted successfully!");
-      setSelectedRows([]); 
+      setSelectedRows([]);
       loadData();
     } catch (error) {
       console.error("Error deleting rows:", error);
@@ -136,15 +136,18 @@ const TicketTable2 = () => {
   };
 
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  const loadData = useCallback(debounce(async () => {
-    const payload = {
-      ...columnFilters,
-      pageIndex,
-      pageSize,
-    };
-    const initialData = await fetchInitialData(payload);
-    setData(initialData);
-  }, 500), [columnFilters, pageIndex, pageSize]); 
+  const loadData = useCallback(
+    debounce(async () => {
+      const payload = {
+        ...columnFilters,
+        pageIndex,
+        pageSize,
+      };
+      const initialData = await fetchInitialData(payload);
+      setData(initialData);
+    }, 500),
+    [columnFilters, pageIndex, pageSize]
+  );
 
   useEffect(() => {
     loadData();
@@ -152,7 +155,7 @@ const TicketTable2 = () => {
 
   return (
     <div className="container">
-        <h1>Bảng Nhập Dữ Liệu</h1>
+      <h1>Bảng Nhập Dữ Liệu</h1>
       <InputForm onTicketCreated={loadData} />
       <SearchComponent
         setColumnFilters={setColumnFilters}
