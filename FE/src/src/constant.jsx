@@ -1,10 +1,11 @@
 export async function refreshAccessToken() {
     try {
-        const refreshResponse = await fetch("https://localhost:44331/refresh", {
+        const refreshResponse = await fetch("https://localhost:7113/refresh", {
             method: "POST",
             headers: {
                 "Content-Type": "application/json",
             },
+            credentials: 'include',
         });
 
         if (!refreshResponse.ok) {
@@ -58,4 +59,4 @@ export function formatDate(dateString){
     const minutes = String(date.getMinutes()).padStart(2, '0');
   
     return `${day}/${month}/${year} ${hours}:${minutes}`;
-  };
+};
