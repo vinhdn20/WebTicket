@@ -44,7 +44,7 @@ const InputTable = ({ onTicketCreated }) => {
         maDatChoHang: "",
         tenKhachHang: "",
         gioiTinh: "Nam",
-        addOn: [],
+        addOn: "",
         maDatChoTrip: "",
         thuAG: "",
         giaXuat: "",
@@ -578,25 +578,27 @@ const InputTable = ({ onTicketCreated }) => {
                           }
                         />
                       </td>
-                    ) : column.accessor === "addOn" ? (
-                      <td key={column.accessor}>
-                        <Button
-                          variant="outlined"
-                          onClick={handleClickAddOnOpen}
-                          className="button-container"
-                        >
-                          Nhập
-                        </Button>
-                        <AddOnTable
-                          open={openAddOn}
-                          setOpen={setOpenAddOn}
-                          onClose={handleDialogAddOnClose}
-                          data={data}
-                          initialData={data[selectedRowIndex]?.addOn || []}
-                          onSave={handleSaveAddOnData}
-                        />
-                      </td>
-                    ) : column.accessor === "ngayXuat" ? (
+                    ) 
+                    // : column.accessor === "addOn" ? (
+                    //   <td key={column.accessor}>
+                    //     <Button
+                    //       variant="outlined"
+                    //       onClick={handleClickAddOnOpen}
+                    //       className="button-container"
+                    //     >
+                    //       Nhập
+                    //     </Button>
+                    //     <AddOnTable
+                    //       open={openAddOn}
+                    //       setOpen={setOpenAddOn}
+                    //       onClose={handleDialogAddOnClose}
+                    //       data={data}
+                    //       initialData={data[selectedRowIndex]?.addOn || []}
+                    //       onSave={handleSaveAddOnData}
+                    //     />
+                    //   </td>
+                    // ) 
+                    : column.accessor === "ngayXuat" ? (
                       <input
                         type="datetime-local"
                         value={
