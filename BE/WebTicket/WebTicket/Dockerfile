@@ -7,8 +7,8 @@ EXPOSE 8080
 EXPOSE 8081
 
 FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build
-RUN mkdir -p /https
-RUN dotnet dev-certs https -ep /https/aspnetapp.pfx -p 123456
+#RUN mkdir -p /https
+#RUN dotnet dev-certs https -ep /https/aspnetapp.pfx -p 123456
 WORKDIR /src
 COPY ["WebTicket/WebTicket.csproj", "WebTicket/"]
 COPY ["Common/Common.csproj", "Common/"]
@@ -24,6 +24,6 @@ RUN dotnet publish "WebTicket.csproj" -c Release -o /app/publish /p:UseAppHost=f
 
 FROM base AS final
 WORKDIR /app
-COPY --chmod=0755 --from=build /https/* /https/
+#COPY --chmod=0755 --from=build /https/* /https/
 COPY --from=publish /app/publish .
 ENTRYPOINT ["dotnet", "WebTicket.dll"]
