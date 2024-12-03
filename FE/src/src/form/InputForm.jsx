@@ -44,7 +44,7 @@ const InputTable = ({ onTicketCreated }) => {
         maDatChoHang: "",
         tenKhachHang: "",
         gioiTinh: "Nam",
-        addOn: [],
+        addOn: "",
         maDatChoTrip: "",
         thuAG: "",
         giaXuat: "",
@@ -75,7 +75,8 @@ const InputTable = ({ onTicketCreated }) => {
   const [open, setOpen] = React.useState(false);
   const [openSoThe, setOpenSoThe] = React.useState(false);
   const [openAddOn, setOpenAddOn] = React.useState(false);
-  const [selectedRowIndex, setSelectedRowIndex] = useState(0);
+  const [addOnRow, setAddOnRow] = React.useState();
+  const [addOnData, setAddOnData] = useState([]);
 
   const columns = [
     { Header: "Chọn", accessor: "select" },
@@ -136,8 +137,8 @@ const InputTable = ({ onTicketCreated }) => {
           }
           return await retryResponse.json();
         } else {
-         window.location.href = "/";
- throw new Error("Failed to refresh access token");
+          window.location.href = "/";
+          throw new Error("Failed to refresh access token");
         }
       }
       if (!response.ok) {
@@ -262,10 +263,10 @@ const InputTable = ({ onTicketCreated }) => {
         col.accessor === "ngayXuat"
           ? getCurrentDateTimeLocal()
           : col.accessor === "gioiTinh"
-            ? "Nam"
-            : col.accessor === "veHoanKhay"
-              ? "Có"
-              : "";
+          ? "Nam"
+          : col.accessor === "veHoanKhay"
+          ? "Có"
+          : "";
       return acc;
     }, {});
     const newMatrix = createMatrix(data.length + 1, Object.keys(newRow).length);
@@ -366,7 +367,9 @@ const InputTable = ({ onTicketCreated }) => {
   };
 
   const handleClickAddOnOpen = (index) => {
-    setSelectedRowIndex(index);
+    setAddOnRow(index);
+    const addOn = data[index].addOn ? JSON.parse(data[index].addOn) : []; // Parse dữ liệu addOn
+    setAddOnData(addOn);
     setOpenAddOn(true);
   };
 
@@ -375,12 +378,25 @@ const InputTable = ({ onTicketCreated }) => {
   };
 
   const handleDialogAddOnClose = () => {
+    const updatedData = [...data];
+    updatedData[addOnRow].addOn = JSON.stringify(addOnData); // Chuyển đổi dữ liệu addOn thành chuỗi
+    setData(updatedData);
     setOpenAddOn(false);
   };
 
   const handleDialogSoTheClose = () => {
     setOpenSoThe(false);
   };
+
+  const handleCloseAddOnDialog = (newAddOnData) => {
+    if (addOnRow !== null) {
+      const updatedArray = [...data];
+      updatedArray[addOnRow].addOn = JSON.stringify(newAddOnData); // Lưu lại dữ liệu dưới dạng chuỗi
+      setData(updatedArray); // Cập nhật lại mảng dữ liệu
+    }
+    setOpenAddOn(false);
+  };
+
   const handlePaste = (e) => {
     e.preventDefault();
 
@@ -420,14 +436,15 @@ const InputTable = ({ onTicketCreated }) => {
 
     setData(updatedData);
   };
-
-  const handleSaveAddOnData = (newAddOnData) => {
-    const newData = [...data];
-    newData[selectedRowIndex].addOn = newAddOnData; 
-    setData(newData);
-    handleDialogAddOnClose();
+  const handleSave = (formData, rowIndex) => {
+    const updatedData = [...data];
+    const stringData = JSON.stringify(formData);
+    updatedData[rowIndex] = {
+      ...updatedData[rowIndex],
+      addOn: stringData,
+    };
+    setData(updatedData);
   };
-  console.log(data);
 
   return (
     <>
@@ -583,7 +600,7 @@ const InputTable = ({ onTicketCreated }) => {
                       <td key={column.accessor}>
                         <Button
                           variant="outlined"
-                          onClick={handleClickAddOnOpen}
+                          onClick={() => handleClickAddOnOpen(rowIndex)}
                           className="button-container"
                         >
                           Nhập
@@ -592,9 +609,30 @@ const InputTable = ({ onTicketCreated }) => {
                           open={openAddOn}
                           setOpen={setOpenAddOn}
                           onClose={handleDialogAddOnClose}
+                          onSave={handleSave}
+                          initialData={
+                            addOnRow !== null
+                              ? (() => {
+                                  try {
+                                    // Kiểm tra dữ liệu có hợp lệ không trước khi parse
+                                    const parsedData = JSON.parse(
+                                      data[addOnRow].addOn ||
+                                        '[{"stt": "", "dichVu": "", "soTien": ""}]'
+                                    );
+                                    return parsedData;
+                                  } catch (error) {
+                                    console.error("Error parsing JSON:", error);
+                                    // Nếu lỗi, trả về giá trị mặc định
+                                    return [
+                                      { stt: "", dichVu: "", soTien: "" },
+                                    ];
+                                  }
+                                })()
+                              : [{ stt: "", dichVu: "", soTien: "" }]
+                          }
+                          setData={setData}
                           data={data}
-                          initialData={data[selectedRowIndex]?.addOn || []}
-                          onSave={handleSaveAddOnData}
+                          rowIndex={addOnRow}
                         />
                       </td>
                     ) : column.accessor === "ngayXuat" ? (

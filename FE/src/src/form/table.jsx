@@ -157,7 +157,6 @@ const EditableTable = ({
     setIsEditing(!isEditing);
   };
   const isAllSelected = selectedRows.length === data.length && data.length > 0;
-  console.log(data);
   return (
     <div>
       {data.length === 0 ? (

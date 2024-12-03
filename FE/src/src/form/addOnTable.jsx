@@ -26,19 +26,22 @@ const generateMatrixValues = (rows, cols, startValue = 11) => {
 };
 
 
-export default function AddOnTable({ open, onClose, onSave, initialData }) {
-  const [formData, setFormData] = useState(() => {
-    const rows = 1;
-    const cols = 3;
-    const matrix = generateMatrixValues(rows, cols);
-    return Array.from({ length: rows }, (_, rowIndex) => ({
-      stt: "",
-      dichVu: "",
-      soTien: "",
-      matrixValue: matrix[rowIndex],
-    }));
-  });
-  const [addOnData, setAddOnData] = useState(initialData);
+export default function AddOnTable({ open, onClose, initialData, setData, rowIndex, data, onSave }) {
+  // const [formData, setFormData] = useState(() => {
+  //   const rows = 1;
+  //   const cols = 3;
+  //   const matrix = generateMatrixValues(rows, cols);
+  //   return Array.from({ length: rows }, (_, rowIndex) => ({
+  //     matrixValue: matrix[rowIndex],
+  //   }));
+  // });
+
+  const [formData, setFormData] = useState(initialData);
+
+  // Sử dụng useEffect để cập nhật khi data thay đổi
+  useEffect(() => {
+    setFormData(initialData);  // Cập nhật dữ liệu khi bảng được mở
+  }, [initialData]);
   const [selectedRows, setSelectedRows] = useState([]); // Lưu các hàng được chọn
   const [currentFocusRow, setCurrentFocusRow] = useState(null); // Lưu vị trí hàng được focus
 
@@ -105,16 +108,11 @@ export default function AddOnTable({ open, onClose, onSave, initialData }) {
     setSelectedRows([]);
   };
 
-  const handleSave = () => {
-    onSave(addOnData); // Save the modified data back to InputTable
+  const handleSaveAddOn = () => {
+    console.log(data);
+    onSave(formData, rowIndex)
+    onClose();
   };
-
-  const handleChange = (e, rowIndex, colIndex) => {
-    const newAddOnData = [...addOnData];
-    newAddOnData[rowIndex][colIndex] = e.target.value;
-    setAddOnData(newAddOnData);
-  };
-
 
   return (
     <Dialog
@@ -145,7 +143,7 @@ export default function AddOnTable({ open, onClose, onSave, initialData }) {
           <Typography sx={{ ml: 2, flex: 1 }} variant="h6" component="div">
             Nhập bảng Add on
           </Typography>
-          <Button autoFocus color="inherit" onClick={handleSave}>
+          <Button autoFocus color="inherit" onClick={handleSaveAddOn}>
             Save
           </Button>
         </Toolbar>
