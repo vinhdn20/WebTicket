@@ -65,7 +65,7 @@ export default function FullScreenAGDialog({ open, onClose }) {
   const fetchApiData = useCallback(async () => {
     let accessToken = getAccessToken();
     try {
-      const response = await fetch("https://localhost:44331/Ve/ag", {
+      const response = await fetch("https://localhost:7113/Ve/ag", {
         method: "GET",
         headers: {
           "Content-Type": "application/json",
@@ -77,7 +77,7 @@ export default function FullScreenAGDialog({ open, onClose }) {
         const newToken = await refreshAccessToken();
         if (newToken) {
           accessToken = newToken;
-          const retryResponse = await fetch("https://localhost:44331/Ve/ag", {
+          const retryResponse = await fetch("https://localhost:7113/Ve/ag", {
             method: "GET",
             headers: {
               "Content-Type": "application/json",
@@ -210,7 +210,7 @@ export default function FullScreenAGDialog({ open, onClose }) {
     let accessToken = getAccessToken();
 
     try {
-      const response = await fetch("https://localhost:44331/Ve/ag", {
+      const response = await fetch("https://localhost:7113/Ve/ag", {
         method: "DELETE",
         headers: {
           "Content-Type": "application/json",
@@ -224,7 +224,7 @@ export default function FullScreenAGDialog({ open, onClose }) {
         if (newToken) {
           accessToken = newToken;
           // Retry the original request with the new token
-          const retryResponse = await fetch("https://localhost:44331/Ve/ag", {
+          const retryResponse = await fetch("https://localhost:7113/Ve/ag", {
             method: "DELETE",
             headers: {
               "Content-Type": "application/json",
@@ -280,7 +280,7 @@ export default function FullScreenAGDialog({ open, onClose }) {
     const payload = selectedApiRows;
 
     try {
-      const response = await fetch("https://localhost:44331/Ve/ag", {
+      const response = await fetch("https://localhost:7113/Ve/ag", {
         method: "DELETE",
         headers: {
           "Content-Type": "application/json",
@@ -294,7 +294,7 @@ export default function FullScreenAGDialog({ open, onClose }) {
         if (newToken) {
           accessToken = newToken;
           // Retry the original request with the new token
-          const retryResponse = await fetch("https://localhost:44331/Ve/ag", {
+          const retryResponse = await fetch("https://localhost:7113/Ve/ag", {
             method: "DELETE",
             headers: {
               "Content-Type": "application/json",
@@ -344,7 +344,7 @@ export default function FullScreenAGDialog({ open, onClose }) {
     let accessToken = getAccessToken();
 
     try {
-      const response = await fetch("https://localhost:44331/Ve/ag", {
+      const response = await fetch("https://localhost:7113/Ve/ag", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -358,7 +358,7 @@ export default function FullScreenAGDialog({ open, onClose }) {
         if (newToken) {
           accessToken = newToken;
           // Retry the original request with the new token
-          const retryResponse = await fetch("https://localhost:44331/Ve/ag", {
+          const retryResponse = await fetch("https://localhost:7113/Ve/ag", {
             method: "POST",
             headers: {
               "Content-Type": "application/json",

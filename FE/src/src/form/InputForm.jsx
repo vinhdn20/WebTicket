@@ -76,7 +76,6 @@ const InputTable = ({ onTicketCreated }) => {
   const [openSoThe, setOpenSoThe] = useState(false);
   const [openAddOn, setOpenAddOn] = useState(false);
   const [addOnRow, setAddOnRow] = useState(null);
-  const [addOnData, setAddOnData] = useState([]);
 
   const columns = useMemo(() => [
     { Header: "Chọn", accessor: "select" },
@@ -105,7 +104,7 @@ const InputTable = ({ onTicketCreated }) => {
     let accessToken = localStorage.getItem("accessToken");
 
     try {
-      const response = await fetch("https://localhost:44331/Ve/xuatVe", {
+      const response = await fetch("https://localhost:7113/Ve/xuatVe", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -119,7 +118,7 @@ const InputTable = ({ onTicketCreated }) => {
         if (newToken) {
           accessToken = newToken;
           const retryResponse = await fetch(
-            "https://localhost:44331/Ve/xuatVe",
+            "https://localhost:7113/Ve/xuatVe",
             {
               method: "POST",
               headers: {
@@ -214,7 +213,7 @@ const InputTable = ({ onTicketCreated }) => {
   const fetchPhoneNumbers = useCallback(async () => {
     try {
       const accessToken = localStorage.getItem("accessToken");
-      const response = await fetch("https://localhost:44331/Ve/ag", {
+      const response = await fetch("https://localhost:7113/Ve/ag", {
         method: "GET",
         headers: {
           "Content-Type": "application/json",
@@ -237,7 +236,7 @@ const InputTable = ({ onTicketCreated }) => {
   const fetchCardNumbers = useCallback(async () => {
     try {
       const accessToken = localStorage.getItem("accessToken");
-      const response = await fetch("https://localhost:44331/Ve/card", {
+      const response = await fetch("https://localhost:7113/Ve/card", {
         method: "GET",
         headers: {
           "Content-Type": "application/json",
@@ -378,12 +377,8 @@ const InputTable = ({ onTicketCreated }) => {
   const handleClickAddOnOpen = useCallback(
     (index) => {
       setAddOnRow(index);
-      const addOn = data[index].addOn ? JSON.parse(data[index].addOn) : [];
-      setAddOnData(addOn);
       setOpenAddOn(true);
-    },
-    [data]
-  );
+    });
 
   const handleDialogClose = useCallback(() => {
     setOpen(false);
@@ -686,7 +681,6 @@ const InputTable = ({ onTicketCreated }) => {
         </Button>
       </div>
       
-      {/* Single instance of AddOnTable outside the table */}
       <AddOnTable
         open={openAddOn}
         onClose={handleDialogAddOnClose}
