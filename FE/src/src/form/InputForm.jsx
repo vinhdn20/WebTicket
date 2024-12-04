@@ -1,10 +1,12 @@
-import React, { useCallback, useMemo, useState } from "react";
+// src/form/InputTable.jsx
+import React, { useCallback, useMemo, useState, useEffect } from "react";
 import "../style/table.css";
 import Button from "@mui/material/Button";
-import { refreshAccessToken } from "../constant";
+import { Snackbar, Alert } from "@mui/material";
 import FullScreenAGDialog from "./AgInputForm";
 import FullScreenSoTheDialog from "./SoTheInputForm";
 import AddOnTable from "./addOnTable";
+import fetchWithAuth from "../services/apiSevrvice";
 
 const getCurrentDateTimeLocal = () => {
   const now = new Date();
@@ -15,383 +17,292 @@ const getCurrentDateTimeLocal = () => {
   return localDateTime;
 };
 
-const createMatrix = (rows, cols) => {
-  const matrix = [];
-  let value = 11;
-  for (let i = 0; i < rows; i++) {
-    const row = [];
-    for (let j = 0; j < cols; j++) {
-      row.push(value);
-      value++;
-    }
-    matrix.push(row);
-  }
-  return matrix;
+const initialRow = {
+  ngayXuat: getCurrentDateTimeLocal(),
+  sdt: "",
+  mail: "",
+  tenAG: "",
+  changDi: "",
+  ngayGioBayDi: "",
+  changVe: "",
+  ngayGioBayDen: "",
+  maDatChoHang: "",
+  tenKhachHang: "",
+  gioiTinh: "Nam",
+  addOn: "",
+  maDatChoTrip: "",
+  thuAG: "",
+  giaXuat: "",
+  soThe: "",
+  taiKhoan: "",
+  luuY: "",
+  veHoanKhay: "Có",
 };
 
 const InputTable = ({ onTicketCreated }) => {
-  const [data, setData] = useState(() => {
-    const initialData = [
-      {
-        ngayXuat: getCurrentDateTimeLocal(),
-        sdt: "",
-        mail: "",
-        tenAG: "",
-        changDi: "",
-        ngayGioBayDi: "",
-        changVe: "",
-        ngayGioBayDen: "",
-        maDatChoHang: "",
-        tenKhachHang: "",
-        gioiTinh: "Nam",
-        addOn: "",
-        maDatChoTrip: "",
-        thuAG: "",
-        giaXuat: "",
-        soThe: "",
-        taiKhoan: "",
-        luuY: "",
-        veHoanKhay: "Có",
-      },
-    ];
-
-    const matrix = createMatrix(
-      initialData.length,
-      Object.keys(initialData[0]).length
-    );
-
-    return initialData.map((row, rowIndex) => {
-      const updatedRow = { ...row };
-      Object.keys(row).forEach((key, colIndex) => {
-        updatedRow[`${key}MatrixValue`] = matrix[rowIndex][colIndex];
-      });
-      return updatedRow;
-    });
-  });
+  // State Management
+  const [data, setData] = useState([initialRow]);
   const [currentFocusCell, setCurrentFocusCell] = useState(null);
   const [selectedRows, setSelectedRows] = useState([]);
   const [phoneOptions, setPhoneOptions] = useState([]);
   const [cardOptions, setCardOptions] = useState([]);
-  const [open, setOpen] = useState(false);
-  const [openSoThe, setOpenSoThe] = useState(false);
-  const [openAddOn, setOpenAddOn] = useState(false);
+  const [openAGDialog, setOpenAGDialog] = useState(false);
+  const [openSoTheDialog, setOpenSoTheDialog] = useState(false);
+  const [openAddOnDialog, setOpenAddOnDialog] = useState(false);
   const [addOnRow, setAddOnRow] = useState(null);
+  const [snackbar, setSnackbar] = useState({
+    open: false,
+    message: "",
+    severity: "success",
+  });
 
-  const columns = useMemo(() => [
-    { Header: "Chọn", accessor: "select" },
-    { Header: "Ngày xuất", accessor: "ngayXuat" },
-    { Header: "Liên hệ (SĐT)", accessor: "sdt" },
-    { Header: "Mail", accessor: "mail" },
-    { Header: "Tên AG", accessor: "tenAG" },
-    { Header: "Chặng bay đi", accessor: "changDi" },
-    { Header: "Ngày giờ bay đi", accessor: "ngayGioBayDi" },
-    { Header: "Chặng bay đến", accessor: "changVe" },
-    { Header: "Ngày giờ bay đến", accessor: "ngayGioBayDen" },
-    { Header: "Mã đặt chỗ hãng", accessor: "maDatChoHang" },
-    { Header: "Tên khách hàng", accessor: "tenKhachHang" },
-    { Header: "Giới tính", accessor: "gioiTinh" },
-    { Header: "Add on", accessor: "addOn" },
-    { Header: "Mã đặt chỗ trip", accessor: "maDatChoTrip" },
-    { Header: "Thu AG", accessor: "thuAG" },
-    { Header: "Giá xuất", accessor: "giaXuat" },
-    { Header: "Số thẻ thanh toán", accessor: "soThe" },
-    { Header: "Tài khoản", accessor: "taiKhoan" },
-    { Header: "Lưu ý", accessor: "luuY" },
-    { Header: "Vé hoàn khay", accessor: "veHoanKhay" },
-  ], []);
-
-  async function callCreateTicketAPI(ticketDataArray) {
-    let accessToken = localStorage.getItem("accessToken");
-
-    try {
-      const response = await fetch("https://localhost:7113/Ve/xuatVe", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${accessToken}`,
-        },
-        body: JSON.stringify(ticketDataArray),
-      });
-
-      if (response.status === 401) {
-        const newToken = await refreshAccessToken();
-        if (newToken) {
-          accessToken = newToken;
-          const retryResponse = await fetch(
-            "https://localhost:7113/Ve/xuatVe",
-            {
-              method: "POST",
-              headers: {
-                "Content-Type": "application/json",
-                Authorization: `Bearer ${accessToken}`,
-              },
-              body: JSON.stringify(ticketDataArray),
-            }
-          );
-
-          if (!retryResponse.ok) {
-            throw new Error(
-              "Failed after token refresh: " + retryResponse.statusText
-            );
-          }
-          return await retryResponse.json();
-        } else {
-          window.location.href = "/";
-          throw new Error("Failed to refresh access token");
-        }
-      }
-      if (!response.ok) {
-        throw new Error("Network response was not ok " + response.statusText);
-      }
-      return await response.json();
-    } catch (error) {
-      console.error("Error creating tickets:", error);
-      throw error;
-    }
-  }
-
-  const handleAddTicket = useCallback(async (e) => {
-    e.preventDefault();
-    for (const row of data) {
-      if (!row.ngayGioBayDi || !row.ngayGioBayDen) {
-        alert("Vui lòng nhập đầy đủ ngày giờ bay đi và ngày giờ bay đến.");
-        return;
-      }
-      if (!row.soThe) {
-        alert("Vui lòng nhập số thẻ thanh toán.");
-        return;
-      }
-      if (!row.tenKhachHang) {
-        alert("Vui lòng nhập tên khách hàng.");
-        return;
-      }
-    }
-
-    const formattedTickets = data.map((row) => ({
-      ngayXuat: new Date().toISOString(),
-      changDi: row.changDi,
-      ngayGioBayDi: row.ngayGioBayDi
-        ? new Date(row.ngayGioBayDi).toISOString()
-        : new Date().toISOString(),
-      changVe: row.changVe,
-      ngayGioBayDen: row.ngayGioBayDen
-        ? new Date(row.ngayGioBayDen).toISOString()
-        : new Date().toISOString(),
-      maDatChoHang: row.maDatChoHang,
-      addOn: row.addOn,
-      maDatChoTrip: row.maDatChoTrip,
-      thuAG: row.thuAG,
-      giaXuat: row.giaXuat,
-      luuY: row.luuY,
-      veHoanKhay: row.veHoanKhay,
-      agCustomer: {
-        tenAG: row.tenAG,
-        mail: row.mail,
-        sdt: row.sdt,
-      },
-      customer: {
-        tenKhachHang: row.tenKhachHang,
-        gioiTinh: row.gioiTinh,
-      },
-      card: {
-        soThe: row.soThe,
-      },
-      taiKhoan: row.taiKhoan,
-    }));
-
-    try {
-      await callCreateTicketAPI(formattedTickets);
-      onTicketCreated();
-      alert("Vé đã tạo thành công!");
-      setData([]);
-    } catch (error) {
-      alert("Có lỗi xảy ra khi tạo vé. Vui lòng thử lại.");
-      console.error("Error creating tickets:", error);
-    }
-  }, [data, onTicketCreated]);
-
-  const fetchPhoneNumbers = useCallback(async () => {
-    try {
-      const accessToken = localStorage.getItem("accessToken");
-      const response = await fetch("https://localhost:7113/Ve/ag", {
-        method: "GET",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${accessToken}`,
-        },
-      });
-
-      if (!response.ok) {
-        throw new Error("Failed to fetch phone numbers.");
-      }
-
-      const result = await response.json();
-      setPhoneOptions(result);
-    } catch (error) {
-      console.error("Error fetching phone numbers:", error);
-      alert("Không thể tải danh sách số điện thoại.");
-    }
+  // Snackbar Handlers
+  const openSnackbarHandler = useCallback((message, severity = "success") => {
+    setSnackbar({ open: true, message, severity });
   }, []);
 
-  const fetchCardNumbers = useCallback(async () => {
-    try {
-      const accessToken = localStorage.getItem("accessToken");
-      const response = await fetch("https://localhost:7113/Ve/card", {
-        method: "GET",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${accessToken}`,
-        },
-      });
-
-      if (!response.ok) {
-        throw new Error("Failed to fetch so the.");
-      }
-
-      const result = await response.json();
-      setCardOptions(result);
-    } catch (error) {
-      console.error("Error fetching so the:", error);
-      alert("Không thể tải danh sách số thẻ thanh toán.");
-    }
+  const closeSnackbarHandler = useCallback(() => {
+    setSnackbar((prev) => ({ ...prev, open: false }));
   }, []);
 
-  const handleAddRow = useCallback(() => {
-    const newRow = columns.reduce((acc, col) => {
-      acc[col.accessor] =
-        col.accessor === "ngayXuat"
-          ? getCurrentDateTimeLocal()
-          : col.accessor === "gioiTinh"
-          ? "Nam"
-          : col.accessor === "veHoanKhay"
-          ? "Có"
-          : "";
-      return acc;
-    }, {});
-    const newMatrix = createMatrix(data.length + 1, Object.keys(newRow).length);
-    const updatedNewRow = { ...newRow };
-    Object.keys(newRow).forEach((key, colIndex) => {
-      updatedNewRow[`${key}MatrixValue`] = newMatrix[data.length][colIndex];
-    });
-
-    setData((prevData) => [...prevData, updatedNewRow]);
-  }, [columns, data.length]);
-
-  const handleCellEdit = useCallback(
-    (rowIndex, columnId, value) => {
-      const updatedData = [...data];
-      updatedData[rowIndex] = {
-        ...updatedData[rowIndex],
-        [columnId]: value,
-        error: {
-          ...updatedData[rowIndex].error,
-          [columnId]:
-            columnId === "ngayGioBayDi" || columnId === "ngayGioBayDen"
-              ? !value
-              : false,
-        },
-      };
-      setData(updatedData);
-    },
-    [data]
+  // Columns Definition
+  const columns = useMemo(
+    () => [
+      { Header: "Chọn", accessor: "select" },
+      { Header: "Ngày xuất", accessor: "ngayXuat" },
+      { Header: "Liên hệ (SĐT)", accessor: "sdt" },
+      { Header: "Mail", accessor: "mail" },
+      { Header: "Tên AG", accessor: "tenAG" },
+      { Header: "Chặng bay đi", accessor: "changDi" },
+      { Header: "Ngày giờ bay đi", accessor: "ngayGioBayDi" },
+      { Header: "Chặng bay đến", accessor: "changVe" },
+      { Header: "Ngày giờ bay đến", accessor: "ngayGioBayDen" },
+      { Header: "Mã đặt chỗ hãng", accessor: "maDatChoHang" },
+      { Header: "Tên khách hàng", accessor: "tenKhachHang" },
+      { Header: "Giới tính", accessor: "gioiTinh" },
+      { Header: "Add on", accessor: "addOn" },
+      { Header: "Mã đặt chỗ trip", accessor: "maDatChoTrip" },
+      { Header: "Thu AG", accessor: "thuAG" },
+      { Header: "Giá xuất", accessor: "giaXuat" },
+      { Header: "Số thẻ thanh toán", accessor: "soThe" },
+      { Header: "Tài khoản", accessor: "taiKhoan" },
+      { Header: "Lưu ý", accessor: "luuY" },
+      { Header: "Vé hoàn khay", accessor: "veHoanKhay" },
+    ],
+    []
   );
 
+  // Fetch Phone Numbers
+  const fetchPhoneNumbers = useCallback(async () => {
+    try {
+      const result = await fetchWithAuth(
+        "/ag",
+        { method: "GET" },
+        openSnackbarHandler
+      );
+      setPhoneOptions(result);
+    } catch (error) {
+      // Error handled in fetchWithAuth
+    }
+  }, [openSnackbarHandler]);
+
+  // Fetch Card Numbers
+  const fetchCardNumbers = useCallback(async () => {
+    try {
+      const result = await fetchWithAuth(
+        "/card",
+        { method: "GET" },
+        openSnackbarHandler
+      );
+      setCardOptions(result);
+    } catch (error) {
+      // Error handled in fetchWithAuth
+    }
+  }, [openSnackbarHandler]);
+
+  useEffect(() => {
+    fetchPhoneNumbers();
+    fetchCardNumbers();
+  }, [fetchPhoneNumbers, fetchCardNumbers]);
+
+  const handleAddTicket = useCallback(
+    async (e) => {
+      e.preventDefault();
+      for (const row of data) {
+        if (!row.ngayGioBayDi || !row.ngayGioBayDen) {
+          openSnackbarHandler(
+            "Vui lòng nhập đầy đủ ngày giờ bay đi và ngày giờ bay đến.",
+            "warning"
+          );
+          return;
+        }
+        if (!row.soThe) {
+          openSnackbarHandler("Vui lòng nhập số thẻ thanh toán.", "warning");
+          return;
+        }
+        if (!row.tenKhachHang) {
+          openSnackbarHandler("Vui lòng nhập tên khách hàng.", "warning");
+          return;
+        }
+      }
+
+      const formattedTickets = data.map((row) => ({
+        ngayXuat: new Date().toISOString(),
+        changDi: row.changDi,
+        ngayGioBayDi: row.ngayGioBayDi
+          ? new Date(row.ngayGioBayDi).toISOString()
+          : new Date().toISOString(),
+        changVe: row.changVe,
+        ngayGioBayDen: row.ngayGioBayDen
+          ? new Date(row.ngayGioBayDen).toISOString()
+          : new Date().toISOString(),
+        maDatChoHang: row.maDatChoHang,
+        addOn: row.addOn,
+        maDatChoTrip: row.maDatChoTrip,
+        thuAG: row.thuAG,
+        giaXuat: row.giaXuat,
+        luuY: row.luuY,
+        veHoanKhay: row.veHoanKhay,
+        agCustomer: {
+          tenAG: row.tenAG,
+          mail: row.mail,
+          sdt: row.sdt,
+        },
+        customer: {
+          tenKhachHang: row.tenKhachHang,
+          gioiTinh: row.gioiTinh,
+        },
+        card: {
+          soThe: row.soThe,
+        },
+        taiKhoan: row.taiKhoan,
+      }));
+
+      try {
+        await fetchWithAuth(
+          "/xuatVe",
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(formattedTickets),
+          },
+          openSnackbarHandler
+        );
+        onTicketCreated();
+        openSnackbarHandler("Vé đã tạo thành công!", "success");
+        setData([initialRow]); // Reset data
+      } catch (error) {
+        openSnackbarHandler(
+          "Có lỗi xảy ra khi tạo vé. Vui lòng thử lại.",
+          "error"
+        );
+      }
+    },
+    [data, onTicketCreated, openSnackbarHandler]
+  );
+
+  // Add New Row
+  const handleAddRow = useCallback(() => {
+    setData((prevData) => [...prevData, { ...initialRow }]);
+  }, []);
+
+  // Handle Cell Edit
+  const handleCellEdit = useCallback(
+    (rowIndex, columnId, value) => {
+      setData((prevData) => {
+        const updatedData = [...prevData];
+        updatedData[rowIndex][columnId] = value;
+        return updatedData;
+      });
+    },
+    []
+  );
+
+  // Handle Phone Select
   const handlePhoneSelect = useCallback(
     (rowIndex, newValue) => {
       const selectedPhoneOption = phoneOptions.find(
         (option) => option.sdt === newValue.sdt
       );
 
-      const updatedData = [...data];
-      if (selectedPhoneOption) {
-        updatedData[rowIndex] = {
-          ...updatedData[rowIndex],
-          sdt: selectedPhoneOption.sdt,
-          tenAG: selectedPhoneOption.tenAG || "",
-          mail: selectedPhoneOption.mail || "",
-        };
-      } else {
-        updatedData[rowIndex] = {
-          ...updatedData[rowIndex],
-          sdt: newValue.sdt || "",
-          tenAG: "",
-          mail: "",
-        };
-      }
-
-      setData(updatedData);
+      setData((prevData) => {
+        const updatedData = [...prevData];
+        if (selectedPhoneOption) {
+          updatedData[rowIndex] = {
+            ...updatedData[rowIndex],
+            sdt: selectedPhoneOption.sdt,
+            tenAG: selectedPhoneOption.tenAG || "",
+            mail: selectedPhoneOption.mail || "",
+          };
+        } else {
+          updatedData[rowIndex] = {
+            ...updatedData[rowIndex],
+            sdt: newValue.sdt || "",
+            tenAG: "",
+            mail: "",
+          };
+        }
+        return updatedData;
+      });
     },
-    [data, phoneOptions]
+    [phoneOptions]
   );
 
+  // Handle Card Select
   const handleSoTheSelect = useCallback(
     (rowIndex, newValue) => {
       const selectedCard = cardOptions.find(
         (option) => option.soThe === newValue.soThe
       );
 
-      const updatedData = [...data];
-      if (selectedCard) {
-        updatedData[rowIndex] = {
-          ...updatedData[rowIndex],
-          soThe: selectedCard.soThe,
-        };
-      } else {
-        updatedData[rowIndex] = {
-          ...updatedData[rowIndex],
-          soThe: newValue.soThe || "",
-        };
-      }
-
-      setData(updatedData);
+      setData((prevData) => {
+        const updatedData = [...prevData];
+        updatedData[rowIndex].soThe = selectedCard
+          ? selectedCard.soThe
+          : newValue.soThe || "";
+        return updatedData;
+      });
     },
-    [cardOptions, data]
+    [cardOptions]
   );
 
+  // Handle Row Selection
   const handleSelectRow = useCallback((rowIndex, isSelected) => {
-    if (isSelected) {
-      setSelectedRows((prevSelected) => [...prevSelected, rowIndex]);
-    } else {
-      setSelectedRows((prevSelected) =>
-        prevSelected.filter((index) => index !== rowIndex)
-      );
-    }
-  }, []);
-
-  const handleDeleteRows = useCallback(() => {
-    const updatedData = data.filter(
-      (_, index) => !selectedRows.includes(index)
+    setSelectedRows((prevSelected) =>
+      isSelected
+        ? [...prevSelected, rowIndex]
+        : prevSelected.filter((index) => index !== rowIndex)
     );
-    setData(updatedData);
+  }, []);
+
+  // Delete Selected Rows
+  const handleDeleteRows = useCallback(() => {
+    setData((prevData) =>
+      prevData.filter((_, index) => !selectedRows.includes(index))
+    );
     setSelectedRows([]);
-  }, [data, selectedRows]);
+  }, [selectedRows]);
 
-  const handleClickOpen = useCallback(() => {
-    setOpen(true);
+  // Handle AddOn Dialog Open
+  const handleClickAddOnOpen = useCallback((index) => {
+    setAddOnRow(index);
+    setOpenAddOnDialog(true);
   }, []);
 
-  const handleClickSoTheOpen = useCallback(() => {
-    setOpenSoThe(true);
-  }, []);
-
-  const handleClickAddOnOpen = useCallback(
-    (index) => {
-      setAddOnRow(index);
-      setOpenAddOn(true);
-    });
-
+  // Handle Dialog Close
   const handleDialogClose = useCallback(() => {
-    setOpen(false);
-  }, []);
-
-  const handleDialogAddOnClose = useCallback(() => {
-    setOpenAddOn(false);
+    setOpenAGDialog(false);
   }, []);
 
   const handleDialogSoTheClose = useCallback(() => {
-    setOpenSoThe(false);
+    setOpenSoTheDialog(false);
   }, []);
 
+  const handleDialogAddOnClose = useCallback(() => {
+    setOpenAddOnDialog(false);
+  }, []);
+
+  // Handle Paste
   const handlePaste = useCallback(
     (e) => {
       e.preventDefault();
@@ -401,19 +312,10 @@ const InputTable = ({ onTicketCreated }) => {
 
       if (!currentFocusCell) return;
 
-      let startRow = null;
-      let startCol = null;
-
-      data.forEach((rowData, rowIndex) => {
-        Object.keys(rowData).forEach((key, colIndex) => {
-          if (rowData[`${key}MatrixValue`] === currentFocusCell) {
-            startRow = rowIndex;
-            startCol = columns.findIndex((col) => col.accessor === key);
-          }
-        });
-      });
-
-      if (startRow === null || startCol === null) return;
+      const startRow = currentFocusCell.rowIndex;
+      const startCol = columns.findIndex(
+        (col) => col.accessor === currentFocusCell.columnId
+      );
 
       const updatedData = [...data];
       rows.forEach((rowValues, rowOffset) => {
@@ -423,7 +325,7 @@ const InputTable = ({ onTicketCreated }) => {
 
           if (updatedData[targetRow]) {
             const targetKey = columns[targetCol]?.accessor;
-            if (targetKey) {
+            if (targetKey && targetKey !== "select" && targetKey !== "addOn") {
               updatedData[targetRow][targetKey] = cellValue;
             }
           }
@@ -435,18 +337,19 @@ const InputTable = ({ onTicketCreated }) => {
     [currentFocusCell, data, columns]
   );
 
-  const handleSave = useCallback((formData, rowIndex) => {
-    const updatedData = [...data];
-    const stringData = JSON.stringify(formData);
-    updatedData[rowIndex] = {
-      ...updatedData[rowIndex],
-      addOn: stringData,
-    };
-    setData(updatedData);
-  }, [data]);
-  
-  
-  // Memo hóa initialData để truyền xuống AddOnTable
+  // Handle Save from AddOnTable
+  const handleSaveAddOn = useCallback(
+    (formData, rowIndex) => {
+      setData((prevData) => {
+        const updatedData = [...prevData];
+        updatedData[rowIndex].addOn = JSON.stringify(formData);
+        return updatedData;
+      });
+    },
+    []
+  );
+
+  // Memoized Initial Data for AddOnTable
   const memoizedInitialData = useMemo(() => {
     if (addOnRow !== null) {
       try {
@@ -461,39 +364,42 @@ const InputTable = ({ onTicketCreated }) => {
     } else {
       return [{ stt: "", dichVu: "", soTien: "" }];
     }
-  }, [addOnRow, data]);  
+  }, [addOnRow, data]);
 
   return (
     <>
       <Button
         variant="outlined"
-        onClick={handleClickOpen}
+        onClick={() => setOpenAGDialog(true)}
         className="button-container"
         style={{ marginBottom: "15px", width: "200px" }}
       >
         Nhập bảng AG
       </Button>
       <FullScreenAGDialog
-        open={open}
-        setOpen={setOpen}
+        open={openAGDialog}
         onClose={handleDialogClose}
         data={data}
       />
       <Button
         variant="outlined"
-        onClick={handleClickSoTheOpen}
+        onClick={() => setOpenSoTheDialog(true)}
         className="button-container"
         style={{ marginBottom: "15px", marginLeft: "15px", width: "300px" }}
       >
         Nhập số thẻ thanh toán
       </Button>
       <FullScreenSoTheDialog
-        open={openSoThe}
-        setOpen={setOpenSoThe}
+        open={openSoTheDialog}
         onClose={handleDialogSoTheClose}
         data={data}
       />
-      <div className="table-wrapper" onPaste={handlePaste} tabIndex={0}>
+      <div
+        className="table-wrapper"
+        onPaste={handlePaste}
+        tabIndex={0}
+        style={{ outline: "none" }}
+      >
         <table className="table-container">
           <thead>
             <tr>
@@ -515,9 +421,10 @@ const InputTable = ({ onTicketCreated }) => {
                           handleSelectRow(rowIndex, e.target.checked)
                         }
                         onFocus={() =>
-                          setCurrentFocusCell(
-                            row[`${column.accessor}MatrixValue`]
-                          )
+                          setCurrentFocusCell({
+                            rowIndex,
+                            columnId: column.accessor,
+                          })
                         }
                       />
                     ) : column.accessor === "sdt" ? (
@@ -530,8 +437,13 @@ const InputTable = ({ onTicketCreated }) => {
                               sdt: e.target.value,
                             });
                           }}
-                          onFocus={fetchPhoneNumbers}
                           placeholder="Nhập số điện thoại"
+                          onFocus={() =>
+                            setCurrentFocusCell({
+                              rowIndex,
+                              columnId: column.accessor,
+                            })
+                          }
                         />
                         <datalist id={`phone-options-${rowIndex}`}>
                           {phoneOptions.map((option, idx) => (
@@ -549,8 +461,13 @@ const InputTable = ({ onTicketCreated }) => {
                               soThe: e.target.value,
                             });
                           }}
-                          onFocus={fetchCardNumbers}
                           placeholder="Nhập số thẻ"
+                          onFocus={() =>
+                            setCurrentFocusCell({
+                              rowIndex,
+                              columnId: column.accessor,
+                            })
+                          }
                         />
                         <datalist id={`so-the-${rowIndex}`}>
                           {cardOptions.map((option, idx) => (
@@ -565,9 +482,10 @@ const InputTable = ({ onTicketCreated }) => {
                           handleCellEdit(rowIndex, "gioiTinh", e.target.value)
                         }
                         onFocus={() =>
-                          setCurrentFocusCell(
-                            row[`${column.accessor}MatrixValue`]
-                          )
+                          setCurrentFocusCell({
+                            rowIndex,
+                            columnId: column.accessor,
+                          })
                         }
                       >
                         <option value="Nam">Nam</option>
@@ -577,12 +495,17 @@ const InputTable = ({ onTicketCreated }) => {
                       <select
                         value={row.veHoanKhay || "Có"}
                         onChange={(e) =>
-                          handleCellEdit(rowIndex, "veHoanKhay", e.target.value)
+                          handleCellEdit(
+                            rowIndex,
+                            "veHoanKhay",
+                            e.target.value
+                          )
                         }
                         onFocus={() =>
-                          setCurrentFocusCell(
-                            row[`${column.accessor}MatrixValue`]
-                          )
+                          setCurrentFocusCell({
+                            rowIndex,
+                            columnId: column.accessor,
+                          })
                         }
                       >
                         <option value="Có">Có</option>
@@ -606,9 +529,10 @@ const InputTable = ({ onTicketCreated }) => {
                           )
                         }
                         onFocus={() =>
-                          setCurrentFocusCell(
-                            row[`${column.accessor}MatrixValue`]
-                          )
+                          setCurrentFocusCell({
+                            rowIndex,
+                            columnId: column.accessor,
+                          })
                         }
                       />
                     ) : column.accessor === "addOn" ? (
@@ -629,9 +553,10 @@ const InputTable = ({ onTicketCreated }) => {
                           handleCellEdit(rowIndex, "ngayXuat", e.target.value)
                         }
                         onFocus={() =>
-                          setCurrentFocusCell(
-                            row[`${column.accessor}MatrixValue`]
-                          )
+                          setCurrentFocusCell({
+                            rowIndex,
+                            columnId: column.accessor,
+                          })
                         }
                       />
                     ) : (
@@ -646,9 +571,10 @@ const InputTable = ({ onTicketCreated }) => {
                           )
                         }
                         onFocus={() =>
-                          setCurrentFocusCell(
-                            row[`${column.accessor}MatrixValue`]
-                          )
+                          setCurrentFocusCell({
+                            rowIndex,
+                            columnId: column.accessor,
+                          })
                         }
                       />
                     )}
@@ -680,16 +606,30 @@ const InputTable = ({ onTicketCreated }) => {
           Xuất Vé
         </Button>
       </div>
-      
       <AddOnTable
-        open={openAddOn}
+        open={openAddOnDialog}
         onClose={handleDialogAddOnClose}
-        onSave={handleSave}
+        onSave={handleSaveAddOn}
         initialData={memoizedInitialData}
-        setData={setData}
         data={data}
         rowIndex={addOnRow}
+        mode="edit"
       />
+      {/* Snackbar for notifications */}
+      <Snackbar
+        open={snackbar.open}
+        autoHideDuration={6000}
+        onClose={closeSnackbarHandler}
+        anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
+      >
+        <Alert
+          onClose={closeSnackbarHandler}
+          severity={snackbar.severity}
+          sx={{ width: "100%" }}
+        >
+          {snackbar.message}
+        </Alert>
+      </Snackbar>
     </>
   );
 };

@@ -1,4 +1,3 @@
-// src/services/apiService.js
 const API_BASE_URL = "https://localhost:7113/Ve";
 
 const apiService = {
@@ -36,7 +35,6 @@ const apiService = {
     return response.json();
   },
 
-  // Add more API methods as needed, e.g., saveEditedRows, createTickets, etc.
 };
 
 export default apiService;

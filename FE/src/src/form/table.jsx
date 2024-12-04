@@ -6,10 +6,11 @@ import { useTable, usePagination } from "react-table";
 import "../style/table.css";
 import { formatDate } from "../constant";
 import { v4 as uuidv4 } from "uuid"; // Import uuid để tạo id duy nhất
+import { Snackbar, Alert } from "@mui/material"; // Import Snackbar và Alert
 import AddOnTable from "./addOnTable";
 import PaginationControls from "./PaginationControls";
 import ActionButtons from "./ActionButtons";
-import apiService from "../services/apiSevrvice"; // Ensure correct path
+import apiService from "../services/apiSevrvice";
 
 const exportTableToExcel = (tableData, fileName = "table_data.xlsx") => {
   const worksheet = XLSX.utils.json_to_sheet(tableData);
@@ -43,89 +44,22 @@ const EditableTable = ({
   const [addOnMode, setAddOnMode] = useState("view"); // New state to track AddOnTable mode
   const [isLoadingPhones, setIsLoadingPhones] = useState(false);
   const [isLoadingCards, setIsLoadingCards] = useState(false);
+  const [snackbar, setSnackbar] = useState({
+    open: false,
+    message: "",
+    severity: "success",
+  });
 
-  // Fetch phone and card numbers
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        setIsLoadingPhones(true);
-        const phoneData = await apiService.fetchPhoneNumbers();
-        setPhoneOptions(phoneData);
-      } catch (error) {
-        // Error handling is already done in apiService
-      } finally {
-        setIsLoadingPhones(false);
-      }
-
-      try {
-        setIsLoadingCards(true);
-        const cardData = await apiService.fetchCardNumbers();
-        setCardOptions(cardData);
-      } catch (error) {
-        // Error handling is already done in apiService
-      } finally {
-        setIsLoadingCards(false);
-      }
-    };
-    fetchData();
+  // Handlers cho Snackbar
+  const openSnackbarHandler = useCallback((message, severity = "success") => {
+    setSnackbar({ open: true, message, severity });
   }, []);
 
-  const handlePhoneSelect = useCallback(
-    (rowIndex, newValue) => {
-      const selectedPhoneOption = phoneOptions.find(
-        (option) => option.sdt === newValue.sdt
-      );
+  const closeSnackbarHandler = useCallback(() => {
+    setSnackbar((prev) => ({ ...prev, open: false }));
+  }, []);
 
-      const updatedData = [...data];
-      if (selectedPhoneOption) {
-        updatedData[rowIndex] = {
-          ...updatedData[rowIndex],
-          sdt: selectedPhoneOption.sdt,
-          tenAG: selectedPhoneOption.tenAG || "",
-          mail: selectedPhoneOption.mail || "",
-        };
-      } else {
-        updatedData[rowIndex] = {
-          ...updatedData[rowIndex],
-          sdt: newValue.sdt || "",
-          tenAG: "",
-          mail: "",
-        };
-      }
-
-      setData(updatedData);
-      setEditedRows((prev) => new Set(prev).add(data[rowIndex].id));
-    },
-    [data, phoneOptions, setData]
-  );
-
-  const handleSoTheSelect = useCallback(
-    (rowIndex, value) => {
-      const updatedData = [...data];
-      updatedData[rowIndex].soThe = value;
-      setData(updatedData);
-
-      // Đánh dấu hàng đã chỉnh sửa
-      setEditedRows((prev) => {
-        const updated = new Set(prev);
-        updated.add(data[rowIndex].id);
-        return updated;
-      });
-    },
-    [data, setData]
-  );
-
-  const handleClickAddOnOpen = useCallback(
-    (index) => {
-      setAddOnRow(index);
-      // Determine mode based on isEditing and whether the row is selected
-      const isRowSelected = selectedRows.includes(data[index].id);
-      setAddOnMode(isEditing && isRowSelected ? "edit" : "view");
-      setOpenAddOn(true);
-    },
-    [isEditing, selectedRows, data]
-  );
-
+  // Định nghĩa các cột cho bảng
   const columns = useMemo(
     () => [
       { Header: "Ngày xuất", accessor: "ngayXuat" },
@@ -151,19 +85,16 @@ const EditableTable = ({
     []
   );
 
+  // Memoize data để tối ưu hóa hiệu suất
   const memoizedData = useMemo(() => data, [data]);
 
+  // Sử dụng useTable một lần không điều kiện
   const {
     getTableProps,
     getTableBodyProps,
     headerGroups,
     prepareRow,
     page,
-    // Pagination properties
-    canPreviousPage,
-    canNextPage,
-    pageOptions,
-    gotoPage,
     nextPage,
     previousPage,
     setPageSize: setRTPageSize,
@@ -178,49 +109,31 @@ const EditableTable = ({
     usePagination
   );
 
-  const toggleRowSelection = useCallback(
-    (id) => {
-      setSelectedRows((prev) =>
-        prev.includes(id) ? prev.filter((rowId) => rowId !== id) : [...prev, id]
-      );
-    },
-    [setSelectedRows]
-  );
+  // Fetch phone và card numbers
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        setIsLoadingPhones(true);
+        const phoneData = await apiService.fetchPhoneNumbers(openSnackbarHandler);
+        setPhoneOptions(phoneData);
+      } catch (error) {
+        openSnackbarHandler("Failed to fetch phone numbers", "error");
+      } finally {
+        setIsLoadingPhones(false);
+      }
 
-  const toggleSelectAll = useCallback(() => {
-    if (selectedRows.length === data.length && data.length > 0) {
-      setSelectedRows([]);
-    } else {
-      setSelectedRows(data.map((row) => row.id));
-    }
-  }, [selectedRows, data, setSelectedRows]);
-
-  const handleCellEdit = useCallback(
-    (rowIndex, columnId, value) => {
-      setData((prevData) => {
-        const updatedData = [...prevData];
-        updatedData[rowIndex][columnId] = value;
-        return updatedData;
-      });
-
-      setEditedRows((prev) => {
-        const updated = new Set(prev);
-        updated.add(data[rowIndex].id);
-        return updated;
-      });
-    },
-    [data, setData]
-  );
-
-  const handlePageSizeChange = useCallback(
-    (e) => {
-      const newSize = Number(e.target.value);
-      setPageSize(newSize);
-      setPageIndex(1);
-      setRTPageSize(newSize);
-    },
-    [setPageSize, setPageIndex, setRTPageSize]
-  );
+      try {
+        setIsLoadingCards(true);
+        const cardData = await apiService.fetchCardNumbers(openSnackbarHandler);
+        setCardOptions(cardData);
+      } catch (error) {
+        openSnackbarHandler("Failed to fetch card numbers", "error");
+      } finally {
+        setIsLoadingCards(false);
+      }
+    };
+    fetchData();
+  }, [openSnackbarHandler]);
 
   const handlePreviousPage = useCallback(() => {
     if (pageIndex > 1) {
@@ -236,6 +149,119 @@ const EditableTable = ({
     }
   }, [pageIndex, pageCount, setPageIndex, nextPage]);
 
+  const handlePageSizeChange = useCallback(
+    (e) => {
+      const newSize = Number(e.target.value);
+      setPageSize(newSize);
+      setPageIndex(1);
+      setRTPageSize(newSize);
+    },
+    [setPageSize, setPageIndex, setRTPageSize]
+  );
+
+  const handlePhoneSelect = useCallback(
+    (rowId, newValue) => {
+      const selectedPhoneOption = phoneOptions.find(
+        (option) => option.sdt === newValue.sdt
+      );
+
+      const updatedData = data.map((row) => {
+        if (row.id === rowId) {
+          if (selectedPhoneOption) {
+            return {
+              ...row,
+              sdt: selectedPhoneOption.sdt,
+              tenAG: selectedPhoneOption.tenAG || "",
+              mail: selectedPhoneOption.mail || "",
+            };
+          } else {
+            return {
+              ...row,
+              sdt: newValue.sdt || "",
+              tenAG: "",
+              mail: "",
+            };
+          }
+        }
+        return row;
+      });
+
+      setData(updatedData);
+      setEditedRows((prev) => new Set(prev).add(rowId));
+    },
+    [data, phoneOptions, setData]
+  );
+
+  // Handle SoThe Select sử dụng row.original.id
+  const handleSoTheSelect = useCallback(
+    (rowId, value) => {
+      const updatedData = data.map((row) => {
+        if (row.id === rowId) {
+          return {
+            ...row,
+            soThe: value,
+          };
+        }
+        return row;
+      });
+
+      setData(updatedData);
+      setEditedRows((prev) => new Set(prev).add(rowId));
+    },
+    [data, setData]
+  );
+
+  // Handle Cell Edit sử dụng row.original.id
+  const handleCellEdit = useCallback(
+    (rowId, columnId, value) => {
+      const updatedData = data.map((row) => {
+        if (row.id === rowId) {
+          return {
+            ...row,
+            [columnId]: value,
+          };
+        }
+        return row;
+      });
+
+      setData(updatedData);
+      setEditedRows((prev) => new Set(prev).add(rowId));
+    },
+    [data, setData]
+  );
+
+  // Handle AddOn Open sử dụng row.original.id
+  const handleClickAddOnOpen = useCallback(
+    (rowId) => {
+      setAddOnRow(rowId);
+      // Xác định chế độ dựa trên isEditing và liệu hàng có được chọn hay không
+      const isRowSelected = selectedRows.includes(rowId);
+      setAddOnMode(isEditing && isRowSelected ? "edit" : "view");
+      setOpenAddOn(true);
+    },
+    [isEditing, selectedRows]
+  );
+
+  // Toggle Row Selection sử dụng row.original.id
+  const toggleRowSelection = useCallback(
+    (rowId) => {
+      setSelectedRows((prev) =>
+        prev.includes(rowId) ? prev.filter((id) => id !== rowId) : [...prev, rowId]
+      );
+    },
+    [setSelectedRows]
+  );
+
+  // Toggle Select All sử dụng row.original.id
+  const toggleSelectAll = useCallback(() => {
+    if (selectedRows.length === data.length && data.length > 0) {
+      setSelectedRows([]);
+    } else {
+      setSelectedRows(data.map((row) => row.id));
+    }
+  }, [selectedRows, data, setSelectedRows]);
+
+  // Xử lý khi chuyển đổi chế độ chỉnh sửa
   const toggleEditMode = useCallback(() => {
     if (isEditing) {
       const formattedTickets = Array.from(editedRows).map((id) => {
@@ -289,46 +315,54 @@ const EditableTable = ({
     [selectedRows, data]
   );
 
+  // Xử lý đóng dialog AddOn
   const handleDialogAddOnClose = useCallback(() => {
     setOpenAddOn(false);
   }, []);
 
+  // Xử lý lưu dữ liệu từ AddOnTable sử dụng rowId
   const handleSave = useCallback(
-    (formData, rowIndex) => {
-      const updatedData = [...data];
-      const stringData = JSON.stringify(formData);
-      updatedData[rowIndex] = {
-        ...updatedData[rowIndex],
-        addOn: stringData,
-      };
+    (formData, rowId) => {
+      const updatedData = data.map((row) => {
+        if (row.id === rowId) {
+          return {
+            ...row,
+            addOn: JSON.stringify(formData),
+          };
+        }
+        return row;
+      });
       setData(updatedData);
-      // Optionally, mark row as edited
-      setEditedRows((prev) => new Set(prev).add(updatedData[rowIndex].id));
+      setEditedRows((prev) => new Set(prev).add(rowId));
     },
     [data, setData]
   );
 
+  // Khởi tạo dữ liệu cho AddOnTable dựa trên row.original.id
   const memoizedInitialData = useMemo(() => {
     if (addOnRow !== null) {
-      try {
-        const parsedData = JSON.parse(
-          data[addOnRow].addOn || '[{"stt": "", "dichVu": "", "soTien": ""}]'
-        );
-        return parsedData;
-      } catch (error) {
-        console.error("Error parsing JSON:", error);
-        return [{ stt: "", dichVu: "", soTien: "" }];
+      const row = data.find((item) => item.id === addOnRow);
+      if (row && row.addOn) {
+        try {
+          const parsedData = JSON.parse(row.addOn);
+          return parsedData;
+        } catch (error) {
+          console.error("Error parsing JSON:", error);
+          return [{ stt: "", dichVu: "", soTien: "" }];
+        }
       }
-    } else {
       return [{ stt: "", dichVu: "", soTien: "" }];
     }
+    return [{ stt: "", dichVu: "", soTien: "" }];
   }, [addOnRow, data]);
 
   return (
     <>
       <div>
         {isLoadingPhones || isLoadingCards ? (
-          <p style={{ textAlign: "center", margin: "20px" }}>Loading options...</p>
+          <p style={{ textAlign: "center", margin: "20px" }}>
+            Loading options...
+          </p>
         ) : data.length === 0 ? (
           <p style={{ textAlign: "center", margin: "20px" }}>
             Không có dữ liệu để hiển thị
@@ -369,7 +403,7 @@ const EditableTable = ({
                             type="checkbox"
                             checked={selectedRows.includes(row.original.id)}
                             onChange={() => toggleRowSelection(row.original.id)}
-                            aria-label={`Chọn hàng ${row.index + 1}`}
+                            aria-label={`Chọn hàng ${row.original.id}`}
                           />
                         </td>
                         {row.cells.map((cell) => (
@@ -377,10 +411,10 @@ const EditableTable = ({
                             {cell.column.id === "addOn" ? (
                               <button
                                 onClick={() =>
-                                  handleClickAddOnOpen(row.index)
+                                  handleClickAddOnOpen(row.original.id)
                                 }
                                 className="button-container"
-                                style={{width: "100%"}}
+                                style={{ width: "100%" }}
                                 aria-label={
                                   isEditing && selectedRows.includes(row.original.id)
                                     ? "Xem và sửa Add On"
@@ -398,10 +432,10 @@ const EditableTable = ({
                                     return (
                                       <>
                                         <input
-                                          list={`phone-options-${row.index}`}
+                                          list={`phone-options-${row.original.id}`}
                                           value={cell.value || ""}
                                           onChange={(e) =>
-                                            handlePhoneSelect(row.index, {
+                                            handlePhoneSelect(row.original.id, {
                                               sdt: e.target.value,
                                             })
                                           }
@@ -409,9 +443,7 @@ const EditableTable = ({
                                           className="input-field"
                                           aria-label="Nhập số điện thoại"
                                         />
-                                        <datalist
-                                          id={`phone-options-${row.index}`}
-                                        >
+                                        <datalist id={`phone-options-${row.original.id}`}>
                                           {phoneOptions.map((option, idx) => (
                                             <option
                                               key={idx}
@@ -425,11 +457,11 @@ const EditableTable = ({
                                     return (
                                       <>
                                         <input
-                                          list={`so-the-${row.index}`}
+                                          list={`so-the-${row.original.id}`}
                                           value={cell.value || ""}
                                           onChange={(e) =>
                                             handleSoTheSelect(
-                                              row.index,
+                                              row.original.id,
                                               e.target.value
                                             )
                                           }
@@ -437,7 +469,7 @@ const EditableTable = ({
                                           className="input-field"
                                           aria-label="Nhập số thẻ"
                                         />
-                                        <datalist id={`so-the-${row.index}`}>
+                                        <datalist id={`so-the-${row.original.id}`}>
                                           {cardOptions.map((option, idx) => (
                                             <option
                                               key={idx}
@@ -453,7 +485,7 @@ const EditableTable = ({
                                         value={cell.value || "Nam"}
                                         onChange={(e) =>
                                           handleCellEdit(
-                                            row.index,
+                                            row.original.id,
                                             "gioiTinh",
                                             e.target.value
                                           )
@@ -471,7 +503,7 @@ const EditableTable = ({
                                         value={cell.value || "Có"}
                                         onChange={(e) =>
                                           handleCellEdit(
-                                            row.index,
+                                            row.original.id,
                                             "veHoanKhay",
                                             e.target.value
                                           )
@@ -496,7 +528,7 @@ const EditableTable = ({
                                         }
                                         onChange={(e) =>
                                           handleCellEdit(
-                                            row.index,
+                                            row.original.id,
                                             cell.column.id,
                                             e.target.value
                                           )
@@ -512,7 +544,7 @@ const EditableTable = ({
                                         value={cell.value || ""}
                                         onChange={(e) =>
                                           handleCellEdit(
-                                            row.index,
+                                            row.original.id,
                                             cell.column.id,
                                             e.target.value
                                           )
@@ -543,7 +575,6 @@ const EditableTable = ({
               </table>
             </div>
 
-            {/* Pagination Controls */}
             <PaginationControls
               pageIndex={pageIndex}
               pageCount={pageCount}
@@ -553,7 +584,6 @@ const EditableTable = ({
               pageSize={pageSize}
             />
 
-            {/* Edit, Delete, and Export Buttons */}
             <ActionButtons
               isEditing={isEditing}
               toggleEditMode={toggleEditMode}
@@ -561,6 +591,15 @@ const EditableTable = ({
               handleDeleteSelectedRows={handleDeleteSelectedRows}
               exportToExcel={exportTableToExcel}
             />
+            <button
+              onClick={() => exportTableToExcel(data)}
+              style={{
+                marginTop: "20px",
+                display: "block",
+              }}
+            >
+              Export to Excel
+            </button>
           </>
         )}
       </div>
@@ -571,9 +610,27 @@ const EditableTable = ({
         initialData={memoizedInitialData}
         setData={setData}
         data={data}
-        rowIndex={addOnRow}
+        rowId={addOnRow} // Sử dụng rowId thay vì rowIndex
         mode={addOnMode} // Pass mode to AddOnTable
       />
+
+      {/* Snackbar for Notifications */}
+      {snackbar.open && (
+        <Snackbar
+          open={snackbar.open}
+          autoHideDuration={6000}
+          onClose={closeSnackbarHandler}
+          anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
+        >
+          <Alert
+            onClose={closeSnackbarHandler}
+            severity={snackbar.severity}
+            sx={{ width: "100%" }}
+          >
+            {snackbar.message}
+          </Alert>
+        </Snackbar>
+      )}
     </>
   );
 };

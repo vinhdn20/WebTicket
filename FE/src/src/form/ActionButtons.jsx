@@ -7,7 +7,6 @@ const ActionButtons = ({
   toggleEditMode,
   selectedRowsCount,
   handleDeleteSelectedRows,
-  exportToExcel,
 }) => (
   <div style={{ marginTop: "20px", textAlign: "center" }}>
     <button
@@ -32,22 +31,6 @@ const ActionButtons = ({
     >
       Delete Selected
     </button>
-    <button
-      onClick={exportToExcel}
-      style={{
-        marginTop: "10px",
-        display: "inline-block",
-        padding: "8px 16px",
-        backgroundColor: "#4CAF50",
-        color: "white",
-        border: "none",
-        borderRadius: "4px",
-        cursor: "pointer",
-      }}
-      aria-label="Export to Excel"
-    >
-      Export to Excel
-    </button>
   </div>
 );
 
@@ -56,7 +39,6 @@ ActionButtons.propTypes = {
   toggleEditMode: PropTypes.func.isRequired,
   selectedRowsCount: PropTypes.number.isRequired,
   handleDeleteSelectedRows: PropTypes.func.isRequired,
-  exportToExcel: PropTypes.func.isRequired,
 };
 
 export default React.memo(ActionButtons);
