@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import Dialog from "@mui/material/Dialog";
 import AppBar from "@mui/material/AppBar";
 import Toolbar from "@mui/material/Toolbar";
@@ -14,7 +14,7 @@ const Transition = React.forwardRef(function Transition(props, ref) {
 
 const generateMatrixValues = (rows, cols, startValue = 11) => {
   const matrix = [];
-  let value = startValue; // Bắt đầu từ 11
+  let value = startValue;
   for (let i = 0; i < rows; i++) {
     const row = [];
     for (let j = 0; j < cols; j++) {
@@ -25,94 +25,92 @@ const generateMatrixValues = (rows, cols, startValue = 11) => {
   return matrix;
 };
 
-
-export default function AddOnTable({ open, onClose, initialData, setData, rowIndex, data, onSave }) {
-  // const [formData, setFormData] = useState(() => {
-  //   const rows = 1;
-  //   const cols = 3;
-  //   const matrix = generateMatrixValues(rows, cols);
-  //   return Array.from({ length: rows }, (_, rowIndex) => ({
-  //     matrixValue: matrix[rowIndex],
-  //   }));
-  // });
-
+const AddOnTable = React.memo(function AddOnTable({
+  open,
+  onClose,
+  initialData,
+  setData,
+  rowIndex,
+  data,
+  onSave,
+}) {
   const [formData, setFormData] = useState(initialData);
-
-  // Sử dụng useEffect để cập nhật khi data thay đổi
+  const [selectedRows, setSelectedRows] = useState([]);
+  const [currentFocusRow, setCurrentFocusRow] = useState(null);
   useEffect(() => {
-    setFormData(initialData);  // Cập nhật dữ liệu khi bảng được mở
+    setFormData(initialData);
   }, [initialData]);
-  const [selectedRows, setSelectedRows] = useState([]); // Lưu các hàng được chọn
-  const [currentFocusRow, setCurrentFocusRow] = useState(null); // Lưu vị trí hàng được focus
 
-  const handlePaste = (e) => {
-    e.preventDefault();
-  
-    const clipboardData = e.clipboardData.getData("text");
-    const rows = clipboardData.split("\n").map((row) => row.split("\t")); // Chia dòng và cột từ Excel
-    if (currentFocusRow === null) return; // Kiểm tra nếu chưa có hàng focus
-    const updatedFormData = [...formData];
-    rows.forEach((rowValues, rowOffset) => {
-      const targetRow = currentFocusRow + rowOffset; // Xác định hàng bắt đầu
-      if (updatedFormData[targetRow]) {
-        // Cập nhật các cột
-        rowValues.forEach((cellValue, colOffset) => {
-          if (colOffset === 0) {
-            updatedFormData[targetRow].stt = cellValue; // Cột tên AG
-          } else if (colOffset === 1) {
-            updatedFormData[targetRow].dichVu = cellValue; // Cột số điện thoại
-          } else if (colOffset === 2) {
-            updatedFormData[targetRow].soTien = cellValue; // Cột esoTien
-          }
-        });
-      }
-    });
-  
-    setFormData(updatedFormData); // Cập nhật state
-  };
+  const handlePaste = useCallback(
+    (e) => {
+      e.preventDefault();
 
-  const handleCellChange = (rowIndex, field, value) => {
+      const clipboardData = e.clipboardData.getData("text");
+      const rows = clipboardData.split("\n").map((row) => row.split("\t"));
+      if (currentFocusRow === null) return;
+
+      const updatedFormData = [...formData];
+      rows.forEach((rowValues, rowOffset) => {
+        const targetRow = currentFocusRow + rowOffset;
+        if (updatedFormData[targetRow]) {
+          rowValues.forEach((cellValue, colOffset) => {
+            if (colOffset === 0) {
+              updatedFormData[targetRow].stt = cellValue;
+            } else if (colOffset === 1) {
+              updatedFormData[targetRow].dichVu = cellValue;
+            } else if (colOffset === 2) {
+              updatedFormData[targetRow].soTien = cellValue;
+            }
+          });
+        }
+      });
+
+      setFormData(updatedFormData);
+    },
+    [formData, currentFocusRow]
+  );
+
+  const handleCellChange = useCallback((rowIndex, field, value) => {
     setFormData((prev) =>
       prev.map((row, idx) =>
         idx === rowIndex ? { ...row, [field]: value } : row
       )
     );
-  };
+  }, []);
 
-  const handleAddRow = () => {
+  const handleAddRow = useCallback(() => {
     const currentRows = formData.length;
     const cols = 3;
     const matrix = generateMatrixValues(currentRows + 1, cols, 11);
-  
+
     setFormData((prev) => [
       ...prev,
       {
         stt: "",
         dichVu: "",
         soTien: "",
-        matrixValue: matrix[currentRows], // Gán matrixValue mới
+        matrixValue: matrix[currentRows],
       },
     ]);
-  };
+  }, [formData]);
 
-  const handleCheckboxChange = (rowIndex) => {
+  const handleCheckboxChange = useCallback((rowIndex) => {
     setSelectedRows((prev) =>
       prev.includes(rowIndex)
         ? prev.filter((index) => index !== rowIndex)
         : [...prev, rowIndex]
     );
-  };
+  }, []);
 
-  const handleDeleteSelectedRows = () => {
+  const handleDeleteSelectedRows = useCallback(() => {
     setFormData((prev) => prev.filter((_, idx) => !selectedRows.includes(idx)));
     setSelectedRows([]);
-  };
+  }, [selectedRows]);
 
-  const handleSaveAddOn = () => {
-    console.log(data);
-    onSave(formData, rowIndex)
+  const handleSaveAddOn = useCallback(() => {
+    onSave(formData, rowIndex);
     onClose();
-  };
+  }, [formData, rowIndex, onSave, onClose]);
 
   return (
     <Dialog
@@ -156,7 +154,11 @@ export default function AddOnTable({ open, onClose, initialData, setData, rowInd
           <thead>
             <tr>
               <th
-                style={{ border: "1px solid #ddd", padding: "8px", textAlign: "center" }}
+                style={{
+                  border: "1px solid #ddd",
+                  padding: "8px",
+                  textAlign: "center",
+                }}
               >
                 Chọn
               </th>
@@ -164,14 +166,20 @@ export default function AddOnTable({ open, onClose, initialData, setData, rowInd
               <th style={{ border: "1px solid #ddd", padding: "8px" }}>
                 Dịch vụ
               </th>
-              <th style={{ border: "1px solid #ddd", padding: "8px" }}>Số tiền</th>
+              <th style={{ border: "1px solid #ddd", padding: "8px" }}>
+                Số tiền
+              </th>
             </tr>
           </thead>
           <tbody>
             {formData.map((row, rowIndex) => (
               <tr key={rowIndex}>
                 <td
-                  style={{ border: "1px solid #ddd", padding: "8px", textAlign: "center" }}
+                  style={{
+                    border: "1px solid #ddd",
+                    padding: "8px",
+                    textAlign: "center",
+                  }}
                 >
                   <input
                     type="checkbox"
@@ -238,4 +246,6 @@ export default function AddOnTable({ open, onClose, initialData, setData, rowInd
       </div>
     </Dialog>
   );
-}
+});
+
+export default AddOnTable;

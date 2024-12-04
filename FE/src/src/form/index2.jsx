@@ -1,10 +1,11 @@
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useCallback, useEffect, useState, useMemo, useRef } from "react";
 import "../style/table.css";
 import InputForm from "./InputForm";
 import DataTable from "./table";
 import SearchComponent from "./search";
 import { processResult, refreshAccessToken } from "../constant";
 import { debounce } from "lodash";
+import { Snackbar, Alert } from "@mui/material";
 
 const initTable = {
   pageIndex: 1,
@@ -23,16 +24,34 @@ const initTable = {
 const TicketTable2 = () => {
   const [data, setData] = useState([]);
   const [columnFilters, setColumnFilters] = useState(initTable);
-  const [pageSize, setPageSize] = useState(10);
-  const [pageIndex, setPageIndex] = useState(1);
+  const [pageSize, setPageSize] = useState(initTable.pageSize);
+  const [pageIndex, setPageIndex] = useState(initTable.pageIndex);
   const [pageCount, setPageCount] = useState(0);
   const [selectedRows, setSelectedRows] = useState([]);
+  const [snackbar, setSnackbar] = useState({ open: false, message: "", severity: "success" });
 
-  async function fetchInitialData(filters) {
-    let accessToken = localStorage.getItem("accessToken");
+  const debounceRef = useRef();
+
+  // Hook để quản lý accessToken
+  const getAccessToken = () => {
+    return localStorage.getItem("accessToken");
+  };
+
+  // Hàm để mở snackbar
+  const openSnackbar = useCallback((message, severity = "success") => {
+    setSnackbar({ open: true, message, severity });
+  }, []);
+
+  // Hàm để đóng snackbar
+  const closeSnackbar = useCallback(() => {
+    setSnackbar({ ...snackbar, open: false });
+  }, [snackbar]);
+
+  const fetchInitialData = useCallback(async (filters) => {
+    let accessToken = getAccessToken();
 
     try {
-      const response = await fetch("https://localhost:7113/ve/filter", {
+      const response = await fetch("https://localhost:44331/ve/filter", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -46,25 +65,21 @@ const TicketTable2 = () => {
         const newToken = await refreshAccessToken();
         if (newToken) {
           accessToken = newToken;
-          const retryResponse = await fetch(
-            "https://localhost:7113/ve/filter",
-            {
-              method: "POST",
-              headers: {
-                "Content-Type": "application/json",
-                Authorization: `Bearer ${accessToken}`,
-              },
-              body: JSON.stringify(filters),
-            }
-          );
+          // Retry the original request with the new token
+          const retryResponse = await fetch("https://localhost:44331/ve/filter", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${accessToken}`,
+            },
+            body: JSON.stringify(filters),
+          });
 
           if (!retryResponse.ok) {
-            throw new Error(
-              "Failed to fetch data after refreshing token: " +
-                retryResponse.statusText
-            );
+            throw new Error("Failed to fetch data after refreshing token: " + retryResponse.statusText);
           }
           const retryResult = await retryResponse.json();
+          setPageCount(retryResult.pageCount);
           return processResult(retryResult);
         } else {
           window.location.href = "/";
@@ -81,14 +96,44 @@ const TicketTable2 = () => {
       return processResult(result);
     } catch (error) {
       console.error("Error fetching initial data:", error);
+      openSnackbar("Có lỗi xảy ra khi tải dữ liệu. Vui lòng thử lại.", "error");
       return [];
     }
-  }
+  }, [openSnackbar]);
 
-  const handleSaveEditedRows = async (payload) => {
-    let accessToken = localStorage.getItem("accessToken");
+  const loadData = useMemo(() => {
+    // Tạo debounced function
+    const load = debounce(async () => {
+      const payload = {
+        ...columnFilters,
+        pageIndex,
+        pageSize,
+      };
+      const initialData = await fetchInitialData(payload);
+      setData(initialData);
+    }, 500);
+
+    // Lưu vào ref để có thể hủy debounce khi component unmount
+    debounceRef.current = load;
+
+    return load;
+  }, [columnFilters, pageIndex, pageSize, fetchInitialData]);
+
+  useEffect(() => {
+    loadData();
+
+    // Cleanup function để hủy debounce khi component unmount
+    return () => {
+      if (debounceRef.current && debounceRef.current.cancel) {
+        debounceRef.current.cancel();
+      }
+    };
+  }, [loadData]);
+
+  const handleSaveEditedRows = useCallback(async (payload) => {
+    let accessToken = getAccessToken();
     try {
-      const response = await fetch("https://localhost:7113/Ve/xuatve", {
+      const response = await fetch("https://localhost:44331/Ve/xuatve", {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
@@ -97,24 +142,59 @@ const TicketTable2 = () => {
         body: JSON.stringify(payload),
       });
 
+      if (response.status === 401) {
+        // Token expired, try to refresh
+        const newToken = await refreshAccessToken();
+        if (newToken) {
+          accessToken = newToken;
+          // Retry the original request with the new token
+          const retryResponse = await fetch("https://localhost:44331/Ve/xuatve", {
+            method: "PUT",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${accessToken}`,
+            },
+            body: JSON.stringify(payload),
+          });
+
+          if (!retryResponse.ok) {
+            throw new Error("Failed to update rows after refreshing token: " + retryResponse.statusText);
+          }
+
+          openSnackbar("Các hàng đã chỉnh sửa được lưu thành công!", "success");
+          setSelectedRows([]);
+          loadData();
+          return;
+        } else {
+          window.location.href = "/";
+          throw new Error("Failed to refresh access token");
+        }
+      }
+
       if (!response.ok) {
         throw new Error("Failed to update rows: " + response.statusText);
       }
 
-      alert("Edited rows saved successfully!");
+      openSnackbar("Các hàng đã chỉnh sửa được lưu thành công!", "success");
       setSelectedRows([]);
       loadData();
     } catch (error) {
       console.error("Error saving edited rows:", error);
+      openSnackbar("Có lỗi xảy ra khi lưu các hàng đã chỉnh sửa.", "error");
     }
-  };
+  }, [loadData, openSnackbar]);
 
-  const handleDeleteSelectedRows = async () => {
+  const handleDeleteSelectedRows = useCallback(async () => {
     const payload = selectedRows;
-    let accessToken = localStorage.getItem("accessToken");
+    if (payload.length === 0) {
+      openSnackbar("Không có hàng nào được chọn để xóa.", "warning");
+      return;
+    }
+
+    let accessToken = getAccessToken();
 
     try {
-      const response = await fetch("https://localhost:7113/Ve/xuatve", {
+      const response = await fetch("https://localhost:44331/Ve/xuatve", {
         method: "DELETE",
         headers: {
           "Content-Type": "application/json",
@@ -123,35 +203,47 @@ const TicketTable2 = () => {
         body: JSON.stringify(payload),
       });
 
+      if (response.status === 401) {
+        // Token expired, try to refresh
+        const newToken = await refreshAccessToken();
+        if (newToken) {
+          accessToken = newToken;
+          // Retry the original request with the new token
+          const retryResponse = await fetch("https://localhost:44331/Ve/xuatve", {
+            method: "DELETE",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${accessToken}`,
+            },
+            body: JSON.stringify(payload),
+          });
+
+          if (!retryResponse.ok) {
+            throw new Error("Failed to delete rows after refreshing token: " + retryResponse.statusText);
+          }
+
+          openSnackbar("Các hàng đã chọn được xóa thành công!", "success");
+          setSelectedRows([]);
+          loadData();
+          return;
+        } else {
+          window.location.href = "/";
+          throw new Error("Failed to refresh access token");
+        }
+      }
+
       if (!response.ok) {
         throw new Error("Failed to delete rows: " + response.statusText);
       }
 
-      alert("Selected rows deleted successfully!");
+      openSnackbar("Các hàng đã chọn được xóa thành công!", "success");
       setSelectedRows([]);
       loadData();
     } catch (error) {
       console.error("Error deleting rows:", error);
+      openSnackbar("Có lỗi xảy ra khi xóa các hàng đã chọn.", "error");
     }
-  };
-
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  const loadData = useCallback(
-    debounce(async () => {
-      const payload = {
-        ...columnFilters,
-        pageIndex,
-        pageSize,
-      };
-      const initialData = await fetchInitialData(payload);
-      setData(initialData);
-    }, 500),
-    [columnFilters, pageIndex, pageSize]
-  );
-
-  useEffect(() => {
-    loadData();
-  }, [loadData]);
+  }, [selectedRows, loadData, openSnackbar]);
 
   return (
     <div className="container">
@@ -174,6 +266,18 @@ const TicketTable2 = () => {
         handleDeleteSelectedRows={handleDeleteSelectedRows}
         handleSaveEditedRows={handleSaveEditedRows}
       />
+      
+      {/* Snackbar for notifications */}
+      <Snackbar
+        open={snackbar.open}
+        autoHideDuration={6000}
+        onClose={closeSnackbar}
+        anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
+      >
+        <Alert onClose={closeSnackbar} severity={snackbar.severity} sx={{ width: '100%' }}>
+          {snackbar.message}
+        </Alert>
+      </Snackbar>
     </div>
   );
 };

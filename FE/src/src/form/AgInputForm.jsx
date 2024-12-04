@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useCallback, useMemo } from "react";
 import Dialog from "@mui/material/Dialog";
 import AppBar from "@mui/material/AppBar";
 import Toolbar from "@mui/material/Toolbar";
@@ -8,6 +8,7 @@ import CloseIcon from "@mui/icons-material/Close";
 import Slide from "@mui/material/Slide";
 import Button from "@mui/material/Button";
 import { refreshAccessToken } from "../constant";
+import { Snackbar, Alert } from "@mui/material";
 
 const Transition = React.forwardRef(function Transition(props, ref) {
   return <Slide direction="up" ref={ref} {...props} />;
@@ -38,24 +39,101 @@ export default function FullScreenAGDialog({ open, onClose }) {
       matrixValue: matrix[rowIndex], // Gán matrixValue cho mỗi hàng
     }));
   });
-  const [apiData, setApiData] = useState([
-    { id: "", tenAG: "", sdt: "", mail: "" },
-  ]);
+
+  const [apiData, setApiData] = useState([]);
   const [selectedRows, setSelectedRows] = useState([]); // Lưu các hàng được chọn
   const [selectedApiRows, setSelectedApiRows] = useState([]);
   const [currentFocusRow, setCurrentFocusRow] = useState(null); // Lưu vị trí hàng được focus
+  const [snackbar, setSnackbar] = useState({ open: false, message: "", severity: "success" });
 
+  // Hàm để lấy accessToken
+  const getAccessToken = useCallback(() => {
+    return localStorage.getItem("accessToken");
+  }, []);
+
+  // Hàm để mở snackbar
+  const openSnackbar = useCallback((message, severity = "success") => {
+    setSnackbar({ open: true, message, severity });
+  }, []);
+
+  // Hàm để đóng snackbar
+  const closeSnackbar = useCallback(() => {
+    setSnackbar((prev) => ({ ...prev, open: false }));
+  }, []);
+
+  // Hàm fetch dữ liệu từ API
+  const fetchApiData = useCallback(async () => {
+    let accessToken = getAccessToken();
+    try {
+      const response = await fetch("https://localhost:44331/Ve/ag", {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${accessToken}`,
+        },
+      });
+
+      if (response.status === 401) {
+        const newToken = await refreshAccessToken();
+        if (newToken) {
+          accessToken = newToken;
+          const retryResponse = await fetch("https://localhost:44331/Ve/ag", {
+            method: "GET",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${accessToken}`,
+            },
+          });
+
+          if (!retryResponse.ok) {
+            throw new Error("Failed to fetch data after refreshing token: " + retryResponse.statusText);
+          }
+          const retryResult = await retryResponse.json();
+          updateApiData(retryResult);
+          return;
+        } else {
+          window.location.href = "/";
+          throw new Error("Failed to refresh access token");
+        }
+      }
+
+      if (!response.ok) {
+        throw new Error("Network response was not ok: " + response.statusText);
+      }
+
+      const result = await response.json();
+      updateApiData(result);
+    } catch (error) {
+      console.error("Error fetching data", error);
+      openSnackbar("Có lỗi xảy ra khi tải dữ liệu từ API.", "error");
+    }
+  }, [getAccessToken, openSnackbar]);
+
+  // Hàm cập nhật dữ liệu API
+  const updateApiData = useCallback((apiData) => {
+    const mappedData = apiData.map((item) => ({
+      id: item.id,
+      tenAG: item.tenAG || "",
+      sdt: item.sdt || "",
+      mail: item.mail || "",
+    }));
+    setApiData(mappedData);
+  }, []);
+
+  // Fetch dữ liệu khi mở dialog
   useEffect(() => {
     if (open) {
       fetchApiData();
     } else {
-      setFormData([{ tenAG: "", sdt: "", mail: "" }]);
+      // Reset formData và các state khi đóng dialog
+      setFormData([{ tenAG: "", sdt: "", mail: "", matrixValue: [] }]);
       setSelectedRows([]);
       setSelectedApiRows([]);
     }
-  }, [open]);
+  }, [open, fetchApiData]);
 
-  const handlePaste = (e) => {
+  // Xử lý paste từ clipboard vào bảng
+  const handlePaste = useCallback((e) => {
     e.preventDefault();
 
     // Lấy dữ liệu từ clipboard
@@ -83,73 +161,19 @@ export default function FullScreenAGDialog({ open, onClose }) {
     });
 
     setFormData(updatedFormData); // Cập nhật state
-  };
+  }, [formData, currentFocusRow]);
 
-  const fetchApiData = async () => {
-    let accessToken = localStorage.getItem("accessToken");
-    try {
-      const response = await fetch("https://localhost:7113/Ve/ag", {
-        method: "GET",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${accessToken}`,
-        },
-      });
-      if (response.status === 401) {
-        const newToken = await refreshAccessToken();
-        if (newToken) {
-          accessToken = newToken;
-          const retryResponse = await fetch("https://localhost:7113/Ve/ag", {
-            method: "GET",
-            headers: {
-              "Content-Type": "application/json",
-              Authorization: `Bearer ${accessToken}`,
-            },
-          });
-
-          if (!retryResponse.ok) {
-            throw new Error(
-              "Failed to fetch data after refreshing token: " +
-                retryResponse.statusText
-            );
-          }
-          const retryResult = await retryResponse.json();
-          updateFormData(retryResult);
-          return;
-        } else {
-          window.location.href = "/";
-          throw new Error("Failed to refresh access token");
-        }
-      }
-      if (!response.ok) {
-        throw new Error("Network response was not ok");
-      }
-      const result = await response.json();
-      updateFormData(result);
-    } catch (error) {
-      console.error("Error fetching data", error);
-    }
-  };
-
-  const updateFormData = (apiData) => {
-    const mappedData = apiData.map((item) => ({
-      id: item.id,
-      tenAG: item.tenAG || "",
-      sdt: item.sdt || "",
-      mail: item.mail || "",
-    }));
-    setApiData(mappedData);
-  };
-
-  const handleCellChange = (rowIndex, field, value) => {
+  // Xử lý thay đổi ô dữ liệu
+  const handleCellChange = useCallback((rowIndex, field, value) => {
     setFormData((prev) =>
       prev.map((row, idx) =>
         idx === rowIndex ? { ...row, [field]: value } : row
       )
     );
-  };
+  }, []);
 
-  const handleAddRow = () => {
+  // Thêm hàng mới vào formData
+  const handleAddRow = useCallback(() => {
     const currentRows = formData.length;
     const cols = 3; // Số cột (tenAG, sdt, mail)
     const matrix = generateMatrixValues(currentRows + 1, cols, 11);
@@ -163,12 +187,164 @@ export default function FullScreenAGDialog({ open, onClose }) {
         matrixValue: matrix[currentRows], // Gán matrixValue mới
       },
     ]);
-  };
+  }, [formData.length]);
 
-  const handleSave = async () => {
-    let accessToken = localStorage.getItem("accessToken");
+  // Xử lý chọn/huỷ chọn hàng trong formData
+  const handleCheckboxChange = useCallback((rowIndex) => {
+    setSelectedRows((prev) =>
+      prev.includes(rowIndex)
+        ? prev.filter((index) => index !== rowIndex)
+        : [...prev, rowIndex]
+    );
+  }, []);
+
+  // Xử lý xóa các hàng đã chọn trong formData
+  const handleDeleteSelectedRows = useCallback(async () => {
+    if (selectedRows.length === 0) {
+      openSnackbar("Không có hàng nào được chọn để xóa.", "warning");
+      return;
+    }
+
+    const payload = selectedRows.map((index) => formData[index]);
+
+    let accessToken = getAccessToken();
+
     try {
-      const response = await fetch("https://localhost:7113/Ve/ag", {
+      const response = await fetch("https://localhost:44331/Ve/ag", {
+        method: "DELETE",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${accessToken}`,
+        },
+        body: JSON.stringify(payload),
+      });
+
+      if (response.status === 401) {
+        const newToken = await refreshAccessToken();
+        if (newToken) {
+          accessToken = newToken;
+          // Retry the original request with the new token
+          const retryResponse = await fetch("https://localhost:44331/Ve/ag", {
+            method: "DELETE",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${accessToken}`,
+            },
+            body: JSON.stringify(payload),
+          });
+
+          if (!retryResponse.ok) {
+            throw new Error("Failed to delete rows after refreshing token: " + retryResponse.statusText);
+          }
+
+          openSnackbar("Các hàng đã chọn được xóa thành công!", "success");
+          setSelectedRows([]);
+          fetchApiData();
+          return;
+        } else {
+          window.location.href = "/";
+          throw new Error("Failed to refresh access token");
+        }
+      }
+
+      if (!response.ok) {
+        throw new Error("Failed to delete rows: " + response.statusText);
+      }
+
+      openSnackbar("Các hàng đã chọn được xóa thành công!", "success");
+      setSelectedRows([]);
+      fetchApiData();
+    } catch (error) {
+      console.error("Error deleting data", error);
+      openSnackbar("Có lỗi xảy ra khi xóa các hàng đã chọn.", "error");
+    }
+  }, [selectedRows, formData, getAccessToken, fetchApiData, openSnackbar]);
+
+  // Xử lý chọn/huỷ chọn hàng trong apiData
+  const handleApiCheckboxChange = useCallback((id) => {
+    setSelectedApiRows((prev) =>
+      prev.includes(id)
+        ? prev.filter((itemId) => itemId !== id)
+        : [...prev, id]
+    );
+  }, []);
+
+  // Xử lý xóa các hàng đã chọn trong apiData
+  const handleDeleteSelectedApiRows = useCallback(async () => {
+    if (selectedApiRows.length === 0) {
+      openSnackbar("Không có hàng nào được chọn để xóa.", "warning");
+      return;
+    }
+
+    let accessToken = getAccessToken();
+    const payload = selectedApiRows;
+
+    try {
+      const response = await fetch("https://localhost:44331/Ve/ag", {
+        method: "DELETE",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${accessToken}`,
+        },
+        body: JSON.stringify(payload),
+      });
+
+      if (response.status === 401) {
+        const newToken = await refreshAccessToken();
+        if (newToken) {
+          accessToken = newToken;
+          // Retry the original request with the new token
+          const retryResponse = await fetch("https://localhost:44331/Ve/ag", {
+            method: "DELETE",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${accessToken}`,
+            },
+            body: JSON.stringify(payload),
+          });
+
+          if (!retryResponse.ok) {
+            throw new Error("Failed to delete rows after refreshing token: " + retryResponse.statusText);
+          }
+
+          openSnackbar("Các hàng đã chọn được xóa thành công!", "success");
+          setSelectedApiRows([]);
+          fetchApiData();
+          return;
+        } else {
+          window.location.href = "/";
+          throw new Error("Failed to refresh access token");
+        }
+      }
+
+      if (!response.ok) {
+        throw new Error("Failed to delete rows: " + response.statusText);
+      }
+
+      openSnackbar("Các hàng đã chọn được xóa thành công!", "success");
+      setSelectedApiRows([]);
+      fetchApiData();
+    } catch (error) {
+      console.error("Error deleting data", error);
+      openSnackbar("Có lỗi xảy ra khi xóa các hàng đã chọn.", "error");
+    }
+  }, [selectedApiRows, getAccessToken, fetchApiData, openSnackbar]);
+
+  // Hàm lưu dữ liệu từ formData vào API
+  const handleSave = useCallback(async () => {
+    // Kiểm tra dữ liệu trước khi lưu
+    for (const row of formData) {
+      if (!row.tenAG || !row.sdt || !row.mail) {
+        openSnackbar("Vui lòng điền đầy đủ thông tin cho tất cả các hàng.", "warning");
+        return;
+      }
+      // Thêm các kiểm tra khác nếu cần
+    }
+
+    let accessToken = getAccessToken();
+
+    try {
+      const response = await fetch("https://localhost:44331/Ve/ag", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -176,55 +352,47 @@ export default function FullScreenAGDialog({ open, onClose }) {
         },
         body: JSON.stringify(formData),
       });
-      if (!response.ok) {
-        throw new Error("Network response was not ok");
+
+      if (response.status === 401) {
+        const newToken = await refreshAccessToken();
+        if (newToken) {
+          accessToken = newToken;
+          // Retry the original request with the new token
+          const retryResponse = await fetch("https://localhost:44331/Ve/ag", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${accessToken}`,
+            },
+            body: JSON.stringify(formData),
+          });
+
+          if (!retryResponse.ok) {
+            throw new Error("Failed to save data after refreshing token: " + retryResponse.statusText);
+          }
+
+          openSnackbar("Dữ liệu đã được lưu thành công!", "success");
+          onClose(null);
+          fetchApiData();
+          return;
+        } else {
+          window.location.href = "/";
+          throw new Error("Failed to refresh access token");
+        }
       }
-      alert("Save success");
+
+      if (!response.ok) {
+        throw new Error("Network response was not ok: " + response.statusText);
+      }
+
+      openSnackbar("Dữ liệu đã được lưu thành công!", "success");
       onClose(null);
       fetchApiData();
     } catch (error) {
       console.error("Error saving data", error);
+      openSnackbar("Có lỗi xảy ra khi lưu dữ liệu.", "error");
     }
-  };
-
-  const handleCheckboxChange = (rowIndex) => {
-    setSelectedRows((prev) =>
-      prev.includes(rowIndex)
-        ? prev.filter((index) => index !== rowIndex)
-        : [...prev, rowIndex]
-    );
-  };
-
-  const handleDeleteSelectedRows = () => {
-    setFormData((prev) => prev.filter((_, idx) => !selectedRows.includes(idx)));
-    setSelectedRows([]);
-  };
-
-  const handleApiCheckboxChange = (id) => {
-    setSelectedApiRows((prev) =>
-      prev.includes(id) ? prev.filter((itemId) => itemId !== id) : [...prev, id]
-    );
-  };
-
-  const handleDeleteSelectedApiRows = async () => {
-    let accessToken = localStorage.getItem("accessToken");
-    try {
-      const response = await fetch("https://localhost:7113/Ve/ag", {
-        method: "DELETE",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${accessToken}`,
-        },
-        body: JSON.stringify(selectedApiRows),
-      });
-      if (!response.ok) throw new Error("Delete failed");
-      alert("Delete success");
-      fetchApiData(); // Refresh data after deletion
-      setSelectedApiRows([]); // Clear selected rows
-    } catch (error) {
-      console.error("Error deleting data", error);
-    }
-  };
+  }, [formData, getAccessToken, fetchApiData, openSnackbar, onClose]);
 
   return (
     <Dialog
@@ -317,6 +485,7 @@ export default function FullScreenAGDialog({ open, onClose }) {
                       outline: "none",
                       padding: "4px",
                     }}
+                    placeholder="Nhập tên AG"
                   />
                 </td>
                 <td style={{ border: "1px solid #ddd", padding: "8px" }}>
@@ -333,11 +502,12 @@ export default function FullScreenAGDialog({ open, onClose }) {
                       outline: "none",
                       padding: "4px",
                     }}
+                    placeholder="Nhập số điện thoại"
                   />
                 </td>
                 <td style={{ border: "1px solid #ddd", padding: "8px" }}>
                   <input
-                    type="text"
+                    type="email"
                     value={row.mail}
                     onChange={(e) =>
                       handleCellChange(rowIndex, "mail", e.target.value)
@@ -349,6 +519,7 @@ export default function FullScreenAGDialog({ open, onClose }) {
                       outline: "none",
                       padding: "4px",
                     }}
+                    placeholder="Nhập email"
                   />
                 </td>
               </tr>
@@ -439,6 +610,18 @@ export default function FullScreenAGDialog({ open, onClose }) {
           Xóa Hàng Đã Chọn
         </Button>
       </div>
+
+      {/* Snackbar for notifications */}
+      <Snackbar
+        open={snackbar.open}
+        autoHideDuration={6000}
+        onClose={closeSnackbar}
+        anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
+      >
+        <Alert onClose={closeSnackbar} severity={snackbar.severity} sx={{ width: '100%' }}>
+          {snackbar.message}
+        </Alert>
+      </Snackbar>
     </Dialog>
   );
 }

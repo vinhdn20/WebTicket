@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useCallback, useMemo, useState } from "react";
 import "../style/table.css";
 import Button from "@mui/material/Button";
 import { refreshAccessToken } from "../constant";
@@ -72,13 +72,13 @@ const InputTable = ({ onTicketCreated }) => {
   const [selectedRows, setSelectedRows] = useState([]);
   const [phoneOptions, setPhoneOptions] = useState([]);
   const [cardOptions, setCardOptions] = useState([]);
-  const [open, setOpen] = React.useState(false);
-  const [openSoThe, setOpenSoThe] = React.useState(false);
-  const [openAddOn, setOpenAddOn] = React.useState(false);
-  const [addOnRow, setAddOnRow] = React.useState();
+  const [open, setOpen] = useState(false);
+  const [openSoThe, setOpenSoThe] = useState(false);
+  const [openAddOn, setOpenAddOn] = useState(false);
+  const [addOnRow, setAddOnRow] = useState(null);
   const [addOnData, setAddOnData] = useState([]);
 
-  const columns = [
+  const columns = useMemo(() => [
     { Header: "Chọn", accessor: "select" },
     { Header: "Ngày xuất", accessor: "ngayXuat" },
     { Header: "Liên hệ (SĐT)", accessor: "sdt" },
@@ -99,13 +99,13 @@ const InputTable = ({ onTicketCreated }) => {
     { Header: "Tài khoản", accessor: "taiKhoan" },
     { Header: "Lưu ý", accessor: "luuY" },
     { Header: "Vé hoàn khay", accessor: "veHoanKhay" },
-  ];
+  ], []);
 
   async function callCreateTicketAPI(ticketDataArray) {
     let accessToken = localStorage.getItem("accessToken");
 
     try {
-      const response = await fetch("https://localhost:7113/Ve/xuatVe", {
+      const response = await fetch("https://localhost:44331/Ve/xuatVe", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -119,7 +119,7 @@ const InputTable = ({ onTicketCreated }) => {
         if (newToken) {
           accessToken = newToken;
           const retryResponse = await fetch(
-            "https://localhost:7113/Ve/xuatVe",
+            "https://localhost:44331/Ve/xuatVe",
             {
               method: "POST",
               headers: {
@@ -151,7 +151,7 @@ const InputTable = ({ onTicketCreated }) => {
     }
   }
 
-  const handleAddTicket = async (e) => {
+  const handleAddTicket = useCallback(async (e) => {
     e.preventDefault();
     for (const row of data) {
       if (!row.ngayGioBayDi || !row.ngayGioBayDen) {
@@ -209,12 +209,12 @@ const InputTable = ({ onTicketCreated }) => {
       alert("Có lỗi xảy ra khi tạo vé. Vui lòng thử lại.");
       console.error("Error creating tickets:", error);
     }
-  };
+  }, [data, onTicketCreated]);
 
-  const fetchPhoneNumbers = async () => {
+  const fetchPhoneNumbers = useCallback(async () => {
     try {
       const accessToken = localStorage.getItem("accessToken");
-      const response = await fetch("https://localhost:7113/Ve/ag", {
+      const response = await fetch("https://localhost:44331/Ve/ag", {
         method: "GET",
         headers: {
           "Content-Type": "application/json",
@@ -232,12 +232,12 @@ const InputTable = ({ onTicketCreated }) => {
       console.error("Error fetching phone numbers:", error);
       alert("Không thể tải danh sách số điện thoại.");
     }
-  };
+  }, []);
 
-  const fetchCardNumbers = async () => {
+  const fetchCardNumbers = useCallback(async () => {
     try {
       const accessToken = localStorage.getItem("accessToken");
-      const response = await fetch("https://localhost:7113/Ve/card", {
+      const response = await fetch("https://localhost:44331/Ve/card", {
         method: "GET",
         headers: {
           "Content-Type": "application/json",
@@ -255,9 +255,9 @@ const InputTable = ({ onTicketCreated }) => {
       console.error("Error fetching so the:", error);
       alert("Không thể tải danh sách số thẻ thanh toán.");
     }
-  };
+  }, []);
 
-  const handleAddRow = () => {
+  const handleAddRow = useCallback(() => {
     const newRow = columns.reduce((acc, col) => {
       acc[col.accessor] =
         col.accessor === "ngayXuat"
@@ -276,71 +276,80 @@ const InputTable = ({ onTicketCreated }) => {
     });
 
     setData((prevData) => [...prevData, updatedNewRow]);
-  };
+  }, [columns, data.length]);
 
-  const handleCellEdit = (rowIndex, columnId, value) => {
-    const updatedData = [...data];
-    updatedData[rowIndex] = {
-      ...updatedData[rowIndex],
-      [columnId]: value,
-      error: {
-        ...updatedData[rowIndex].error,
-        [columnId]:
-          columnId === "ngayGioBayDi" || columnId === "ngayGioBayDen"
-            ? !value
-            : false,
-      },
-    };
-    setData(updatedData);
-  };
-
-  const handlePhoneSelect = (rowIndex, newValue) => {
-    const selectedPhoneOption = phoneOptions.find(
-      (option) => option.sdt === newValue.sdt
-    );
-
-    const updatedData = [...data];
-    if (selectedPhoneOption) {
+  const handleCellEdit = useCallback(
+    (rowIndex, columnId, value) => {
+      const updatedData = [...data];
       updatedData[rowIndex] = {
         ...updatedData[rowIndex],
-        sdt: selectedPhoneOption.sdt,
-        tenAG: selectedPhoneOption.tenAG || "",
-        mail: selectedPhoneOption.mail || "",
+        [columnId]: value,
+        error: {
+          ...updatedData[rowIndex].error,
+          [columnId]:
+            columnId === "ngayGioBayDi" || columnId === "ngayGioBayDen"
+              ? !value
+              : false,
+        },
       };
-    } else {
-      updatedData[rowIndex] = {
-        ...updatedData[rowIndex],
-        sdt: newValue.sdt || "",
-        tenAG: "",
-        mail: "",
-      };
-    }
+      setData(updatedData);
+    },
+    [data]
+  );
 
-    setData(updatedData);
-  };
+  const handlePhoneSelect = useCallback(
+    (rowIndex, newValue) => {
+      const selectedPhoneOption = phoneOptions.find(
+        (option) => option.sdt === newValue.sdt
+      );
 
-  const handleSoTheSelect = (rowIndex, newValue) => {
-    const selectedCard = cardOptions.find(
-      (option) => option.soThe === newValue.soThe
-    );
+      const updatedData = [...data];
+      if (selectedPhoneOption) {
+        updatedData[rowIndex] = {
+          ...updatedData[rowIndex],
+          sdt: selectedPhoneOption.sdt,
+          tenAG: selectedPhoneOption.tenAG || "",
+          mail: selectedPhoneOption.mail || "",
+        };
+      } else {
+        updatedData[rowIndex] = {
+          ...updatedData[rowIndex],
+          sdt: newValue.sdt || "",
+          tenAG: "",
+          mail: "",
+        };
+      }
 
-    const updatedData = [...data];
-    if (selectedCard) {
-      updatedData[rowIndex] = {
-        ...updatedData[rowIndex],
-        soThe: selectedCard.soThe,
-      };
-    } else {
-      updatedData[rowIndex] = {
-        ...updatedData[rowIndex],
-        soThe: newValue.soThe || "",
-      };
-    }
+      setData(updatedData);
+    },
+    [data, phoneOptions]
+  );
 
-    setData(updatedData);
-  };
+  const handleSoTheSelect = useCallback(
+    (rowIndex, newValue) => {
+      const selectedCard = cardOptions.find(
+        (option) => option.soThe === newValue.soThe
+      );
 
-  const handleSelectRow = (rowIndex, isSelected) => {
+      const updatedData = [...data];
+      if (selectedCard) {
+        updatedData[rowIndex] = {
+          ...updatedData[rowIndex],
+          soThe: selectedCard.soThe,
+        };
+      } else {
+        updatedData[rowIndex] = {
+          ...updatedData[rowIndex],
+          soThe: newValue.soThe || "",
+        };
+      }
+
+      setData(updatedData);
+    },
+    [cardOptions, data]
+  );
+
+  const handleSelectRow = useCallback((rowIndex, isSelected) => {
     if (isSelected) {
       setSelectedRows((prevSelected) => [...prevSelected, rowIndex]);
     } else {
@@ -348,95 +357,90 @@ const InputTable = ({ onTicketCreated }) => {
         prevSelected.filter((index) => index !== rowIndex)
       );
     }
-  };
+  }, []);
 
-  const handleDeleteRows = () => {
+  const handleDeleteRows = useCallback(() => {
     const updatedData = data.filter(
       (_, index) => !selectedRows.includes(index)
     );
     setData(updatedData);
     setSelectedRows([]);
-  };
+  }, [data, selectedRows]);
 
-  const handleClickOpen = () => {
+  const handleClickOpen = useCallback(() => {
     setOpen(true);
-  };
+  }, []);
 
-  const handleClickSoTheOpen = () => {
+  const handleClickSoTheOpen = useCallback(() => {
     setOpenSoThe(true);
-  };
+  }, []);
 
-  const handleClickAddOnOpen = (index) => {
-    setAddOnRow(index);
-    const addOn = data[index].addOn ? JSON.parse(data[index].addOn) : []; // Parse dữ liệu addOn
-    setAddOnData(addOn);
-    setOpenAddOn(true);
-  };
+  const handleClickAddOnOpen = useCallback(
+    (index) => {
+      setAddOnRow(index);
+      const addOn = data[index].addOn ? JSON.parse(data[index].addOn) : [];
+      setAddOnData(addOn);
+      setOpenAddOn(true);
+    },
+    [data]
+  );
 
-  const handleDialogClose = () => {
+  const handleDialogClose = useCallback(() => {
     setOpen(false);
-  };
+  }, []);
 
-  const handleDialogAddOnClose = () => {
-    const updatedData = [...data];
-    updatedData[addOnRow].addOn = JSON.stringify(addOnData); // Chuyển đổi dữ liệu addOn thành chuỗi
-    setData(updatedData);
+  const handleDialogAddOnClose = useCallback(() => {
     setOpenAddOn(false);
-  };
+  }, []);
 
-  const handleDialogSoTheClose = () => {
+  const handleDialogSoTheClose = useCallback(() => {
     setOpenSoThe(false);
-  };
+  }, []);
 
-  const handleCloseAddOnDialog = (newAddOnData) => {
-    if (addOnRow !== null) {
-      const updatedArray = [...data];
-      updatedArray[addOnRow].addOn = JSON.stringify(newAddOnData); // Lưu lại dữ liệu dưới dạng chuỗi
-      setData(updatedArray); // Cập nhật lại mảng dữ liệu
-    }
-    setOpenAddOn(false);
-  };
+  const handlePaste = useCallback(
+    (e) => {
+      e.preventDefault();
 
-  const handlePaste = (e) => {
-    e.preventDefault();
+      const clipboardData = e.clipboardData.getData("text");
+      const rows = clipboardData.split("\n").map((row) => row.split("\t"));
 
-    const clipboardData = e.clipboardData.getData("text");
-    const rows = clipboardData.split("\n").map((row) => row.split("\t"));
+      if (!currentFocusCell) return;
 
-    if (!currentFocusCell) return;
+      let startRow = null;
+      let startCol = null;
 
-    let startRow = null;
-    let startCol = null;
-
-    data.forEach((rowData, rowIndex) => {
-      Object.keys(rowData).forEach((key, colIndex) => {
-        if (rowData[`${key}MatrixValue`] === currentFocusCell) {
-          startRow = rowIndex;
-          startCol = columns.findIndex((col) => col.accessor === key);
-        }
-      });
-    });
-
-    if (startRow === null || startCol === null) return;
-
-    const updatedData = [...data];
-    rows.forEach((rowValues, rowOffset) => {
-      rowValues.forEach((cellValue, colOffset) => {
-        const targetRow = startRow + rowOffset;
-        const targetCol = startCol + colOffset;
-
-        if (updatedData[targetRow]) {
-          const targetKey = columns[targetCol]?.accessor;
-          if (targetKey) {
-            updatedData[targetRow][targetKey] = cellValue;
+      data.forEach((rowData, rowIndex) => {
+        Object.keys(rowData).forEach((key, colIndex) => {
+          if (rowData[`${key}MatrixValue`] === currentFocusCell) {
+            startRow = rowIndex;
+            startCol = columns.findIndex((col) => col.accessor === key);
           }
-        }
+        });
       });
-    });
 
-    setData(updatedData);
-  };
-  const handleSave = (formData, rowIndex) => {
+      if (startRow === null || startCol === null) return;
+
+      const updatedData = [...data];
+      rows.forEach((rowValues, rowOffset) => {
+        rowValues.forEach((cellValue, colOffset) => {
+          const targetRow = startRow + rowOffset;
+          const targetCol = startCol + colOffset;
+
+          if (updatedData[targetRow]) {
+            const targetKey = columns[targetCol]?.accessor;
+            if (targetKey) {
+              updatedData[targetRow][targetKey] = cellValue;
+            }
+          }
+        });
+      });
+
+      setData(updatedData);
+    },
+    [currentFocusCell, data, columns]
+  );
+
+  const handleSave = useCallback((formData, rowIndex) => {
     const updatedData = [...data];
     const stringData = JSON.stringify(formData);
     updatedData[rowIndex] = {
@@ -444,7 +448,25 @@ const InputTable = ({ onTicketCreated }) => {
       addOn: stringData,
     };
     setData(updatedData);
-  };
+  }, [data]);
+  
+  
+  // Memo hóa initialData để truyền xuống AddOnTable
+  const memoizedInitialData = useMemo(() => {
+    if (addOnRow !== null) {
+      try {
+        const parsedData = JSON.parse(
+          data[addOnRow].addOn || '[{"stt": "", "dichVu": "", "soTien": ""}]'
+        );
+        return parsedData;
+      } catch (error) {
+        console.error("Error parsing JSON:", error);
+        return [{ stt: "", dichVu: "", soTien: "" }];
+      }
+    } else {
+      return [{ stt: "", dichVu: "", soTien: "" }];
+    }
+  }, [addOnRow, data]);  
 
   return (
     <>
@@ -504,7 +526,7 @@ const InputTable = ({ onTicketCreated }) => {
                         }
                       />
                     ) : column.accessor === "sdt" ? (
-                      <td>
+                      <>
                         <input
                           list={`phone-options-${rowIndex}`}
                           value={row.sdt}
@@ -521,9 +543,9 @@ const InputTable = ({ onTicketCreated }) => {
                             <option key={idx} value={option.sdt} />
                           ))}
                         </datalist>
-                      </td>
+                      </>
                     ) : column.accessor === "soThe" ? (
-                      <td>
+                      <>
                         <input
                           list={`so-the-${rowIndex}`}
                           value={row.soThe}
@@ -540,7 +562,7 @@ const InputTable = ({ onTicketCreated }) => {
                             <option key={idx} value={option.soThe} />
                           ))}
                         </datalist>
-                      </td>
+                      </>
                     ) : column.accessor === "gioiTinh" ? (
                       <select
                         value={row.gioiTinh || "Nam"}
@@ -573,68 +595,35 @@ const InputTable = ({ onTicketCreated }) => {
                       </select>
                     ) : column.accessor === "ngayGioBayDi" ||
                       column.accessor === "ngayGioBayDen" ? (
-                      <td key={column.accessor}>
-                        <input
-                          type="datetime-local"
-                          value={
-                            row[column.accessor]
-                              ? row[column.accessor].slice(0, 16)
-                              : ""
-                          }
-                          required
-                          onChange={(e) =>
-                            handleCellEdit(
-                              rowIndex,
-                              column.accessor,
-                              e.target.value
-                            )
-                          }
-                          onFocus={() =>
-                            setCurrentFocusCell(
-                              row[`${column.accessor}MatrixValue`]
-                            )
-                          }
-                        />
-                      </td>
+                      <input
+                        type="datetime-local"
+                        value={
+                          row[column.accessor]
+                            ? row[column.accessor].slice(0, 16)
+                            : ""
+                        }
+                        required
+                        onChange={(e) =>
+                          handleCellEdit(
+                            rowIndex,
+                            column.accessor,
+                            e.target.value
+                          )
+                        }
+                        onFocus={() =>
+                          setCurrentFocusCell(
+                            row[`${column.accessor}MatrixValue`]
+                          )
+                        }
+                      />
                     ) : column.accessor === "addOn" ? (
-                      <td key={column.accessor}>
-                        <Button
-                          variant="outlined"
-                          onClick={() => handleClickAddOnOpen(rowIndex)}
-                          className="button-container"
-                        >
-                          Nhập
-                        </Button>
-                        <AddOnTable
-                          open={openAddOn}
-                          setOpen={setOpenAddOn}
-                          onClose={handleDialogAddOnClose}
-                          onSave={handleSave}
-                          initialData={
-                            addOnRow !== null
-                              ? (() => {
-                                  try {
-                                    // Kiểm tra dữ liệu có hợp lệ không trước khi parse
-                                    const parsedData = JSON.parse(
-                                      data[addOnRow].addOn ||
-                                        '[{"stt": "", "dichVu": "", "soTien": ""}]'
-                                    );
-                                    return parsedData;
-                                  } catch (error) {
-                                    console.error("Error parsing JSON:", error);
-                                    // Nếu lỗi, trả về giá trị mặc định
-                                    return [
-                                      { stt: "", dichVu: "", soTien: "" },
-                                    ];
-                                  }
-                                })()
-                              : [{ stt: "", dichVu: "", soTien: "" }]
-                          }
-                          setData={setData}
-                          data={data}
-                          rowIndex={addOnRow}
-                        />
-                      </td>
+                      <Button
+                        variant="outlined"
+                        onClick={() => handleClickAddOnOpen(rowIndex)}
+                        className="button-container"
+                      >
+                        Nhập
+                      </Button>
                     ) : column.accessor === "ngayXuat" ? (
                       <input
                         type="datetime-local"
@@ -688,6 +677,7 @@ const InputTable = ({ onTicketCreated }) => {
           variant="contained"
           color="secondary"
           style={{ marginRight: "10px" }}
+          disabled={selectedRows.length === 0}
         >
           Xóa Hàng Đã Chọn
         </Button>
@@ -695,6 +685,17 @@ const InputTable = ({ onTicketCreated }) => {
           Xuất Vé
         </Button>
       </div>
+      
+      {/* Single instance of AddOnTable outside the table */}
+      <AddOnTable
+        open={openAddOn}
+        onClose={handleDialogAddOnClose}
+        onSave={handleSave}
+        initialData={memoizedInitialData}
+        setData={setData}
+        data={data}
+        rowIndex={addOnRow}
+      />
     </>
   );
 };
