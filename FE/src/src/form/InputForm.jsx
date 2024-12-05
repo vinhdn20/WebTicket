@@ -6,8 +6,8 @@ import { Snackbar, Alert } from "@mui/material";
 import FullScreenAGDialog from "./AgInputForm";
 import FullScreenSoTheDialog from "./SoTheInputForm";
 import AddOnTable from "./addOnTable";
-import fetchWithAuth from "../services/apiSevrvice";
 import apiService from "../services/apiSevrvice";
+import { fetchWithAuth } from "../services/authService";
 
 const getCurrentDateTimeLocal = () => {
   const now = new Date();
@@ -178,7 +178,7 @@ const InputTable = ({ onTicketCreated }) => {
         );
         onTicketCreated();
         openSnackbarHandler("Vé đã tạo thành công!", "success");
-        setData([initialRow]); // Reset data
+        setData([initialRow]);
       } catch (error) {
         openSnackbarHandler(
           "Có lỗi xảy ra khi tạo vé. Vui lòng thử lại.",

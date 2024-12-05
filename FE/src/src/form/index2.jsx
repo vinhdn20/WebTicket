@@ -127,7 +127,6 @@ const TicketTable2 = () => {
   );
 
   const loadData = useMemo(() => {
-    // Tạo debounced function
     const load = debounce(async () => {
       const payload = {
         ...columnFilters,
@@ -138,7 +137,6 @@ const TicketTable2 = () => {
       setData(initialData);
     }, 500);
 
-    // Lưu vào ref để có thể hủy debounce khi component unmount
     debounceRef.current = load;
 
     return load;
@@ -146,8 +144,6 @@ const TicketTable2 = () => {
 
   useEffect(() => {
     loadData();
-
-    // Cleanup function để hủy debounce khi component unmount
     return () => {
       if (debounceRef.current && debounceRef.current.cancel) {
         debounceRef.current.cancel();

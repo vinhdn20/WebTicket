@@ -136,16 +136,14 @@ const EditableTable = ({
   const handlePreviousPage = useCallback(() => {
     if (pageIndex > 1) {
       setPageIndex(pageIndex - 1);
-      previousPage();
     }
-  }, [pageIndex, setPageIndex, previousPage]);
+  }, [pageIndex, setPageIndex]);
 
   const handleNextPage = useCallback(() => {
     if (pageIndex < pageCount) {
       setPageIndex(pageIndex + 1);
-      nextPage();
     }
-  }, [pageIndex, pageCount, setPageIndex, nextPage]);
+  }, [pageIndex, pageCount, setPageIndex]);
 
   const handlePageSizeChange = useCallback(
     (e) => {
