@@ -7,6 +7,7 @@ import FullScreenAGDialog from "./AgInputForm";
 import FullScreenSoTheDialog from "./SoTheInputForm";
 import AddOnTable from "./addOnTable";
 import fetchWithAuth from "../services/apiSevrvice";
+import apiService from "../services/apiSevrvice";
 
 const getCurrentDateTimeLocal = () => {
   const now = new Date();
@@ -92,38 +93,25 @@ const InputTable = ({ onTicketCreated }) => {
     []
   );
 
-  // Fetch Phone Numbers
-  const fetchPhoneNumbers = useCallback(async () => {
-    try {
-      const result = await fetchWithAuth(
-        "/ag",
-        { method: "GET" },
-        openSnackbarHandler
-      );
-      setPhoneOptions(result);
-    } catch (error) {
-      // Error handled in fetchWithAuth
-    }
-  }, [openSnackbarHandler]);
-
-  // Fetch Card Numbers
-  const fetchCardNumbers = useCallback(async () => {
-    try {
-      const result = await fetchWithAuth(
-        "/card",
-        { method: "GET" },
-        openSnackbarHandler
-      );
-      setCardOptions(result);
-    } catch (error) {
-      // Error handled in fetchWithAuth
-    }
-  }, [openSnackbarHandler]);
-
   useEffect(() => {
-    fetchPhoneNumbers();
-    fetchCardNumbers();
-  }, [fetchPhoneNumbers, fetchCardNumbers]);
+    const fetchData = async () => {
+      try {
+        const phoneData = await apiService.fetchPhoneNumbers(openSnackbarHandler);
+        setPhoneOptions(phoneData);
+      } catch (error) {
+        openSnackbarHandler("Failed to fetch phone numbers", "error");
+      } finally {
+      }
+
+      try {
+        const cardData = await apiService.fetchCardNumbers(openSnackbarHandler);
+        setCardOptions(cardData);
+      } catch (error) {
+        openSnackbarHandler("Failed to fetch card numbers", "error");
+      }
+    };
+    fetchData();
+  }, [openSnackbarHandler]);
 
   const handleAddTicket = useCallback(
     async (e) => {

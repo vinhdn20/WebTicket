@@ -5,11 +5,9 @@ import * as XLSX from "xlsx";
 import { useTable, usePagination } from "react-table";
 import "../style/table.css";
 import { formatDate } from "../constant";
-import { v4 as uuidv4 } from "uuid"; // Import uuid để tạo id duy nhất
-import { Snackbar, Alert } from "@mui/material"; // Import Snackbar và Alert
+import { v4 as uuidv4 } from "uuid";
+import { Snackbar, Alert } from "@mui/material";
 import AddOnTable from "./addOnTable";
-import PaginationControls from "./PaginationControls";
-import ActionButtons from "./ActionButtons";
 import apiService from "../services/apiSevrvice";
 
 const exportTableToExcel = (tableData, fileName = "table_data.xlsx") => {
@@ -41,7 +39,7 @@ const EditableTable = ({
   const [cardOptions, setCardOptions] = useState([]);
   const [openAddOn, setOpenAddOn] = useState(false);
   const [addOnRow, setAddOnRow] = useState(null);
-  const [addOnMode, setAddOnMode] = useState("view"); // New state to track AddOnTable mode
+  const [addOnMode, setAddOnMode] = useState("view");
   const [isLoadingPhones, setIsLoadingPhones] = useState(false);
   const [isLoadingCards, setIsLoadingCards] = useState(false);
   const [snackbar, setSnackbar] = useState({
@@ -50,7 +48,7 @@ const EditableTable = ({
     severity: "success",
   });
 
-  // Handlers cho Snackbar
+  // Handlers for Snackbar
   const openSnackbarHandler = useCallback((message, severity = "success") => {
     setSnackbar({ open: true, message, severity });
   }, []);
@@ -59,7 +57,7 @@ const EditableTable = ({
     setSnackbar((prev) => ({ ...prev, open: false }));
   }, []);
 
-  // Định nghĩa các cột cho bảng
+  // Define table columns
   const columns = useMemo(
     () => [
       { Header: "Ngày xuất", accessor: "ngayXuat" },
@@ -85,10 +83,10 @@ const EditableTable = ({
     []
   );
 
-  // Memoize data để tối ưu hóa hiệu suất
+  // Memoize data for performance
   const memoizedData = useMemo(() => data, [data]);
 
-  // Sử dụng useTable một lần không điều kiện
+  // Initialize react-table
   const {
     getTableProps,
     getTableBodyProps,
@@ -109,7 +107,7 @@ const EditableTable = ({
     usePagination
   );
 
-  // Fetch phone và card numbers
+  // Fetch phone and card numbers
   useEffect(() => {
     const fetchData = async () => {
       try {
@@ -192,7 +190,6 @@ const EditableTable = ({
     [data, phoneOptions, setData]
   );
 
-  // Handle SoThe Select sử dụng row.original.id
   const handleSoTheSelect = useCallback(
     (rowId, value) => {
       const updatedData = data.map((row) => {
@@ -211,7 +208,6 @@ const EditableTable = ({
     [data, setData]
   );
 
-  // Handle Cell Edit sử dụng row.original.id
   const handleCellEdit = useCallback(
     (rowId, columnId, value) => {
       const updatedData = data.map((row) => {
@@ -230,11 +226,9 @@ const EditableTable = ({
     [data, setData]
   );
 
-  // Handle AddOn Open sử dụng row.original.id
   const handleClickAddOnOpen = useCallback(
     (rowId) => {
       setAddOnRow(rowId);
-      // Xác định chế độ dựa trên isEditing và liệu hàng có được chọn hay không
       const isRowSelected = selectedRows.includes(rowId);
       setAddOnMode(isEditing && isRowSelected ? "edit" : "view");
       setOpenAddOn(true);
@@ -242,7 +236,6 @@ const EditableTable = ({
     [isEditing, selectedRows]
   );
 
-  // Toggle Row Selection sử dụng row.original.id
   const toggleRowSelection = useCallback(
     (rowId) => {
       setSelectedRows((prev) =>
@@ -252,7 +245,6 @@ const EditableTable = ({
     [setSelectedRows]
   );
 
-  // Toggle Select All sử dụng row.original.id
   const toggleSelectAll = useCallback(() => {
     if (selectedRows.length === data.length && data.length > 0) {
       setSelectedRows([]);
@@ -261,7 +253,6 @@ const EditableTable = ({
     }
   }, [selectedRows, data, setSelectedRows]);
 
-  // Xử lý khi chuyển đổi chế độ chỉnh sửa
   const toggleEditMode = useCallback(() => {
     if (isEditing) {
       const formattedTickets = Array.from(editedRows).map((id) => {
@@ -309,18 +300,15 @@ const EditableTable = ({
     setIsEditing((prev) => !prev);
   }, [isEditing, editedRows, data, handleSaveEditedRows]);
 
-  // Determine if all rows are selected
   const isAllSelected = useMemo(
     () => selectedRows.length === data.length && data.length > 0,
     [selectedRows, data]
   );
 
-  // Xử lý đóng dialog AddOn
   const handleDialogAddOnClose = useCallback(() => {
     setOpenAddOn(false);
   }, []);
 
-  // Xử lý lưu dữ liệu từ AddOnTable sử dụng rowId
   const handleSave = useCallback(
     (formData, rowId) => {
       const updatedData = data.map((row) => {
@@ -338,7 +326,6 @@ const EditableTable = ({
     [data, setData]
   );
 
-  // Khởi tạo dữ liệu cho AddOnTable dựa trên row.original.id
   const memoizedInitialData = useMemo(() => {
     if (addOnRow !== null) {
       const row = data.find((item) => item.id === addOnRow);
@@ -355,6 +342,81 @@ const EditableTable = ({
     }
     return [{ stt: "", dichVu: "", soTien: "" }];
   }, [addOnRow, data]);
+
+  // Internal function for rendering Pagination Controls
+  const renderPaginationControls = () => (
+    <div style={{ marginTop: "20px", textAlign: "center" }}>
+      <button
+        onClick={handlePreviousPage}
+        disabled={pageIndex === 1}
+        style={{
+          cursor: pageIndex === 1 ? "not-allowed" : "pointer",
+          marginRight: "10px",
+        }}
+        aria-label="Previous Page"
+      >
+        Previous
+      </button>
+      <span>
+        Page {pageIndex} of {pageCount || 1}
+      </span>
+      <button
+        onClick={handleNextPage}
+        disabled={pageIndex >= pageCount}
+        style={{
+          cursor: pageIndex >= pageCount ? "not-allowed" : "pointer",
+          marginLeft: "10px",
+        }}
+        aria-label="Next Page"
+      >
+        Next
+      </button>
+      <select
+        value={pageSize}
+        onChange={handlePageSizeChange}
+        style={{ marginLeft: "10px" }}
+        aria-label="Select Page Size"
+      >
+        {[10, 20, 50, 100].map((size) => (
+          <option key={size} value={size}>
+            Show {size}
+          </option>
+        ))}
+      </select>
+    </div>
+  );
+
+  // Internal function for rendering Action Buttons
+  const renderActionButtons = () => (
+    <div style={{ marginTop: "20px", textAlign: "center" }}>
+      <button
+        onClick={toggleEditMode}
+        style={{ marginRight: "10px" }}
+        aria-label={isEditing ? "Save Changes" : "Edit Table"}
+      >
+        {isEditing ? "Save" : "Edit"}
+      </button>
+      <button
+        onClick={handleDeleteSelectedRows}
+        disabled={selectedRows.length === 0}
+        style={{
+          marginRight: "10px",
+          cursor: selectedRows.length === 0 ? "not-allowed" : "pointer",
+        }}
+        aria-label="Delete Selected Rows"
+      >
+        Delete Selected
+      </button>
+      <button
+        onClick={() => exportTableToExcel(data)}
+        style={{ marginRight: "10px" }}
+        aria-label="Export to Excel"
+      >
+        Export to Excel
+      </button>
+      {/* You can add more action buttons here if needed */}
+    </div>
+  );
 
   return (
     <>
@@ -575,28 +637,20 @@ const EditableTable = ({
               </table>
             </div>
 
-            <PaginationControls
-              pageIndex={pageIndex}
-              pageCount={pageCount}
-              handlePreviousPage={handlePreviousPage}
-              handleNextPage={handleNextPage}
-              handlePageSizeChange={handlePageSizeChange}
-              pageSize={pageSize}
-            />
+            {/* Render Pagination Controls */}
+            {renderPaginationControls()}
 
-            <ActionButtons
-              isEditing={isEditing}
-              toggleEditMode={toggleEditMode}
-              selectedRowsCount={selectedRows.length}
-              handleDeleteSelectedRows={handleDeleteSelectedRows}
-              exportToExcel={exportTableToExcel}
-            />
+            {/* Render Action Buttons */}
+            {renderActionButtons()}
+
+            {/* Additional Export Button (Optional) */}
             <button
               onClick={() => exportTableToExcel(data)}
               style={{
                 marginTop: "20px",
                 display: "block",
               }}
+              aria-label="Export to Excel"
             >
               Export to Excel
             </button>
@@ -610,11 +664,10 @@ const EditableTable = ({
         initialData={memoizedInitialData}
         setData={setData}
         data={data}
-        rowId={addOnRow} // Sử dụng rowId thay vì rowIndex
-        mode={addOnMode} // Pass mode to AddOnTable
+        rowIndex={addOnRow}
+        mode={addOnMode}
       />
 
-      {/* Snackbar for Notifications */}
       {snackbar.open && (
         <Snackbar
           open={snackbar.open}

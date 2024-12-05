@@ -113,14 +113,12 @@ const AddOnTable = React.memo(function AddOnTable({
       onClose();
       return;
     }
-
-    // Simple validation
     const hasEmptyFields = formData.some((row) => !row.dichVu || !row.soTien);
     if (hasEmptyFields) {
       alert("Vui lòng nhập đầy đủ Dịch vụ và Số tiền cho mỗi hàng.");
       return;
     }
-
+    console.log(formData, rowIndex);
     onSave(formData, rowIndex);
     onClose();
   }, [formData, rowIndex, onSave, onClose, mode]);

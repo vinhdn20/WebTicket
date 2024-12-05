@@ -120,7 +120,7 @@ export default function FullScreenSoTheDialog({ open, onClose }) {
   // Hàm fetch dữ liệu từ API
   const fetchApiData = useCallback(async () => {
     try {
-      const result = await callApiWithAuth("https://localhost:7113/Ve/card", {
+      const result = await callApiWithAuth("https://localhost:44331/Ve/card", {
         method: "GET",
         headers: {
           "Content-Type": "application/json",
@@ -232,7 +232,7 @@ export default function FullScreenSoTheDialog({ open, onClose }) {
     const payload = selectedRows.map((index) => formData[index]);
 
     try {
-      await callApiWithAuth("https://localhost:7113/Ve/card", {
+      await callApiWithAuth("https://localhost:44331/Ve/card", {
         method: "DELETE",
         headers: {
           "Content-Type": "application/json",
@@ -268,7 +268,7 @@ export default function FullScreenSoTheDialog({ open, onClose }) {
     const payload = selectedApiRows;
 
     try {
-      await callApiWithAuth("https://localhost:7113/Ve/card", {
+      await callApiWithAuth("https://localhost:44331/Ve/card", {
         method: "DELETE",
         headers: {
           "Content-Type": "application/json",
@@ -300,7 +300,7 @@ export default function FullScreenSoTheDialog({ open, onClose }) {
     }
 
     try {
-      await callApiWithAuth("https://localhost:7113/Ve/card", {
+      await callApiWithAuth("https://localhost:44331/Ve/card", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
