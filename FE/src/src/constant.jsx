@@ -23,6 +23,7 @@ export async function refreshAccessToken() {
 }
 
 export function processResult(result) {
+    console.log(result, "result");
     return result.items.map((item) => ({
         id: item.id,
         cardId: item.cardId,

@@ -83,10 +83,6 @@ const EditableTable = ({
     []
   );
 
-  // Memoize data for performance
-  const memoizedData = useMemo(() => data, [data]);
-
-  // Initialize react-table
   const {
     getTableProps,
     getTableBodyProps,
@@ -99,15 +95,15 @@ const EditableTable = ({
   } = useTable(
     {
       columns,
-      data: memoizedData,
+      data: data,
       initialState: { pageIndex: pageIndex - 1, pageSize },
-      manualPagination: false,
+      manualPagination: true,
       pageCount,
     },
     usePagination
   );
 
-  // Fetch phone and card numbers
+
   useEffect(() => {
     const fetchData = async () => {
       try {
@@ -136,14 +132,16 @@ const EditableTable = ({
   const handlePreviousPage = useCallback(() => {
     if (pageIndex > 1) {
       setPageIndex(pageIndex - 1);
+      previousPage();
     }
-  }, [pageIndex, setPageIndex]);
+  }, [pageIndex, previousPage, setPageIndex]);
 
   const handleNextPage = useCallback(() => {
     if (pageIndex < pageCount) {
       setPageIndex(pageIndex + 1);
+      nextPage();
     }
-  }, [pageIndex, pageCount, setPageIndex]);
+  }, [pageIndex, pageCount, nextPage, setPageIndex]);
 
   const handlePageSizeChange = useCallback(
     (e) => {
@@ -415,7 +413,7 @@ const EditableTable = ({
       {/* You can add more action buttons here if needed */}
     </div>
   );
-
+  console.log(data);
   return (
     <>
       <div>

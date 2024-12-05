@@ -43,20 +43,17 @@ const TicketTable2 = () => {
 
   const debounceRef = useRef();
 
-  // Hook để quản lý accessToken
   const getAccessToken = () => {
     return localStorage.getItem("accessToken");
   };
 
-  // Hàm để mở snackbar
   const openSnackbar = useCallback((message, severity = "success") => {
     setSnackbar({ open: true, message, severity });
   }, []);
 
-  // Hàm để đóng snackbar
   const closeSnackbar = useCallback(() => {
-    setSnackbar({ ...snackbar, open: false });
-  }, [snackbar]);
+    setSnackbar((prev) => ({ ...prev, open: false }));
+  }, []);
 
   const fetchInitialData = useCallback(
     async (filters) => {
@@ -126,30 +123,26 @@ const TicketTable2 = () => {
     [openSnackbar]
   );
 
-  const loadData = useMemo(() => {
-    const load = debounce(async () => {
-      const payload = {
-        ...columnFilters,
-        pageIndex,
-        pageSize,
-      };
-      const initialData = await fetchInitialData(payload);
-      setData(initialData);
-    }, 500);
-
-    debounceRef.current = load;
-
-    return load;
-  }, [columnFilters, pageIndex, pageSize, fetchInitialData]);
-
+  const debouncedLoad = useMemo(
+    () =>
+      debounce(async () => {
+        const payload = {
+          ...columnFilters,
+          pageIndex,
+          pageSize,
+        };
+        const initialData = await fetchInitialData(payload);
+        console.log("Fetched Data:", initialData);
+        setData(initialData);
+      }, 500),
+    [columnFilters, pageIndex, pageSize, fetchInitialData]
+  );
   useEffect(() => {
-    loadData();
+    debouncedLoad();
     return () => {
-      if (debounceRef.current && debounceRef.current.cancel) {
-        debounceRef.current.cancel();
-      }
+      debouncedLoad.cancel();
     };
-  }, [loadData]);
+  }, [debouncedLoad]);
 
   const handleSaveEditedRows = useCallback(
     async (payload) => {
@@ -194,7 +187,7 @@ const TicketTable2 = () => {
               "success"
             );
             setSelectedRows([]);
-            loadData();
+            debouncedLoad();
             return;
           } else {
             window.location.href = "/";
@@ -208,13 +201,13 @@ const TicketTable2 = () => {
 
         openSnackbar("Các hàng đã chỉnh sửa được lưu thành công!", "success");
         setSelectedRows([]);
-        loadData();
+        debouncedLoad();
       } catch (error) {
         console.error("Error saving edited rows:", error);
         openSnackbar("Có lỗi xảy ra khi lưu các hàng đã chỉnh sửa.", "error");
       }
     },
-    [loadData, openSnackbar]
+    [debouncedLoad, openSnackbar]
   );
 
   const handleDeleteSelectedRows = useCallback(async () => {
@@ -263,7 +256,7 @@ const TicketTable2 = () => {
 
           openSnackbar("Các hàng đã chọn được xóa thành công!", "success");
           setSelectedRows([]);
-          loadData();
+          debouncedLoad();
           return;
         } else {
           window.location.href = "/";
@@ -277,18 +270,18 @@ const TicketTable2 = () => {
 
       openSnackbar("Các hàng đã chọn được xóa thành công!", "success");
       setSelectedRows([]);
-      loadData();
+      debouncedLoad();
     } catch (error) {
       console.error("Error deleting rows:", error);
       openSnackbar("Có lỗi xảy ra khi xóa các hàng đã chọn.", "error");
     }
-  }, [selectedRows, loadData, openSnackbar]);
+  }, [selectedRows, debouncedLoad, openSnackbar]);
 
   return (
     <ErrorBoundary>
       <div className="container">
         <h1>Bảng Nhập Dữ Liệu</h1>
-        <InputForm onTicketCreated={loadData} />
+        <InputForm onTicketCreated={debouncedLoad} />
         <SearchComponent
           setColumnFilters={setColumnFilters}
           setPageIndex={setPageIndex}
