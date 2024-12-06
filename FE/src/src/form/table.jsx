@@ -389,7 +389,7 @@ const EditableTable = ({
         onClick={toggleEditMode}
         style={{ marginRight: "10px" }}
         aria-label={isEditing ? "Save Changes" : "Edit Table"}
-        disabled={selectedRows}
+        disabled={selectedRows.length === 0}
       >
         {isEditing ? "Save" : "Edit"}
       </button>
@@ -411,10 +411,8 @@ const EditableTable = ({
       >
         Export to Excel
       </button>
-      {/* You can add more action buttons here if needed */}
     </div>
   );
-  console.log(data);
   return (
     <>
       <div>
@@ -641,18 +639,6 @@ const EditableTable = ({
 
             {/* Render Action Buttons */}
             {renderActionButtons()}
-
-            {/* Additional Export Button (Optional) */}
-            <button
-              onClick={() => exportTableToExcel(data)}
-              style={{
-                marginTop: "20px",
-                display: "block",
-              }}
-              aria-label="Export to Excel"
-            >
-              Export to Excel
-            </button>
           </>
         )}
       </div>
