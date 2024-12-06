@@ -389,6 +389,7 @@ const EditableTable = ({
         onClick={toggleEditMode}
         style={{ marginRight: "10px" }}
         aria-label={isEditing ? "Save Changes" : "Edit Table"}
+        disabled={selectedRows}
       >
         {isEditing ? "Save" : "Edit"}
       </button>
@@ -441,6 +442,7 @@ const EditableTable = ({
                           checked={isAllSelected}
                           onChange={toggleSelectAll}
                           aria-label="Chọn tất cả hàng"
+                          disabled={isEditing}
                         />
                       </th>
                       {headerGroup.headers.map((column) => (
@@ -462,6 +464,7 @@ const EditableTable = ({
                             checked={selectedRows.includes(row.original.id)}
                             onChange={() => toggleRowSelection(row.original.id)}
                             aria-label={`Chọn hàng ${row.original.id}`}
+                            disabled={isEditing}
                           />
                         </td>
                         {row.cells.map((cell) => (
