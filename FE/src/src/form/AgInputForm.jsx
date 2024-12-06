@@ -199,66 +199,10 @@ export default function FullScreenAGDialog({ open, onClose }) {
   }, []);
 
   // Xử lý xóa các hàng đã chọn trong formData
-  const handleDeleteSelectedRows = useCallback(async () => {
-    if (selectedRows.length === 0) {
-      openSnackbar("Không có hàng nào được chọn để xóa.", "warning");
-      return;
-    }
-
-    const payload = selectedRows.map((index) => formData[index]);
-
-    let accessToken = getAccessToken();
-
-    try {
-      const response = await fetch("https://localhost:44331/Ve/ag", {
-        method: "DELETE",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${accessToken}`,
-        },
-        body: JSON.stringify(payload),
-      });
-
-      if (response.status === 401) {
-        const newToken = await refreshAccessToken();
-        if (newToken) {
-          accessToken = newToken;
-          // Retry the original request with the new token
-          const retryResponse = await fetch("https://localhost:44331/Ve/ag", {
-            method: "DELETE",
-            headers: {
-              "Content-Type": "application/json",
-              Authorization: `Bearer ${accessToken}`,
-            },
-            body: JSON.stringify(payload),
-          });
-
-          if (!retryResponse.ok) {
-            throw new Error("Failed to delete rows after refreshing token: " + retryResponse.statusText);
-          }
-
-          openSnackbar("Các hàng đã chọn được xóa thành công!", "success");
-          setSelectedRows([]);
-          fetchApiData();
-          return;
-        } else {
-          window.location.href = "/";
-          throw new Error("Failed to refresh access token");
-        }
-      }
-
-      if (!response.ok) {
-        throw new Error("Failed to delete rows: " + response.statusText);
-      }
-
-      openSnackbar("Các hàng đã chọn được xóa thành công!", "success");
-      setSelectedRows([]);
-      fetchApiData();
-    } catch (error) {
-      console.error("Error deleting data", error);
-      openSnackbar("Có lỗi xảy ra khi xóa các hàng đã chọn.", "error");
-    }
-  }, [selectedRows, formData, getAccessToken, fetchApiData, openSnackbar]);
+  const handleDeleteSelectedRows = () => {
+    setFormData((prev) => prev.filter((_, idx) => !selectedRows.includes(idx)));
+    setSelectedRows([]);
+  };
 
   // Xử lý chọn/huỷ chọn hàng trong apiData
   const handleApiCheckboxChange = useCallback((id) => {

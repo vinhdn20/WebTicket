@@ -223,31 +223,10 @@ export default function FullScreenSoTheDialog({ open, onClose }) {
   }, []);
 
   // Xử lý xóa các hàng đã chọn trong formData
-  const handleDeleteSelectedRows = useCallback(async () => {
-    if (selectedRows.length === 0) {
-      openSnackbar("Không có hàng nào được chọn để xóa.", "warning");
-      return;
-    }
-
-    const payload = selectedRows.map((index) => formData[index]);
-
-    try {
-      await callApiWithAuth("https://localhost:44331/Ve/card", {
-        method: "DELETE",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(payload),
-      });
-
-      openSnackbar("Các hàng đã chọn được xóa thành công!", "success");
-      setSelectedRows([]);
-      fetchApiData();
-    } catch (error) {
-      console.error("Error deleting data", error);
-      openSnackbar("Có lỗi xảy ra khi xóa các hàng đã chọn.", "error");
-    }
-  }, [selectedRows, formData, callApiWithAuth, fetchApiData, openSnackbar]);
+  const handleDeleteSelectedRows = () => {
+    setFormData((prev) => prev.filter((_, idx) => !selectedRows.includes(idx)));
+    setSelectedRows([]);
+  };
 
   // Xử lý chọn/huỷ chọn hàng trong apiData
   const handleApiCheckboxChange = useCallback((id) => {
