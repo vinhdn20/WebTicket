@@ -60,7 +60,7 @@ const TicketTable2 = () => {
       let accessToken = getAccessToken();
 
       try {
-        const response = await fetch("https://localhost:44331/ve/filter", {
+        const response = await fetch("https://localhost:7113/ve/filter", {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
@@ -76,7 +76,7 @@ const TicketTable2 = () => {
             accessToken = newToken;
             // Retry the original request with the new token
             const retryResponse = await fetch(
-              "https://localhost:44331/ve/filter",
+              "https://localhost:7113/ve/filter",
               {
                 method: "POST",
                 headers: {
@@ -148,7 +148,7 @@ const TicketTable2 = () => {
     async (payload) => {
       let accessToken = getAccessToken();
       try {
-        const response = await fetch("https://localhost:44331/Ve/xuatve", {
+        const response = await fetch("https://localhost:7113/Ve/xuatve", {
           method: "PUT",
           headers: {
             "Content-Type": "application/json",
@@ -164,7 +164,7 @@ const TicketTable2 = () => {
             accessToken = newToken;
             // Retry the original request with the new token
             const retryResponse = await fetch(
-              "https://localhost:44331/Ve/xuatve",
+              "https://localhost:7113/Ve/xuatve",
               {
                 method: "PUT",
                 headers: {
@@ -220,7 +220,7 @@ const TicketTable2 = () => {
     let accessToken = getAccessToken();
 
     try {
-      const response = await fetch("https://localhost:44331/Ve/xuatve", {
+      const response = await fetch("https://localhost:7113/Ve/xuatve", {
         method: "DELETE",
         headers: {
           "Content-Type": "application/json",
@@ -236,7 +236,7 @@ const TicketTable2 = () => {
           accessToken = newToken;
           // Retry the original request with the new token
           const retryResponse = await fetch(
-            "https://localhost:44331/Ve/xuatve",
+            "https://localhost:7113/Ve/xuatve",
             {
               method: "DELETE",
               headers: {
