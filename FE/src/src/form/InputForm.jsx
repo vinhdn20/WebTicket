@@ -41,7 +41,6 @@ const initialRow = {
 };
 
 const InputTable = ({ onTicketCreated }) => {
-  // State Management
   const [data, setData] = useState([initialRow]);
   const [currentFocusCell, setCurrentFocusCell] = useState(null);
   const [selectedRows, setSelectedRows] = useState([]);
@@ -57,7 +56,6 @@ const InputTable = ({ onTicketCreated }) => {
     severity: "success",
   });
 
-  // Snackbar Handlers
   const openSnackbarHandler = useCallback((message, severity = "success") => {
     setSnackbar({ open: true, message, severity });
   }, []);
@@ -66,7 +64,6 @@ const InputTable = ({ onTicketCreated }) => {
     setSnackbar((prev) => ({ ...prev, open: false }));
   }, []);
 
-  // Columns Definition
   const columns = useMemo(
     () => [
       { Header: "Chọn", accessor: "select" },
@@ -93,25 +90,25 @@ const InputTable = ({ onTicketCreated }) => {
     []
   );
 
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const phoneData = await apiService.fetchPhoneNumbers(openSnackbarHandler);
-        setPhoneOptions(phoneData);
-      } catch (error) {
-        openSnackbarHandler("Failed to fetch phone numbers", "error");
-      } finally {
-      }
+  const fetchData = useCallback(async () => {
+    try {
+      const phoneData = await apiService.fetchPhoneNumbers(openSnackbarHandler);
+      setPhoneOptions(phoneData);
+    } catch (error) {
+      openSnackbarHandler("Failed to fetch phone numbers", "error");
+    }
 
-      try {
-        const cardData = await apiService.fetchCardNumbers(openSnackbarHandler);
-        setCardOptions(cardData);
-      } catch (error) {
-        openSnackbarHandler("Failed to fetch card numbers", "error");
-      }
-    };
-    fetchData();
+    try {
+      const cardData = await apiService.fetchCardNumbers(openSnackbarHandler);
+      setCardOptions(cardData);
+    } catch (error) {
+      openSnackbarHandler("Failed to fetch card numbers", "error");
+    }
   }, [openSnackbarHandler]);
+
+  useEffect(() => {
+    fetchData();
+  }, [fetchData]);
 
   const handleAddTicket = useCallback(
     async (e) => {
@@ -189,12 +186,10 @@ const InputTable = ({ onTicketCreated }) => {
     [data, onTicketCreated, openSnackbarHandler]
   );
 
-  // Add New Row
   const handleAddRow = useCallback(() => {
     setData((prevData) => [...prevData, { ...initialRow }]);
   }, []);
 
-  // Handle Cell Edit
   const handleCellEdit = useCallback(
     (rowIndex, columnId, value) => {
       setData((prevData) => {
@@ -206,7 +201,6 @@ const InputTable = ({ onTicketCreated }) => {
     []
   );
 
-  // Handle Phone Select
   const handlePhoneSelect = useCallback(
     (rowIndex, newValue) => {
       const selectedPhoneOption = phoneOptions.find(
@@ -236,7 +230,6 @@ const InputTable = ({ onTicketCreated }) => {
     [phoneOptions]
   );
 
-  // Handle Card Select
   const handleSoTheSelect = useCallback(
     (rowIndex, newValue) => {
       const selectedCard = cardOptions.find(
@@ -254,7 +247,6 @@ const InputTable = ({ onTicketCreated }) => {
     [cardOptions]
   );
 
-  // Handle Row Selection
   const handleSelectRow = useCallback((rowIndex, isSelected) => {
     setSelectedRows((prevSelected) =>
       isSelected
@@ -263,7 +255,6 @@ const InputTable = ({ onTicketCreated }) => {
     );
   }, []);
 
-  // Delete Selected Rows
   const handleDeleteRows = useCallback(() => {
     setData((prevData) =>
       prevData.filter((_, index) => !selectedRows.includes(index))
@@ -271,26 +262,25 @@ const InputTable = ({ onTicketCreated }) => {
     setSelectedRows([]);
   }, [selectedRows]);
 
-  // Handle AddOn Dialog Open
   const handleClickAddOnOpen = useCallback((index) => {
     setAddOnRow(index);
     setOpenAddOnDialog(true);
   }, []);
 
-  // Handle Dialog Close
   const handleDialogClose = useCallback(() => {
     setOpenAGDialog(false);
-  }, []);
+    fetchData();
+  }, [fetchData]);
 
   const handleDialogSoTheClose = useCallback(() => {
     setOpenSoTheDialog(false);
-  }, []);
+    fetchData();
+  }, [fetchData]);
 
   const handleDialogAddOnClose = useCallback(() => {
     setOpenAddOnDialog(false);
   }, []);
 
-  // Handle Paste
   const handlePaste = useCallback(
     (e) => {
       e.preventDefault();
