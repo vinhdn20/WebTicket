@@ -36,42 +36,37 @@ const AddOnTable = React.memo(function AddOnTable({
     (e) => {
       if (mode === "view") return; // Disable paste in view mode
       e.preventDefault();
-  
+
       const clipboardData = e.clipboardData.getData("text");
       const rows = clipboardData.split("\n").map((row) => row.split("\t"));
       if (currentFocusRow === null) {
         alert("Please select a row to paste data into.");
         return;
       }
-  
+
       const updatedFormData = [...formData];
       rows.forEach((rowValues, rowOffset) => {
         const targetRow = currentFocusRow + rowOffset;
         if (updatedFormData[targetRow]) {
           rowValues.forEach((cellValue, colOffset) => {
             if (colOffset === 0) {
-              updatedFormData[targetRow].stt = cellValue;
-            } else if (colOffset === 1) {
               updatedFormData[targetRow].dichVu = cellValue;
-            } else if (colOffset === 2) {
+            } else if (colOffset === 1) {
               updatedFormData[targetRow].soTien = cellValue;
             }
           });
         } else {
-          // Optionally, handle adding new rows if pasted data exceeds current rows
           updatedFormData.push({
-            stt: rowValues[0] || "",
-            dichVu: rowValues[1] || "",
-            soTien: rowValues[2] || "",
+            dichVu: rowValues[0] || "",
+            soTien: rowValues[1] || "",
           });
         }
       });
-  
+
       setFormData(updatedFormData);
     },
     [formData, mode, currentFocusRow]
   );
-  
 
   const handleCellChange = useCallback(
     (rowIdx, field, value) => {
@@ -216,6 +211,7 @@ const AddOnTable = React.memo(function AddOnTable({
                     <input
                       type="text"
                       value={row.dichVu}
+                      onFocus={() => setCurrentFocusRow(rowIndex)}
                       onChange={(e) =>
                         handleCellChange(rowIndex, "dichVu", e.target.value)
                       }
@@ -237,6 +233,7 @@ const AddOnTable = React.memo(function AddOnTable({
                     <input
                       type="text"
                       value={row.soTien}
+                      onFocus={() => setCurrentFocusRow(rowIndex)}
                       onChange={(e) =>
                         handleCellChange(rowIndex, "soTien", e.target.value)
                       }

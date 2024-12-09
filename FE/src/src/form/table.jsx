@@ -633,11 +633,7 @@ const EditableTable = ({
                 </tbody>
               </table>
             </div>
-
-            {/* Render Pagination Controls */}
             {renderPaginationControls()}
-
-            {/* Render Action Buttons */}
             {renderActionButtons()}
           </>
         )}
