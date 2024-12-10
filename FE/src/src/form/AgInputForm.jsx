@@ -8,7 +8,7 @@ import CloseIcon from "@mui/icons-material/Close";
 import Slide from "@mui/material/Slide";
 import Button from "@mui/material/Button";
 import { refreshAccessToken } from "../constant";
-import { Snackbar, Alert } from "@mui/material";
+import { Snackbar, Alert, DialogTitle, DialogContent, DialogContentText, DialogActions } from "@mui/material";
 
 const Transition = React.forwardRef(function Transition(props, ref) {
   return <Slide direction="up" ref={ref} {...props} />;
@@ -45,6 +45,8 @@ export default function FullScreenAGDialog({ open, onClose }) {
   const [selectedApiRows, setSelectedApiRows] = useState([]);
   const [currentFocusRow, setCurrentFocusRow] = useState(null); // Lưu vị trí hàng được focus
   const [snackbar, setSnackbar] = useState({ open: false, message: "", severity: "success" });
+  const [openDeleteDialog, setOpenDeleteDialog] = useState(false);
+  const [isApi, setIsApi] = useState(false);
 
   // Hàm để lấy accessToken
   const getAccessToken = useCallback(() => {
@@ -65,7 +67,7 @@ export default function FullScreenAGDialog({ open, onClose }) {
   const fetchApiData = useCallback(async () => {
     let accessToken = getAccessToken();
     try {
-      const response = await fetch("https://localhost:7113/Ve/ag", {
+      const response = await fetch("https://localhost:44331/Ve/ag", {
         method: "GET",
         headers: {
           "Content-Type": "application/json",
@@ -77,7 +79,7 @@ export default function FullScreenAGDialog({ open, onClose }) {
         const newToken = await refreshAccessToken();
         if (newToken) {
           accessToken = newToken;
-          const retryResponse = await fetch("https://localhost:7113/Ve/ag", {
+          const retryResponse = await fetch("https://localhost:44331/Ve/ag", {
             method: "GET",
             headers: {
               "Content-Type": "application/json",
@@ -224,7 +226,7 @@ export default function FullScreenAGDialog({ open, onClose }) {
     const payload = selectedApiRows;
 
     try {
-      const response = await fetch("https://localhost:7113/Ve/ag", {
+      const response = await fetch("https://localhost:44331/Ve/ag", {
         method: "DELETE",
         headers: {
           "Content-Type": "application/json",
@@ -238,7 +240,7 @@ export default function FullScreenAGDialog({ open, onClose }) {
         if (newToken) {
           accessToken = newToken;
           // Retry the original request with the new token
-          const retryResponse = await fetch("https://localhost:7113/Ve/ag", {
+          const retryResponse = await fetch("https://localhost:44331/Ve/ag", {
             method: "DELETE",
             headers: {
               "Content-Type": "application/json",
@@ -288,7 +290,7 @@ export default function FullScreenAGDialog({ open, onClose }) {
     let accessToken = getAccessToken();
 
     try {
-      const response = await fetch("https://localhost:7113/Ve/ag", {
+      const response = await fetch("https://localhost:44331/Ve/ag", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -302,7 +304,7 @@ export default function FullScreenAGDialog({ open, onClose }) {
         if (newToken) {
           accessToken = newToken;
           // Retry the original request with the new token
-          const retryResponse = await fetch("https://localhost:7113/Ve/ag", {
+          const retryResponse = await fetch("https://localhost:44331/Ve/ag", {
             method: "POST",
             headers: {
               "Content-Type": "application/json",
@@ -337,6 +339,25 @@ export default function FullScreenAGDialog({ open, onClose }) {
       openSnackbar("Có lỗi xảy ra khi lưu dữ liệu.", "error");
     }
   }, [formData, getAccessToken, fetchApiData, openSnackbar, onClose]);
+
+  const handleOpenDeleteDialogForNormal = useCallback(() => {
+    setIsApi(false);
+    setOpenDeleteDialog(true);
+  }, []);
+
+  const handleOpenDeleteDialogForAPI = useCallback(() => {
+    setIsApi(true);
+    setOpenDeleteDialog(true);
+  }, []);
+
+  const handleCloseDeleteDialog = useCallback(() => {
+    setOpenDeleteDialog(false);
+  }, []);
+
+  const handleConfirmDelete = useCallback(() => {
+    isApi ? handleDeleteSelectedApiRows() : handleDeleteSelectedRows();
+    setOpenDeleteDialog(false);
+  }, [handleDeleteSelectedApiRows, handleDeleteSelectedRows, isApi]);
 
   return (
     <Dialog
@@ -479,7 +500,7 @@ export default function FullScreenAGDialog({ open, onClose }) {
           Thêm Hàng
         </Button>
         <Button
-          onClick={handleDeleteSelectedRows}
+          onClick={handleOpenDeleteDialogForNormal}
           variant="contained"
           color="secondary"
           style={{ marginTop: "20px", marginLeft: "10px" }}
@@ -545,7 +566,7 @@ export default function FullScreenAGDialog({ open, onClose }) {
           </tbody>
         </table>
         <Button
-          onClick={handleDeleteSelectedApiRows}
+          onClick={handleOpenDeleteDialogForAPI}
           variant="contained"
           color="secondary"
           style={{ marginTop: "20px" }}
@@ -554,6 +575,30 @@ export default function FullScreenAGDialog({ open, onClose }) {
           Xóa Hàng Đã Chọn
         </Button>
       </div>
+      <Dialog
+        open={openDeleteDialog}
+        onClose={handleCloseDeleteDialog}
+        aria-labelledby="delete-confirmation-dialog-title"
+        aria-describedby="delete-confirmation-dialog-description"
+      >
+        <DialogTitle id="delete-confirmation-dialog-title">
+          Xác nhận xóa
+        </DialogTitle>
+        <DialogContent>
+          <DialogContentText id="delete-confirmation-dialog-description">
+            Bạn có chắc chắn muốn xóa {selectedRows.length} hàng đã chọn?
+            Hành động này không thể hoàn tác.
+          </DialogContentText>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={handleCloseDeleteDialog} color="primary">
+            Hủy
+          </Button>
+          <Button onClick={handleConfirmDelete} color="secondary" autoFocus>
+            Xóa
+          </Button>
+        </DialogActions>
+      </Dialog>
 
       {/* Snackbar for notifications */}
       <Snackbar

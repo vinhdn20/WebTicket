@@ -2,7 +2,7 @@
 import React, { useCallback, useMemo, useState, useEffect } from "react";
 import "../style/table.css";
 import Button from "@mui/material/Button";
-import { Snackbar, Alert } from "@mui/material";
+import { Snackbar, Alert, Dialog, DialogTitle, DialogContent, DialogContentText, DialogActions } from "@mui/material";
 import FullScreenAGDialog from "./AgInputForm";
 import FullScreenSoTheDialog from "./SoTheInputForm";
 import AddOnTable from "./addOnTable";
@@ -49,6 +49,7 @@ const InputTable = ({ onTicketCreated }) => {
   const [openAGDialog, setOpenAGDialog] = useState(false);
   const [openSoTheDialog, setOpenSoTheDialog] = useState(false);
   const [openAddOnDialog, setOpenAddOnDialog] = useState(false);
+  const [openDeleteDialog, setOpenDeleteDialog] = useState(false);
   const [addOnRow, setAddOnRow] = useState(null);
   const [snackbar, setSnackbar] = useState({
     open: false,
@@ -344,6 +345,19 @@ const InputTable = ({ onTicketCreated }) => {
     }
   }, [addOnRow, data]);
 
+  const handleOpenDeleteDialog = useCallback(() => {
+    setOpenDeleteDialog(true);
+  }, []);
+
+  const handleCloseDeleteDialog = useCallback(() => {
+    setOpenDeleteDialog(false);
+  }, []);
+
+  const handleConfirmDelete = useCallback(() => {
+    handleDeleteRows();
+    setOpenDeleteDialog(false);
+  }, [handleDeleteRows]);
+
   return (
     <>
       <Button
@@ -572,7 +586,7 @@ const InputTable = ({ onTicketCreated }) => {
           Thêm Hàng
         </Button>
         <Button
-          onClick={handleDeleteRows}
+          onClick={handleOpenDeleteDialog}
           variant="contained"
           color="secondary"
           style={{ marginRight: "10px" }}
@@ -593,6 +607,30 @@ const InputTable = ({ onTicketCreated }) => {
         rowIndex={addOnRow}
         mode="edit"
       />
+      <Dialog
+        open={openDeleteDialog}
+        onClose={handleCloseDeleteDialog}
+        aria-labelledby="delete-confirmation-dialog-title"
+        aria-describedby="delete-confirmation-dialog-description"
+      >
+        <DialogTitle id="delete-confirmation-dialog-title">
+          Xác nhận xóa
+        </DialogTitle>
+        <DialogContent>
+          <DialogContentText id="delete-confirmation-dialog-description">
+            Bạn có chắc chắn muốn xóa {selectedRows.length} hàng đã chọn?
+            Hành động này không thể hoàn tác.
+          </DialogContentText>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={handleCloseDeleteDialog} color="primary">
+            Hủy
+          </Button>
+          <Button onClick={handleConfirmDelete} color="secondary" autoFocus>
+            Xóa
+          </Button>
+        </DialogActions>
+      </Dialog>
       {/* Snackbar for notifications */}
       <Snackbar
         open={snackbar.open}

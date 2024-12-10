@@ -5,8 +5,7 @@ import * as XLSX from "xlsx";
 import { useTable, usePagination } from "react-table";
 import "../style/table.css";
 import { formatDate } from "../constant";
-import { v4 as uuidv4 } from "uuid";
-import { Snackbar, Alert } from "@mui/material";
+import { Snackbar, Alert, Dialog, DialogTitle, DialogContent, DialogContentText, DialogActions, Button } from "@mui/material";
 import AddOnTable from "./addOnTable";
 import apiService from "../services/apiSevrvice";
 
@@ -30,7 +29,7 @@ const EditableTable = ({
   pageCount,
   selectedRows,
   setSelectedRows,
-  handleDeleteSelectedRows,
+  handleDeleteSelectedRows, // Existing prop
   handleSaveEditedRows,
 }) => {
   const [isEditing, setIsEditing] = useState(false);
@@ -48,7 +47,7 @@ const EditableTable = ({
     severity: "success",
   });
 
-  // Handlers for Snackbar
+  const [openDeleteDialog, setOpenDeleteDialog] = useState(false);
   const openSnackbarHandler = useCallback((message, severity = "success") => {
     setSnackbar({ open: true, message, severity });
   }, []);
@@ -56,6 +55,19 @@ const EditableTable = ({
   const closeSnackbarHandler = useCallback(() => {
     setSnackbar((prev) => ({ ...prev, open: false }));
   }, []);
+
+  const handleOpenDeleteDialog = useCallback(() => {
+    setOpenDeleteDialog(true);
+  }, []);
+
+  const handleCloseDeleteDialog = useCallback(() => {
+    setOpenDeleteDialog(false);
+  }, []);
+
+  const handleConfirmDelete = useCallback(() => {
+    handleDeleteSelectedRows(); // Call the existing delete handler
+    setOpenDeleteDialog(false);
+  }, [handleDeleteSelectedRows]);
 
   // Define table columns
   const columns = useMemo(
@@ -102,7 +114,6 @@ const EditableTable = ({
     },
     usePagination
   );
-
 
   useEffect(() => {
     const fetchData = async () => {
@@ -394,7 +405,7 @@ const EditableTable = ({
         {isEditing ? "Save" : "Edit"}
       </button>
       <button
-        onClick={handleDeleteSelectedRows}
+        onClick={handleOpenDeleteDialog}
         disabled={selectedRows.length === 0}
         style={{
           marginRight: "10px",
@@ -413,6 +424,7 @@ const EditableTable = ({
       </button>
     </div>
   );
+
   return (
     <>
       <div>
@@ -648,6 +660,31 @@ const EditableTable = ({
         rowIndex={addOnRow}
         mode={addOnMode}
       />
+
+      <Dialog
+        open={openDeleteDialog}
+        onClose={handleCloseDeleteDialog}
+        aria-labelledby="delete-confirmation-dialog-title"
+        aria-describedby="delete-confirmation-dialog-description"
+      >
+        <DialogTitle id="delete-confirmation-dialog-title">
+          Xác nhận xóa
+        </DialogTitle>
+        <DialogContent>
+          <DialogContentText id="delete-confirmation-dialog-description">
+            Bạn có chắc chắn muốn xóa {selectedRows.length} hàng đã chọn?
+            Hành động này không thể hoàn tác.
+          </DialogContentText>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={handleCloseDeleteDialog} color="primary">
+            Hủy
+          </Button>
+          <Button onClick={handleConfirmDelete} color="secondary" autoFocus>
+            Xóa
+          </Button>
+        </DialogActions>
+      </Dialog>
 
       {snackbar.open && (
         <Snackbar

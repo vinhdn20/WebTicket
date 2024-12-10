@@ -11,12 +11,12 @@ import Snackbar from "@mui/material/Snackbar";
 import MuiAlert from "@mui/material/Alert";
 import { refreshAccessToken } from "../constant";
 import "../style/table.css";
+import { DialogActions, DialogContent, DialogContentText, DialogTitle } from "@mui/material";
 
 const Transition = React.forwardRef(function Transition(props, ref) {
   return <Slide direction="up" ref={ref} {...props} />;
 });
 
-// Alert component for Snackbar
 const Alert = React.forwardRef(function Alert(props, ref) {
   return <MuiAlert elevation={6} ref={ref} variant="filled" {...props} />;
 });
@@ -48,28 +48,26 @@ export default function FullScreenSoTheDialog({ open, onClose }) {
   const [selectedRows, setSelectedRows] = useState([]);
   const [selectedApiRows, setSelectedApiRows] = useState([]);
   const [currentFocusRow, setCurrentFocusRow] = useState(null);
+  const [openDeleteDialog, setOpenDeleteDialog] = useState(false);
+  const [isApi, setIsApi] = useState(false);
   const [snackbar, setSnackbar] = useState({
     open: false,
     message: "",
     severity: "success",
   });
 
-  // Hàm để lấy accessToken
   const getAccessToken = useCallback(() => {
     return localStorage.getItem("accessToken");
   }, []);
 
-  // Hàm để mở snackbar
   const openSnackbar = useCallback((message, severity = "success") => {
     setSnackbar({ open: true, message, severity });
   }, []);
 
-  // Hàm để đóng snackbar
   const closeSnackbar = useCallback(() => {
     setSnackbar((prev) => ({ ...prev, open: false }));
   }, []);
 
-  // Hàm hỗ trợ gọi API với xử lý làm mới token
   const callApiWithAuth = useCallback(
     async (url, options) => {
       let accessToken = getAccessToken();
@@ -83,7 +81,6 @@ export default function FullScreenSoTheDialog({ open, onClose }) {
         });
 
         if (response.status === 401) {
-          // Token expired, thử làm mới token
           const newToken = await refreshAccessToken();
           if (newToken) {
             accessToken = newToken;
@@ -117,10 +114,9 @@ export default function FullScreenSoTheDialog({ open, onClose }) {
     [getAccessToken]
   );
 
-  // Hàm fetch dữ liệu từ API
   const fetchApiData = useCallback(async () => {
     try {
-      const result = await callApiWithAuth("https://localhost:7113/Ve/card", {
+      const result = await callApiWithAuth("https://localhost:44331/Ve/card", {
         method: "GET",
         headers: {
           "Content-Type": "application/json",
@@ -133,7 +129,6 @@ export default function FullScreenSoTheDialog({ open, onClose }) {
     }
   }, [callApiWithAuth, openSnackbar]);
 
-  // Hàm cập nhật dữ liệu API
   const updateApiData = useCallback((apiData) => {
     const mappedData = apiData.map((item) => ({
       id: item.id,
@@ -142,12 +137,10 @@ export default function FullScreenSoTheDialog({ open, onClose }) {
     setApiData(mappedData);
   }, []);
 
-  // Fetch dữ liệu khi mở dialog
   useEffect(() => {
     if (open) {
       fetchApiData();
     } else {
-      // Reset formData và các state khi đóng dialog
       setFormData([
         {
           soThe: "",
@@ -159,37 +152,29 @@ export default function FullScreenSoTheDialog({ open, onClose }) {
     }
   }, [open, fetchApiData]);
 
-  // Xử lý paste từ clipboard vào bảng
   const handlePaste = useCallback(
     (e) => {
       e.preventDefault();
-
-      // Lấy dữ liệu từ clipboard
       const clipboardData = e.clipboardData.getData("text");
-      const rows = clipboardData.split("\n").map((row) => row.split("\t")); // Chia dòng và cột từ Excel
-
-      if (currentFocusRow === null) return; // Kiểm tra nếu chưa có hàng focus
-
-      // Cập nhật dữ liệu vào bảng
+      const rows = clipboardData.split("\n").map((row) => row.split("\t"));
+      if (currentFocusRow === null) return;
       const updatedFormData = [...formData];
       rows.forEach((rowValues, rowOffset) => {
-        const targetRow = currentFocusRow + rowOffset; // Xác định hàng bắt đầu
+        const targetRow = currentFocusRow + rowOffset;
         if (updatedFormData[targetRow]) {
-          // Cập nhật các cột
           rowValues.forEach((cellValue, colOffset) => {
             if (colOffset === 0) {
-              updatedFormData[targetRow].soThe = cellValue; // Cột số thẻ thanh toán
+              updatedFormData[targetRow].soThe = cellValue;
             }
           });
         }
       });
 
-      setFormData(updatedFormData); // Cập nhật state
+      setFormData(updatedFormData);
     },
     [formData, currentFocusRow]
   );
 
-  // Xử lý thay đổi ô dữ liệu
   const handleCellChange = useCallback((rowIndex, field, value) => {
     setFormData((prev) =>
       prev.map((row, idx) =>
@@ -198,7 +183,6 @@ export default function FullScreenSoTheDialog({ open, onClose }) {
     );
   }, []);
 
-  // Thêm hàng mới vào formData
   const handleAddRow = useCallback(() => {
     const currentRows = formData.length;
     const cols = 1;
@@ -213,7 +197,6 @@ export default function FullScreenSoTheDialog({ open, onClose }) {
     ]);
   }, [formData.length]);
 
-  // Xử lý chọn/huỷ chọn hàng trong formData
   const handleCheckboxChange = useCallback((rowIndex) => {
     setSelectedRows((prev) =>
       prev.includes(rowIndex)
@@ -222,13 +205,11 @@ export default function FullScreenSoTheDialog({ open, onClose }) {
     );
   }, []);
 
-  // Xử lý xóa các hàng đã chọn trong formData
-  const handleDeleteSelectedRows = () => {
+  const handleDeleteSelectedRows = useCallback(() => {
     setFormData((prev) => prev.filter((_, idx) => !selectedRows.includes(idx)));
     setSelectedRows([]);
-  };
+  }, [selectedRows]);
 
-  // Xử lý chọn/huỷ chọn hàng trong apiData
   const handleApiCheckboxChange = useCallback((id) => {
     setSelectedApiRows((prev) =>
       prev.includes(id)
@@ -237,7 +218,6 @@ export default function FullScreenSoTheDialog({ open, onClose }) {
     );
   }, []);
 
-  // Xử lý xóa các hàng đã chọn trong apiData
   const handleDeleteSelectedApiRows = useCallback(async () => {
     if (selectedApiRows.length === 0) {
       openSnackbar("Không có hàng nào được chọn để xóa.", "warning");
@@ -247,7 +227,7 @@ export default function FullScreenSoTheDialog({ open, onClose }) {
     const payload = selectedApiRows;
 
     try {
-      await callApiWithAuth("https://localhost:7113/Ve/card", {
+      await callApiWithAuth("https://localhost:44331/Ve/card", {
         method: "DELETE",
         headers: {
           "Content-Type": "application/json",
@@ -264,9 +244,7 @@ export default function FullScreenSoTheDialog({ open, onClose }) {
     }
   }, [selectedApiRows, callApiWithAuth, fetchApiData, openSnackbar]);
 
-  // Hàm lưu dữ liệu từ formData vào API
   const handleSave = useCallback(async () => {
-    // Kiểm tra dữ liệu trước khi lưu
     for (const row of formData) {
       if (!row.soThe) {
         openSnackbar(
@@ -275,11 +253,10 @@ export default function FullScreenSoTheDialog({ open, onClose }) {
         );
         return;
       }
-      // Thêm các kiểm tra khác nếu cần
     }
 
     try {
-      await callApiWithAuth("https://localhost:7113/Ve/card", {
+      await callApiWithAuth("https://localhost:44331/Ve/card", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -295,6 +272,25 @@ export default function FullScreenSoTheDialog({ open, onClose }) {
       openSnackbar("Có lỗi xảy ra khi lưu dữ liệu.", "error");
     }
   }, [formData, callApiWithAuth, fetchApiData, openSnackbar, onClose]);
+
+  const handleOpenDeleteDialogForNormal = useCallback(() => {
+    setIsApi(false);
+    setOpenDeleteDialog(true);
+  }, []);
+
+  const handleOpenDeleteDialogForAPI = useCallback(() => {
+    setIsApi(true);
+    setOpenDeleteDialog(true);
+  }, []);
+
+  const handleCloseDeleteDialog = useCallback(() => {
+    setOpenDeleteDialog(false);
+  }, []);
+
+  const handleConfirmDelete = useCallback(() => {
+    isApi ? handleDeleteSelectedApiRows() : handleDeleteSelectedRows();
+    setOpenDeleteDialog(false);
+  }, [handleDeleteSelectedApiRows, handleDeleteSelectedRows, isApi]);
 
   return (
     <Dialog
@@ -379,8 +375,6 @@ export default function FullScreenSoTheDialog({ open, onClose }) {
                       width: "100%",
                       border: "none",
                       outline: "none",
-                      padding: "4px",
-                      backgroundColor: "#f9f9f9", // Thêm nền để dễ nhìn
                     }}
                     placeholder="Nhập số thẻ thanh toán"
                   />
@@ -399,7 +393,7 @@ export default function FullScreenSoTheDialog({ open, onClose }) {
             Thêm Hàng
           </Button>
           <Button
-            onClick={handleDeleteSelectedRows}
+            onClick={handleOpenDeleteDialogForNormal}
             variant="contained"
             color="secondary"
             disabled={selectedRows.length === 0}
@@ -454,7 +448,7 @@ export default function FullScreenSoTheDialog({ open, onClose }) {
         </table>
         <div style={{ marginTop: "20px" }}>
           <Button
-            onClick={handleDeleteSelectedApiRows}
+            onClick={handleOpenDeleteDialogForAPI}
             variant="contained"
             color="secondary"
             disabled={selectedApiRows.length === 0}
@@ -463,8 +457,31 @@ export default function FullScreenSoTheDialog({ open, onClose }) {
           </Button>
         </div>
       </div>
+      <Dialog
+        open={openDeleteDialog}
+        onClose={handleCloseDeleteDialog}
+        aria-labelledby="delete-confirmation-dialog-title"
+        aria-describedby="delete-confirmation-dialog-description"
+      >
+        <DialogTitle id="delete-confirmation-dialog-title">
+          Xác nhận xóa
+        </DialogTitle>
+        <DialogContent>
+          <DialogContentText id="delete-confirmation-dialog-description">
+            Bạn có chắc chắn muốn xóa {selectedRows.length} hàng đã chọn?
+            Hành động này không thể hoàn tác.
+          </DialogContentText>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={handleCloseDeleteDialog} color="primary">
+            Hủy
+          </Button>
+          <Button onClick={handleConfirmDelete} color="secondary" autoFocus>
+            Xóa
+          </Button>
+        </DialogActions>
+      </Dialog>
 
-      {/* Snackbar for notifications */}
       <Snackbar
         open={snackbar.open}
         autoHideDuration={6000}
