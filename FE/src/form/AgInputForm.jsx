@@ -37,6 +37,8 @@ const generateMatrixValues = (rows, cols, startValue = 11) => {
 };
 
 export default function FullScreenAGDialog({ open, onClose }) {
+  const API_URL = process.env.REACT_APP_API_URL;
+  
   const [formData, setFormData] = useState(() => {
     const rows = 1; // Số hàng ban đầu
     const cols = 3; // Số cột (tenAG, sdt, mail)
@@ -80,7 +82,7 @@ export default function FullScreenAGDialog({ open, onClose }) {
   const fetchApiData = useCallback(async () => {
     let accessToken = getAccessToken();
     try {
-      const response = await fetch("https://localhost:7113/Ve/ag", {
+      const response = await fetch(`${API_URL}/Ve/ag`, {
         method: "GET",
         headers: {
           "Content-Type": "application/json",
@@ -92,7 +94,7 @@ export default function FullScreenAGDialog({ open, onClose }) {
         const newToken = await refreshAccessToken();
         if (newToken) {
           accessToken = newToken;
-          const retryResponse = await fetch("https://localhost:7113/Ve/ag", {
+          const retryResponse = await fetch(`${API_URL}/Ve/ag`, {
             method: "GET",
             headers: {
               "Content-Type": "application/json",
@@ -243,7 +245,7 @@ export default function FullScreenAGDialog({ open, onClose }) {
     const payload = selectedApiRows;
 
     try {
-      const response = await fetch("https://localhost:7113/Ve/ag", {
+      const response = await fetch(`${API_URL}/Ve/ag`, {
         method: "DELETE",
         headers: {
           "Content-Type": "application/json",
@@ -257,7 +259,7 @@ export default function FullScreenAGDialog({ open, onClose }) {
         if (newToken) {
           accessToken = newToken;
           // Retry the original request with the new token
-          const retryResponse = await fetch("https://localhost:7113/Ve/ag", {
+          const retryResponse = await fetch(`${API_URL}/Ve/ag`, {
             method: "DELETE",
             headers: {
               "Content-Type": "application/json",
@@ -313,7 +315,7 @@ export default function FullScreenAGDialog({ open, onClose }) {
     let accessToken = getAccessToken();
 
     try {
-      const response = await fetch("https://localhost:7113/Ve/ag", {
+      const response = await fetch(`${API_URL}/Ve/ag`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -327,7 +329,7 @@ export default function FullScreenAGDialog({ open, onClose }) {
         if (newToken) {
           accessToken = newToken;
           // Retry the original request with the new token
-          const retryResponse = await fetch("https://localhost:7113/Ve/ag", {
+          const retryResponse = await fetch(`${API_URL}/Ve/ag`, {
             method: "POST",
             headers: {
               "Content-Type": "application/json",

@@ -29,6 +29,7 @@ const initTable = {
 };
 
 const TicketTable2 = () => {
+  const API_URL = process.env.REACT_APP_API_URL;
   const [data, setData] = useState([]);
   const [columnFilters, setColumnFilters] = useState(initTable);
   const [pageSize, setPageSize] = useState(initTable.pageSize);
@@ -58,7 +59,7 @@ const TicketTable2 = () => {
       let accessToken = getAccessToken();
 
       try {
-        const response = await fetch("https://localhost:7113/ve/filter", {
+        const response = await fetch(`${API_URL}/ve/filter`, {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
@@ -74,7 +75,7 @@ const TicketTable2 = () => {
             accessToken = newToken;
             // Retry the original request with the new token
             const retryResponse = await fetch(
-              "https://localhost:7113/ve/filter",
+              `${API_URL}/ve/filter`,
               {
                 method: "POST",
                 headers: {
@@ -146,7 +147,7 @@ const TicketTable2 = () => {
     async (payload) => {
       let accessToken = getAccessToken();
       try {
-        const response = await fetch("https://localhost:7113/Ve/xuatve", {
+        const response = await fetch(`${API_URL}/Ve/xuatve`, {
           method: "PUT",
           headers: {
             "Content-Type": "application/json",
@@ -162,7 +163,7 @@ const TicketTable2 = () => {
             accessToken = newToken;
             // Retry the original request with the new token
             const retryResponse = await fetch(
-              "https://localhost:7113/Ve/xuatve",
+              `${API_URL}/Ve/xuatve`,
               {
                 method: "PUT",
                 headers: {
@@ -218,7 +219,7 @@ const TicketTable2 = () => {
     let accessToken = getAccessToken();
 
     try {
-      const response = await fetch("https://localhost:7113/Ve/xuatve", {
+      const response = await fetch(`${API_URL}/Ve/xuatve`, {
         method: "DELETE",
         headers: {
           "Content-Type": "application/json",
