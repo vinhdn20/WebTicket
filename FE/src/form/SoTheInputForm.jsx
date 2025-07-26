@@ -116,7 +116,7 @@ export default function FullScreenSoTheDialog({ open, onClose }) {
 
   const fetchApiData = useCallback(async () => {
     try {
-      const result = await callApiWithAuth("https://localhost:44331/Ve/card", {
+      const result = await callApiWithAuth("https://localhost:7113/Ve/card", {
         method: "GET",
         headers: {
           "Content-Type": "application/json",
@@ -227,7 +227,7 @@ export default function FullScreenSoTheDialog({ open, onClose }) {
     const payload = selectedApiRows;
 
     try {
-      await callApiWithAuth("https://localhost:44331/Ve/card", {
+      await callApiWithAuth("https://localhost:7113/Ve/card", {
         method: "DELETE",
         headers: {
           "Content-Type": "application/json",
@@ -256,7 +256,7 @@ export default function FullScreenSoTheDialog({ open, onClose }) {
     }
 
     try {
-      await callApiWithAuth("https://localhost:44331/Ve/card", {
+      await callApiWithAuth("https://localhost:7113/Ve/card", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -309,7 +309,9 @@ export default function FullScreenSoTheDialog({ open, onClose }) {
       }}
     >
       <AppBar sx={{ position: "relative" }}>
-        <Toolbar>
+        <Toolbar
+          sx={{ display: "flex", alignItems: "center", alignContent: "space-between", width: "100%" }}
+        >
           <IconButton
             edge="start"
             color="inherit"
@@ -321,7 +323,12 @@ export default function FullScreenSoTheDialog({ open, onClose }) {
           <Typography sx={{ ml: 2, flex: 1 }} variant="h6" component="div">
             Nhập bảng số thẻ thanh toán
           </Typography>
-          <Button autoFocus color="inherit" onClick={handleSave}>
+          <Button
+            autoFocus
+            color="inherit"
+            onClick={handleSave}
+            style={{ backgroundColor: "#4caf50", color: "#fff", marginRight: "30px" }}
+          >
             Save
           </Button>
         </Toolbar>

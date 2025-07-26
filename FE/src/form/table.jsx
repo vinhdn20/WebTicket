@@ -5,7 +5,16 @@ import * as XLSX from "xlsx";
 import { useTable, usePagination } from "react-table";
 import "../style/table.css";
 import { formatDate } from "../constant";
-import { Snackbar, Alert, Dialog, DialogTitle, DialogContent, DialogContentText, DialogActions, Button } from "@mui/material";
+import {
+  Snackbar,
+  Alert,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogContentText,
+  DialogActions,
+  Button,
+} from "@mui/material";
 import AddOnTable from "./addOnTable";
 import apiService from "../services/apiSevrvice";
 
@@ -15,7 +24,9 @@ const exportTableToExcel = (tableData, fileName = "table_data.xlsx") => {
   XLSX.utils.book_append_sheet(workbook, worksheet, "Sheet1");
 
   const excelBuffer = XLSX.write(workbook, { bookType: "xlsx", type: "array" });
-  const dataBlob = new Blob([excelBuffer], { type: "application/octet-stream" });
+  const dataBlob = new Blob([excelBuffer], {
+    type: "application/octet-stream",
+  });
   saveAs(dataBlob, fileName);
 };
 
@@ -76,21 +87,24 @@ const EditableTable = ({
       { Header: "Liên hệ (SĐT)", accessor: "sdt" },
       { Header: "Mail", accessor: "mail" },
       { Header: "Tên AG", accessor: "tenAG" },
-      { Header: "Chặng bay đi", accessor: "changDi" },
-      { Header: "Ngày giờ bay đi", accessor: "ngayGioBayDi" },
-      { Header: "Chặng bay đến", accessor: "changVe" },
-      { Header: "Ngày giờ bay đến", accessor: "ngayGioBayDen" },
+      { Header: "Chặng", accessor: "changDi" },
+      { Header: "Ngày giờ bay", accessor: "ngayGioBayDi" },
+      // { Header: "Chặng bay đến", accessor: "changVe" },
+      // { Header: "Ngày giờ bay đến", accessor: "ngayGioBayDen" },
+      { Header: "Hãng bay", accessor: "hangBay" },
+      { Header: "Số hiệu chuyến bay", accessor: "soHieuChuyenBay" },
+      { Header: "Tham chiếu HHK", accessor: "thamChieuHHK" },
       { Header: "Mã đặt chỗ hãng", accessor: "maDatChoHang" },
       { Header: "Tên khách hàng", accessor: "tenKhachHang" },
+      { Header: "Giá xuất", accessor: "giaXuat" },
       { Header: "Giới tính", accessor: "gioiTinh" },
       { Header: "Add on", accessor: "addOn" },
       { Header: "Mã đặt chỗ trip", accessor: "maDatChoTrip" },
       { Header: "Thu AG", accessor: "thuAG" },
-      { Header: "Giá xuất", accessor: "giaXuat" },
       { Header: "Số thẻ thanh toán", accessor: "soThe" },
-      { Header: "Tài khoản", accessor: "taiKhoan" },
+      // { Header: "Tài khoản", accessor: "taiKhoan" },
       { Header: "Lưu ý", accessor: "luuY" },
-      { Header: "Vé hoàn khay", accessor: "veHoanKhay" },
+      { Header: "Vé có hoàn hay không", accessor: "veHoanKhay" },
     ],
     []
   );
@@ -119,7 +133,9 @@ const EditableTable = ({
     const fetchData = async () => {
       try {
         setIsLoadingPhones(true);
-        const phoneData = await apiService.fetchPhoneNumbers(openSnackbarHandler);
+        const phoneData = await apiService.fetchPhoneNumbers(
+          openSnackbarHandler
+        );
         setPhoneOptions(phoneData);
       } catch (error) {
         openSnackbarHandler("Failed to fetch phone numbers", "error");
@@ -246,7 +262,9 @@ const EditableTable = ({
   const toggleRowSelection = useCallback(
     (rowId) => {
       setSelectedRows((prev) =>
-        prev.includes(rowId) ? prev.filter((id) => id !== rowId) : [...prev, rowId]
+        prev.includes(rowId)
+          ? prev.filter((id) => id !== rowId)
+          : [...prev, rowId]
       );
     },
     [setSelectedRows]
@@ -362,10 +380,10 @@ const EditableTable = ({
         }}
         aria-label="Previous Page"
       >
-        Previous
+        Trang trước
       </button>
       <span>
-        Page {pageIndex} of {pageCount || 1}
+        Trang {pageIndex} của {pageCount || 1}
       </span>
       <button
         onClick={handleNextPage}
@@ -376,7 +394,7 @@ const EditableTable = ({
         }}
         aria-label="Next Page"
       >
-        Next
+        Trang sau
       </button>
       <select
         value={pageSize}
@@ -386,7 +404,7 @@ const EditableTable = ({
       >
         {[10, 20, 50, 100].map((size) => (
           <option key={size} value={size}>
-            Show {size}
+            Số hàng {size}
           </option>
         ))}
       </select>
@@ -398,11 +416,19 @@ const EditableTable = ({
     <div style={{ marginTop: "20px", textAlign: "center" }}>
       <button
         onClick={toggleEditMode}
-        style={{ marginRight: "10px" }}
+        style={{
+          backgroundColor: selectedRows.length === 0 ? "#e0e0e0" : "#1976d2",
+          color: selectedRows.length === 0 ? "#888" : "#fff",
+          cursor: selectedRows.length === 0 ? "not-allowed" : "pointer",
+          border: "none",
+          borderRadius: "4px",
+          fontWeight: "bold",
+          transition: "background 0.2s",
+        }}
         aria-label={isEditing ? "Save Changes" : "Edit Table"}
         disabled={selectedRows.length === 0}
       >
-        {isEditing ? "Save" : "Edit"}
+        {isEditing ? "Lưu" : "Sửa"}
       </button>
       <button
         onClick={handleOpenDeleteDialog}
@@ -411,16 +437,16 @@ const EditableTable = ({
           marginRight: "10px",
           cursor: selectedRows.length === 0 ? "not-allowed" : "pointer",
         }}
-        aria-label="Delete Selected Rows"
+        aria-label="Xóa hàng đã chọn"
       >
-        Delete Selected
+        Xóa hàng đã chọn
       </button>
       <button
         onClick={() => exportTableToExcel(data)}
         style={{ marginRight: "10px" }}
         aria-label="Export to Excel"
       >
-        Export to Excel
+        Xuất file Excel
       </button>
     </div>
   );
@@ -487,16 +513,19 @@ const EditableTable = ({
                                 className="button-container"
                                 style={{ width: "100%" }}
                                 aria-label={
-                                  isEditing && selectedRows.includes(row.original.id)
+                                  isEditing &&
+                                  selectedRows.includes(row.original.id)
                                     ? "Xem và sửa Add On"
                                     : "Xem Add On"
                                 }
                               >
-                                {isEditing && selectedRows.includes(row.original.id)
+                                {isEditing &&
+                                selectedRows.includes(row.original.id)
                                   ? "Xem và sửa"
                                   : "Xem"}
                               </button>
-                            ) : isEditing && selectedRows.includes(row.original.id) ? (
+                            ) : isEditing &&
+                              selectedRows.includes(row.original.id) ? (
                               (() => {
                                 switch (cell.column.id) {
                                   case "sdt":
@@ -514,7 +543,9 @@ const EditableTable = ({
                                           className="input-field"
                                           aria-label="Nhập số điện thoại"
                                         />
-                                        <datalist id={`phone-options-${row.original.id}`}>
+                                        <datalist
+                                          id={`phone-options-${row.original.id}`}
+                                        >
                                           {phoneOptions.map((option, idx) => (
                                             <option
                                               key={idx}
@@ -540,7 +571,9 @@ const EditableTable = ({
                                           className="input-field"
                                           aria-label="Nhập số thẻ"
                                         />
-                                        <datalist id={`so-the-${row.original.id}`}>
+                                        <datalist
+                                          id={`so-the-${row.original.id}`}
+                                        >
                                           {cardOptions.map((option, idx) => (
                                             <option
                                               key={idx}
@@ -580,7 +613,7 @@ const EditableTable = ({
                                           )
                                         }
                                         className="input-field"
-                                        aria-label="Chọn vé hoàn khay"
+                                        aria-label="Chọn Vé có hoàn hay không"
                                       >
                                         <option value="Có">Có</option>
                                         <option value="Không">Không</option>
@@ -628,13 +661,11 @@ const EditableTable = ({
                               })()
                             ) : (
                               <>
-                                {(cell.column.id === "ngayXuat" ||
-                                  cell.column.id === "ngayGioBayDi" ||
-                                  cell.column.id === "ngayGioBayDen") ? (
-                                  formatDate(cell.value)
-                                ) : (
-                                  cell.value
-                                )}
+                                {cell.column.id === "ngayXuat" ||
+                                cell.column.id === "ngayGioBayDi" ||
+                                cell.column.id === "ngayGioBayDen"
+                                  ? formatDate(cell.value)
+                                  : cell.value}
                               </>
                             )}
                           </td>
@@ -672,8 +703,8 @@ const EditableTable = ({
         </DialogTitle>
         <DialogContent>
           <DialogContentText id="delete-confirmation-dialog-description">
-            Bạn có chắc chắn muốn xóa {selectedRows.length} hàng đã chọn?
-            Hành động này không thể hoàn tác.
+            Bạn có chắc chắn muốn xóa {selectedRows.length} hàng đã chọn? Hành
+            động này không thể hoàn tác.
           </DialogContentText>
         </DialogContent>
         <DialogActions>

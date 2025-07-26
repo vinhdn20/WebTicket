@@ -8,7 +8,16 @@ import CloseIcon from "@mui/icons-material/Close";
 import Slide from "@mui/material/Slide";
 import Button from "@mui/material/Button";
 import { refreshAccessToken } from "../constant";
-import { Snackbar, Alert, DialogTitle, DialogContent, DialogContentText, DialogActions } from "@mui/material";
+import * as XLSX from "xlsx";
+import { saveAs } from "file-saver";
+import {
+  Snackbar,
+  Alert,
+  DialogTitle,
+  DialogContent,
+  DialogContentText,
+  DialogActions,
+} from "@mui/material";
 
 const Transition = React.forwardRef(function Transition(props, ref) {
   return <Slide direction="up" ref={ref} {...props} />;
@@ -44,7 +53,11 @@ export default function FullScreenAGDialog({ open, onClose }) {
   const [selectedRows, setSelectedRows] = useState([]); // Lưu các hàng được chọn
   const [selectedApiRows, setSelectedApiRows] = useState([]);
   const [currentFocusRow, setCurrentFocusRow] = useState(null); // Lưu vị trí hàng được focus
-  const [snackbar, setSnackbar] = useState({ open: false, message: "", severity: "success" });
+  const [snackbar, setSnackbar] = useState({
+    open: false,
+    message: "",
+    severity: "success",
+  });
   const [openDeleteDialog, setOpenDeleteDialog] = useState(false);
   const [isApi, setIsApi] = useState(false);
 
@@ -67,7 +80,7 @@ export default function FullScreenAGDialog({ open, onClose }) {
   const fetchApiData = useCallback(async () => {
     let accessToken = getAccessToken();
     try {
-      const response = await fetch("https://localhost:44331/Ve/ag", {
+      const response = await fetch("https://localhost:7113/Ve/ag", {
         method: "GET",
         headers: {
           "Content-Type": "application/json",
@@ -79,7 +92,7 @@ export default function FullScreenAGDialog({ open, onClose }) {
         const newToken = await refreshAccessToken();
         if (newToken) {
           accessToken = newToken;
-          const retryResponse = await fetch("https://localhost:44331/Ve/ag", {
+          const retryResponse = await fetch("https://localhost:7113/Ve/ag", {
             method: "GET",
             headers: {
               "Content-Type": "application/json",
@@ -88,7 +101,10 @@ export default function FullScreenAGDialog({ open, onClose }) {
           });
 
           if (!retryResponse.ok) {
-            throw new Error("Failed to fetch data after refreshing token: " + retryResponse.statusText);
+            throw new Error(
+              "Failed to fetch data after refreshing token: " +
+                retryResponse.statusText
+            );
           }
           const retryResult = await retryResponse.json();
           updateApiData(retryResult);
@@ -135,35 +151,38 @@ export default function FullScreenAGDialog({ open, onClose }) {
   }, [open, fetchApiData]);
 
   // Xử lý paste từ clipboard vào bảng
-  const handlePaste = useCallback((e) => {
-    e.preventDefault();
+  const handlePaste = useCallback(
+    (e) => {
+      e.preventDefault();
 
-    // Lấy dữ liệu từ clipboard
-    const clipboardData = e.clipboardData.getData("text");
-    const rows = clipboardData.split("\n").map((row) => row.split("\t")); // Chia dòng và cột từ Excel
+      // Lấy dữ liệu từ clipboard
+      const clipboardData = e.clipboardData.getData("text");
+      const rows = clipboardData.split("\n").map((row) => row.split("\t")); // Chia dòng và cột từ Excel
 
-    if (currentFocusRow === null) return; // Kiểm tra nếu chưa có hàng focus
+      if (currentFocusRow === null) return; // Kiểm tra nếu chưa có hàng focus
 
-    // Cập nhật dữ liệu vào bảng
-    const updatedFormData = [...formData];
-    rows.forEach((rowValues, rowOffset) => {
-      const targetRow = currentFocusRow + rowOffset; // Xác định hàng bắt đầu
-      if (updatedFormData[targetRow]) {
-        // Cập nhật các cột
-        rowValues.forEach((cellValue, colOffset) => {
-          if (colOffset === 0) {
-            updatedFormData[targetRow].tenAG = cellValue; // Cột tên AG
-          } else if (colOffset === 1) {
-            updatedFormData[targetRow].sdt = cellValue; // Cột số điện thoại
-          } else if (colOffset === 2) {
-            updatedFormData[targetRow].mail = cellValue; // Cột email
-          }
-        });
-      }
-    });
+      // Cập nhật dữ liệu vào bảng
+      const updatedFormData = [...formData];
+      rows.forEach((rowValues, rowOffset) => {
+        const targetRow = currentFocusRow + rowOffset; // Xác định hàng bắt đầu
+        if (updatedFormData[targetRow]) {
+          // Cập nhật các cột
+          rowValues.forEach((cellValue, colOffset) => {
+            if (colOffset === 0) {
+              updatedFormData[targetRow].tenAG = cellValue; // Cột tên AG
+            } else if (colOffset === 1) {
+              updatedFormData[targetRow].sdt = cellValue; // Cột số điện thoại
+            } else if (colOffset === 2) {
+              updatedFormData[targetRow].mail = cellValue; // Cột email
+            }
+          });
+        }
+      });
 
-    setFormData(updatedFormData); // Cập nhật state
-  }, [formData, currentFocusRow]);
+      setFormData(updatedFormData); // Cập nhật state
+    },
+    [formData, currentFocusRow]
+  );
 
   // Xử lý thay đổi ô dữ liệu
   const handleCellChange = useCallback((rowIndex, field, value) => {
@@ -209,9 +228,7 @@ export default function FullScreenAGDialog({ open, onClose }) {
   // Xử lý chọn/huỷ chọn hàng trong apiData
   const handleApiCheckboxChange = useCallback((id) => {
     setSelectedApiRows((prev) =>
-      prev.includes(id)
-        ? prev.filter((itemId) => itemId !== id)
-        : [...prev, id]
+      prev.includes(id) ? prev.filter((itemId) => itemId !== id) : [...prev, id]
     );
   }, []);
 
@@ -226,7 +243,7 @@ export default function FullScreenAGDialog({ open, onClose }) {
     const payload = selectedApiRows;
 
     try {
-      const response = await fetch("https://localhost:44331/Ve/ag", {
+      const response = await fetch("https://localhost:7113/Ve/ag", {
         method: "DELETE",
         headers: {
           "Content-Type": "application/json",
@@ -240,7 +257,7 @@ export default function FullScreenAGDialog({ open, onClose }) {
         if (newToken) {
           accessToken = newToken;
           // Retry the original request with the new token
-          const retryResponse = await fetch("https://localhost:44331/Ve/ag", {
+          const retryResponse = await fetch("https://localhost:7113/Ve/ag", {
             method: "DELETE",
             headers: {
               "Content-Type": "application/json",
@@ -250,7 +267,10 @@ export default function FullScreenAGDialog({ open, onClose }) {
           });
 
           if (!retryResponse.ok) {
-            throw new Error("Failed to delete rows after refreshing token: " + retryResponse.statusText);
+            throw new Error(
+              "Failed to delete rows after refreshing token: " +
+                retryResponse.statusText
+            );
           }
 
           openSnackbar("Các hàng đã chọn được xóa thành công!", "success");
@@ -281,7 +301,10 @@ export default function FullScreenAGDialog({ open, onClose }) {
     // Kiểm tra dữ liệu trước khi lưu
     for (const row of formData) {
       if (!row.tenAG || !row.sdt || !row.mail) {
-        openSnackbar("Vui lòng điền đầy đủ thông tin cho tất cả các hàng.", "warning");
+        openSnackbar(
+          "Vui lòng điền đầy đủ thông tin cho tất cả các hàng.",
+          "warning"
+        );
         return;
       }
       // Thêm các kiểm tra khác nếu cần
@@ -290,7 +313,7 @@ export default function FullScreenAGDialog({ open, onClose }) {
     let accessToken = getAccessToken();
 
     try {
-      const response = await fetch("https://localhost:44331/Ve/ag", {
+      const response = await fetch("https://localhost:7113/Ve/ag", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -304,7 +327,7 @@ export default function FullScreenAGDialog({ open, onClose }) {
         if (newToken) {
           accessToken = newToken;
           // Retry the original request with the new token
-          const retryResponse = await fetch("https://localhost:44331/Ve/ag", {
+          const retryResponse = await fetch("https://localhost:7113/Ve/ag", {
             method: "POST",
             headers: {
               "Content-Type": "application/json",
@@ -314,7 +337,10 @@ export default function FullScreenAGDialog({ open, onClose }) {
           });
 
           if (!retryResponse.ok) {
-            throw new Error("Failed to save data after refreshing token: " + retryResponse.statusText);
+            throw new Error(
+              "Failed to save data after refreshing token: " +
+                retryResponse.statusText
+            );
           }
 
           openSnackbar("Dữ liệu đã được lưu thành công!", "success");
@@ -359,6 +385,24 @@ export default function FullScreenAGDialog({ open, onClose }) {
     setOpenDeleteDialog(false);
   }, [handleDeleteSelectedApiRows, handleDeleteSelectedRows, isApi]);
 
+  const exportTableToExcel = (tableData, fileName = "table_data.xlsx") => {
+    const exportData = tableData.map(({ tenAG, sdt, mail }) => ({
+      tenAG,
+      sdt,
+      mail,
+    }));
+
+    const worksheet = XLSX.utils.json_to_sheet(exportData);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Sheet1");
+
+    const excelBuffer = XLSX.write(workbook, { bookType: "xlsx", type: "array" });
+    const dataBlob = new Blob([excelBuffer], {
+      type: "application/octet-stream",
+    });
+    saveAs(dataBlob, fileName);
+  };
+
   return (
     <Dialog
       open={open}
@@ -376,7 +420,14 @@ export default function FullScreenAGDialog({ open, onClose }) {
       }}
     >
       <AppBar sx={{ position: "relative" }}>
-        <Toolbar>
+        <Toolbar
+          sx={{
+            display: "flex",
+            alignItems: "center",
+            alignContent: "space-between",
+            width: "100%",
+          }}
+        >
           <IconButton
             edge="start"
             color="inherit"
@@ -388,8 +439,30 @@ export default function FullScreenAGDialog({ open, onClose }) {
           <Typography sx={{ ml: 2, flex: 1 }} variant="h6" component="div">
             Nhập bảng AG
           </Typography>
-          <Button autoFocus color="inherit" onClick={handleSave}>
+          <Button
+            autoFocus
+            color="inherit"
+            onClick={handleSave}
+            style={{
+              backgroundColor: "#4caf50",
+              color: "#fff",
+              marginRight: "30px",
+            }}
+          >
             Save
+          </Button>
+
+          <Button
+            autoFocus
+            color="inherit"
+            onClick={() => exportTableToExcel(apiData)}
+            style={{
+              backgroundColor: "#4caf50",
+              color: "#fff",
+              marginRight: "30px",
+            }}
+          >
+            Xuất file Excel
           </Button>
         </Toolbar>
       </AppBar>
@@ -586,8 +659,8 @@ export default function FullScreenAGDialog({ open, onClose }) {
         </DialogTitle>
         <DialogContent>
           <DialogContentText id="delete-confirmation-dialog-description">
-            Bạn có chắc chắn muốn xóa {selectedRows.length} hàng đã chọn?
-            Hành động này không thể hoàn tác.
+            Bạn có chắc chắn muốn xóa {selectedRows.length} hàng đã chọn? Hành
+            động này không thể hoàn tác.
           </DialogContentText>
         </DialogContent>
         <DialogActions>
@@ -607,7 +680,11 @@ export default function FullScreenAGDialog({ open, onClose }) {
         onClose={closeSnackbar}
         anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
       >
-        <Alert onClose={closeSnackbar} severity={snackbar.severity} sx={{ width: '100%' }}>
+        <Alert
+          onClose={closeSnackbar}
+          severity={snackbar.severity}
+          sx={{ width: "100%" }}
+        >
           {snackbar.message}
         </Alert>
       </Snackbar>
