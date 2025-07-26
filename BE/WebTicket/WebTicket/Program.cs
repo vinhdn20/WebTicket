@@ -1,4 +1,4 @@
-﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using Repositories;
@@ -48,6 +48,8 @@ builder.Services.AddDbContext<DbContext, WebTicketDbContext>(options =>
 builder.Services.AddScoped<IDBRepository, DBRepository>();
 builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<IVeService, VeService>();
+builder.Services.AddScoped<IAGCustomerService, AGCustomerService>();
+builder.Services.AddScoped<ICardService, CardService>();
 
 builder.Services.AddSwaggerGen(c =>
 {
