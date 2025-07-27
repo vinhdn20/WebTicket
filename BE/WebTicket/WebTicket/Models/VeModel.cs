@@ -4,6 +4,7 @@ namespace WebTicket.Models
 {
     public class AddVe
     {
+        public Guid AGCustomerId { get; set; }
         public DateTime NgayXuat { get; set; }
         public string GiaXuat { get; set; }
         public string AddOn { get; set; }
@@ -45,7 +46,6 @@ namespace WebTicket.Models
 
     public class AddVeDetail
     {
-        public Guid AGCustomerId { get; set; }
         public string ChangBay { get; set; }
         public DateTime NgayGioBay { get; set; }
         public string HangBay { get; set; }

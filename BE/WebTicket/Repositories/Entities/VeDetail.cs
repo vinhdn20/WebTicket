@@ -8,8 +8,6 @@ namespace Repositories.Entities
 {
     public class VeDetail : BaseEntity
     {
-        public Guid AGCustomerId { get; set; }
-        public virtual AGCustomer AGCustomer { get; set; }
         public string ChangBay { get; set; }
         public DateTime NgayGioBay { get; set; }
         public string HangBay { get; set; }

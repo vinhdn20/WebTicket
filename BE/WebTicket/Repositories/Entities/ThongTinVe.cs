@@ -2,6 +2,8 @@
 {
     public class ThongTinVe : BaseEntity
     {
+        public Guid AGCustomerId { get; set; }
+        public virtual AGCustomer AGCustomer { get; set; }
         public DateTime NgayXuat { get; set; }
         public string GiaXuat { get; set; }
         public string AddOn { get; set; }
