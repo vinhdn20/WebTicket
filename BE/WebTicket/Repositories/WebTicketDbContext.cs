@@ -28,5 +28,6 @@ namespace Repositories
         public DbSet<ThongTinVe> ThongTinVes { get; set; }
         public DbSet<Users> Users { get; set; }
         public DbSet<UserTokens> UserTokens { get; set; }
+        public DbSet<VeDetail> VeDetails { get; set; }
     }
 }

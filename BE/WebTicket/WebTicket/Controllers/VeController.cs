@@ -32,80 +32,21 @@ namespace Ve.Controllers
 
         [HttpPost("xuatVe")]
         [Authorize]
-        public async Task<IActionResult> CreateTicket([FromBody] List<AddVe> addModel)
+        public async Task<IActionResult> CreateTicket([FromBody] AddVe addModel)
         {
 
 
             try
             {
-                var ticketInfos = addModel.Adapt<List<ThongTinVe>>();
-                for (int i = 0; i < ticketInfos.Count; i++)
-                {
-                    var ticketInfo = ticketInfos[i];
-                    if (ticketInfo == null || string.IsNullOrEmpty(ticketInfo.ChangDi) ||
-                    string.IsNullOrEmpty(ticketInfo.ChangVe) ||
-                    string.IsNullOrEmpty(ticketInfo.MaDatChoHang) ||
-                    ticketInfo.NgayGioBayDi == default ||
-                    ticketInfo.NgayGioBayDen == default)
-                    {
-                        return BadRequest("Missing required fields");
-                    }
-                    ticketInfo = InitCreationInfo(ticketInfo);
+                var ticketInfo = addModel.Adapt<ThongTinVe>();
+                ticketInfo.VeDetail = addModel.VeDetails.Adapt<List<VeDetail>>();
+                ticketInfo = InitCreationInfo(ticketInfo);
 
-                    var card = await _repository.GetAsync<Card>(x => x.SoThe.Equals(ticketInfo.Card.SoThe));
-                    if (card is null)
-                    {
-                        ticketInfo.Card = InitCreationInfo(ticketInfo.Card);
-                        ticketInfo.Card.Id = Guid.NewGuid();
-                        ticketInfo.CardId = ticketInfo.Card.Id;
-                        _context.Cards.Add(ticketInfo.Card);
-                    }
-                    else
-                    {
-                        ticketInfo.Card = card;
-                        ticketInfo.CardId = card.Id;
-                    }
-
-                    var ag = await _repository.GetAsync<AGCustomer>(x => x.SDT.Equals(ticketInfo.AGCustomer.SDT)
-                                                                                    && x.Mail.Equals(ticketInfo.AGCustomer.Mail)
-                                                                                    && x.TenAG.ToLower().Equals(ticketInfo.AGCustomer.TenAG.ToLower()));
-                    if (ag is null)
-                    {
-                        ticketInfo.AGCustomer = InitCreationInfo(ticketInfo.AGCustomer);
-                        ticketInfo.AGCustomer.Id = Guid.NewGuid();
-                        ticketInfo.AGCustomerId = ticketInfo.AGCustomer.Id;
-                        _context.AgCustomers.Add(ticketInfo.AGCustomer);
-                    }
-                    else
-                    {
-                        ticketInfo.AGCustomer = ag;
-                        ticketInfo.AGCustomerId = ag.Id;
-                    }
-
-                    var customer = await _repository.GetAsync<Customer>(x => x.GioiTinh.Equals(ticketInfo.Customer.GioiTinh)
-                                                                                    && x.TenKhachHang.ToLower().Equals(ticketInfo.Customer.TenKhachHang.ToLower()));
-                    if (customer is null)
-                    {
-                        ticketInfo.Customer = InitCreationInfo(ticketInfo.Customer);
-                        ticketInfo.Customer.Id = Guid.NewGuid();
-                        ticketInfo.CustomerId = ticketInfo.Customer.Id;
-                        _context.Customers.Add(ticketInfo.Customer);
-                    }
-                    else
-                    {
-                        ticketInfo.Customer = customer;
-                        ticketInfo.CustomerId = customer.Id;
-                    }
-
-                    var addTicket = ticketInfo.DeepCopy();
-                    addTicket.Customer = null;
-                    addTicket.AGCustomer = null;
-                    addTicket.Card = null;
-                    _context.ThongTinVes.Add(addTicket);
-                }
+                var addTicket = ticketInfo.DeepCopy();
+                _context.ThongTinVes.Add(addTicket);
 
                 await _context.SaveChangesAsync();
-                return CreatedAtAction(nameof(CreateTicket), new { ticketInfos });
+                return CreatedAtAction(nameof(CreateTicket), new { ticketInfo });
             }
             catch (Exception ex)
             {
@@ -115,76 +56,16 @@ namespace Ve.Controllers
 
         [HttpPut("xuatve")]
         [Authorize]
-        public async Task<IActionResult> UpdateTicket([FromBody] List<UpdateVe> putModel)
+        public async Task<IActionResult> UpdateTicket([FromBody] UpdateVe putModel)
         {
             try
             {
-                var ticketInfos = putModel.Adapt<List<ThongTinVe>>();
-                for (int i = 0; i < ticketInfos.Count; i++)
-                {
-                    var ticketInfo = ticketInfos[i];
-                    if (ticketInfo == null || string.IsNullOrEmpty(ticketInfo.ChangDi) ||
-                    string.IsNullOrEmpty(ticketInfo.ChangVe) ||
-                    string.IsNullOrEmpty(ticketInfo.MaDatChoHang) ||
-                    ticketInfo.NgayGioBayDi == default ||
-                    ticketInfo.NgayGioBayDen == default)
-                    {
-                        return BadRequest("Missing required fields");
-                    }
-                    ticketInfo = InitUpdateInfo(ticketInfo);
-                    var card = await _repository.GetAsync<Card>(x => x.SoThe.Equals(ticketInfo.Card.SoThe));
-                    if (card is null)
-                    {
-                        ticketInfo.Card = InitCreationInfo(ticketInfo.Card);
-                        ticketInfo.Card.Id = Guid.NewGuid();
-                        ticketInfo.CardId = ticketInfo.Card.Id;
-                        _context.Cards.Add(ticketInfo.Card);
-                    }
-                    else
-                    {
-                        ticketInfo.Card = card;
-                        ticketInfo.CardId = card.Id;
-                    }
-
-                    var ag = await _repository.GetAsync<AGCustomer>(x => x.SDT.Equals(ticketInfo.AGCustomer.SDT)
-                                                                                    && x.Mail.Equals(ticketInfo.AGCustomer.Mail)
-                                                                                    && x.TenAG.ToLower().Equals(ticketInfo.AGCustomer.TenAG.ToLower()));
-                    if (ag is null)
-                    {
-                        ticketInfo.AGCustomer = InitCreationInfo(ticketInfo.AGCustomer);
-                        ticketInfo.AGCustomer.Id = Guid.NewGuid();
-                        ticketInfo.AGCustomerId = ticketInfo.AGCustomer.Id;
-                        _context.AgCustomers.Add(ticketInfo.AGCustomer);
-                    }
-                    else
-                    {
-                        ticketInfo.AGCustomer = ag;
-                        ticketInfo.AGCustomerId = ag.Id;
-                    }
-
-                    var customer = await _repository.GetAsync<Customer>(x => x.GioiTinh.Equals(ticketInfo.Customer.GioiTinh)
-                                                                                    && x.TenKhachHang.ToLower().Equals(ticketInfo.Customer.TenKhachHang.ToLower()));
-                    if (customer is null)
-                    {
-                        ticketInfo.Customer = InitCreationInfo(ticketInfo.Customer);
-                        ticketInfo.Customer.Id = Guid.NewGuid();
-                        ticketInfo.CustomerId = ticketInfo.Customer.Id;
-                        _context.Customers.Add(ticketInfo.Customer);
-                    }
-                    else
-                    {
-                        ticketInfo.Customer = customer;
-                        ticketInfo.CustomerId = customer.Id;
-                    }
-
-                    var updateTicket = ticketInfo.DeepCopy();
-                    updateTicket.Customer = null;
-                    updateTicket.AGCustomer = null;
-                    updateTicket.Card = null;
-                    _context.ThongTinVes.Update(updateTicket);
-                }
+                var ticketInfo = putModel.Adapt<ThongTinVe>();
+                ticketInfo = InitUpdateInfo(ticketInfo);
+                var updateTicket = ticketInfo.DeepCopy();
+                _context.ThongTinVes.Update(updateTicket);
                 await _repository.SaveChangesAsync();
-                return Ok(ticketInfos);
+                return Ok(ticketInfo);
             }
             catch (Exception ex)
             {

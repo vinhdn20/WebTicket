@@ -9,7 +9,5 @@ namespace Repositories.Entities
     public class Customer : BaseEntity
     {
         public string TenKhachHang { get; set; }
-        public string GioiTinh { get; set; }
-
     }
 }

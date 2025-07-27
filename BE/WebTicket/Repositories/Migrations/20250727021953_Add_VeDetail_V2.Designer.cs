@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using Repositories;
@@ -11,9 +12,11 @@ using Repositories;
 namespace Repositories.Migrations
 {
     [DbContext(typeof(WebTicketDbContext))]
-    partial class WebTicketDbContextModelSnapshot : ModelSnapshot
+    [Migration("20250727021953_Add_VeDetail_V2")]
+    partial class Add_VeDetail_V2
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -253,6 +256,9 @@ namespace Repositories.Migrations
                     b.Property<DateTime>("CreatedTime")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<Guid>("CustomerId")
+                        .HasColumnType("uuid");
+
                     b.Property<string>("HangBay")
                         .IsRequired()
                         .HasColumnType("text");
@@ -274,10 +280,6 @@ namespace Repositories.Migrations
                         .IsRequired()
                         .HasColumnType("text");
 
-                    b.Property<string>("TenKhachHang")
-                        .IsRequired()
-                        .HasColumnType("text");
-
                     b.Property<string>("ThamChieuHang")
                         .IsRequired()
                         .HasColumnType("text");
@@ -288,6 +290,8 @@ namespace Repositories.Migrations
                     b.HasKey("Id");
 
                     b.HasIndex("AGCustomerId");
+
+                    b.HasIndex("CustomerId");
 
                     b.HasIndex("ThongTinVeId");
 
@@ -324,6 +328,12 @@ namespace Repositories.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
+                    b.HasOne("Repositories.Entities.Customer", "Customer")
+                        .WithMany()
+                        .HasForeignKey("CustomerId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
                     b.HasOne("Repositories.Entities.ThongTinVe", "ThongTinVe")
                         .WithMany("VeDetail")
                         .HasForeignKey("ThongTinVeId")
@@ -331,6 +341,8 @@ namespace Repositories.Migrations
                         .IsRequired();
 
                     b.Navigation("AGCustomer");
+
+                    b.Navigation("Customer");
 
                     b.Navigation("ThongTinVe");
                 });
