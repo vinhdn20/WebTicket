@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState, useCallback, useMemo } from "react";
 import Dialog from "@mui/material/Dialog";
 import AppBar from "@mui/material/AppBar";
@@ -298,9 +299,7 @@ export default function FullScreenAGDialog({ open, onClose }) {
     }
   }, [selectedApiRows, getAccessToken, fetchApiData, openSnackbar]);
 
-  // Hàm lưu dữ liệu từ formData vào API
   const handleSave = useCallback(async () => {
-    // Kiểm tra dữ liệu trước khi lưu
     for (const row of formData) {
       if (!row.tenAG || !row.sdt || !row.mail) {
         openSnackbar(
@@ -309,7 +308,6 @@ export default function FullScreenAGDialog({ open, onClose }) {
         );
         return;
       }
-      // Thêm các kiểm tra khác nếu cần
     }
 
     let accessToken = getAccessToken();
@@ -387,22 +385,42 @@ export default function FullScreenAGDialog({ open, onClose }) {
     setOpenDeleteDialog(false);
   }, [handleDeleteSelectedApiRows, handleDeleteSelectedRows, isApi]);
 
-  const exportTableToExcel = (tableData, fileName = "table_data.xlsx") => {
-    const exportData = tableData.map(({ tenAG, sdt, mail }) => ({
-      tenAG,
-      sdt,
-      mail,
-    }));
-
-    const worksheet = XLSX.utils.json_to_sheet(exportData);
-    const workbook = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(workbook, worksheet, "Sheet1");
-
-    const excelBuffer = XLSX.write(workbook, { bookType: "xlsx", type: "array" });
-    const dataBlob = new Blob([excelBuffer], {
-      type: "application/octet-stream",
-    });
-    saveAs(dataBlob, fileName);
+  // Import file lên API AGCustomer/import
+  const importDataFromApi = () => {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = '.xlsx,.xls,.csv';
+    input.onchange = async (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+      const formDataUpload = new FormData();
+      formDataUpload.append('file', file);
+      try {
+        const accessToken = localStorage.getItem("accessToken");
+        const response = await fetch(`${API_URL}/AGCustomer/import`, {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${accessToken}`,
+          },
+          body: formDataUpload,
+        });
+        if (!response.ok) {
+          throw new Error("Không thể import dữ liệu từ API.");
+        }
+        const result = await response.json();
+        if (Array.isArray(result)) {
+          setFormData(result.map(({ tenAG, sdt, mail }) => ({ tenAG, sdt, mail })));
+          openSnackbar("Import dữ liệu thành công!", "success");
+          onClose(null);
+          fetchApiData();
+        } else {
+          openSnackbar("Dữ liệu trả về không hợp lệ!", "error");
+        }
+      } catch (error) {
+        openSnackbar(error.message || "Có lỗi khi import dữ liệu!", "error");
+      }
+    };
+    input.click();
   };
 
   return (
@@ -457,14 +475,14 @@ export default function FullScreenAGDialog({ open, onClose }) {
           <Button
             autoFocus
             color="inherit"
-            onClick={() => exportTableToExcel(apiData)}
+            onClick={() => importDataFromApi()}
             style={{
               backgroundColor: "#4caf50",
               color: "#fff",
               marginRight: "30px",
             }}
           >
-            Xuất file Excel
+            Import dữ liệu
           </Button>
         </Toolbar>
       </AppBar>

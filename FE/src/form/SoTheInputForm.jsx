@@ -11,7 +11,12 @@ import Snackbar from "@mui/material/Snackbar";
 import MuiAlert from "@mui/material/Alert";
 import { refreshAccessToken } from "../constant";
 import "../style/table.css";
-import { DialogActions, DialogContent, DialogContentText, DialogTitle } from "@mui/material";
+import {
+  DialogActions,
+  DialogContent,
+  DialogContentText,
+  DialogTitle,
+} from "@mui/material";
 
 const Transition = React.forwardRef(function Transition(props, ref) {
   return <Slide direction="up" ref={ref} {...props} />;
@@ -35,6 +40,7 @@ const generateMatrixValues = (rows, cols, startValue = 11) => {
 };
 
 export default function FullScreenSoTheDialog({ open, onClose }) {
+  const API_URL = process.env.REACT_APP_API_URL;
   const [formData, setFormData] = useState(() => {
     const rows = 1;
     const cols = 1;
@@ -116,7 +122,7 @@ export default function FullScreenSoTheDialog({ open, onClose }) {
 
   const fetchApiData = useCallback(async () => {
     try {
-      const result = await callApiWithAuth("https://localhost:7113/Ve/card", {
+      const result = await callApiWithAuth(`${API_URL}/Ve/card`, {
         method: "GET",
         headers: {
           "Content-Type": "application/json",
@@ -212,9 +218,7 @@ export default function FullScreenSoTheDialog({ open, onClose }) {
 
   const handleApiCheckboxChange = useCallback((id) => {
     setSelectedApiRows((prev) =>
-      prev.includes(id)
-        ? prev.filter((itemId) => itemId !== id)
-        : [...prev, id]
+      prev.includes(id) ? prev.filter((itemId) => itemId !== id) : [...prev, id]
     );
   }, []);
 
@@ -227,7 +231,7 @@ export default function FullScreenSoTheDialog({ open, onClose }) {
     const payload = selectedApiRows;
 
     try {
-      await callApiWithAuth("https://localhost:7113/Ve/card", {
+      await callApiWithAuth(`${API_URL}/Ve/card`, {
         method: "DELETE",
         headers: {
           "Content-Type": "application/json",
@@ -256,7 +260,7 @@ export default function FullScreenSoTheDialog({ open, onClose }) {
     }
 
     try {
-      await callApiWithAuth("https://localhost:7113/Ve/card", {
+      await callApiWithAuth(`${API_URL}/Ve/card`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -292,6 +296,43 @@ export default function FullScreenSoTheDialog({ open, onClose }) {
     setOpenDeleteDialog(false);
   }, [handleDeleteSelectedApiRows, handleDeleteSelectedRows, isApi]);
 
+   const importDataFromApi = () => {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = '.xlsx,.xls,.csv';
+    input.onchange = async (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+      const formDataUpload = new FormData();
+      formDataUpload.append('file', file);
+      try {
+        const accessToken = localStorage.getItem("accessToken");
+        const response = await fetch(`${API_URL}/Card/import`, {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${accessToken}`,
+          },
+          body: formDataUpload,
+        });
+        if (!response.ok) {
+          throw new Error("Không thể import dữ liệu từ API.");
+        }
+        const result = await response.json();
+        if (result) {
+          setFormData(result.map(({ tenAG, sdt, mail }) => ({ tenAG, sdt, mail })));
+          openSnackbar(result.message, "success");
+          onClose(null);
+          fetchApiData();
+        } else {
+          openSnackbar("Dữ liệu trả về không hợp lệ!", "error");
+        }
+      } catch (error) {
+        openSnackbar(error.message || "Có lỗi khi import dữ liệu!", "error");
+      }
+    };
+    input.click();
+  };
+
   return (
     <Dialog
       open={open}
@@ -310,7 +351,12 @@ export default function FullScreenSoTheDialog({ open, onClose }) {
     >
       <AppBar sx={{ position: "relative" }}>
         <Toolbar
-          sx={{ display: "flex", alignItems: "center", alignContent: "space-between", width: "100%" }}
+          sx={{
+            display: "flex",
+            alignItems: "center",
+            alignContent: "space-between",
+            width: "100%",
+          }}
         >
           <IconButton
             edge="start"
@@ -327,9 +373,26 @@ export default function FullScreenSoTheDialog({ open, onClose }) {
             autoFocus
             color="inherit"
             onClick={handleSave}
-            style={{ backgroundColor: "#4caf50", color: "#fff", marginRight: "30px" }}
+            style={{
+              backgroundColor: "#4caf50",
+              color: "#fff",
+              marginRight: "30px",
+            }}
           >
             Save
+          </Button>
+
+          <Button
+            autoFocus
+            color="inherit"
+            onClick={() => importDataFromApi()}
+            style={{
+              backgroundColor: "#4caf50",
+              color: "#fff",
+              marginRight: "30px",
+            }}
+          >
+            Import dữ liệu
           </Button>
         </Toolbar>
       </AppBar>
@@ -475,8 +538,8 @@ export default function FullScreenSoTheDialog({ open, onClose }) {
         </DialogTitle>
         <DialogContent>
           <DialogContentText id="delete-confirmation-dialog-description">
-            Bạn có chắc chắn muốn xóa {selectedRows.length} hàng đã chọn?
-            Hành động này không thể hoàn tác.
+            Bạn có chắc chắn muốn xóa {selectedRows.length} hàng đã chọn? Hành
+            động này không thể hoàn tác.
           </DialogContentText>
         </DialogContent>
         <DialogActions>
@@ -495,7 +558,11 @@ export default function FullScreenSoTheDialog({ open, onClose }) {
         onClose={closeSnackbar}
         anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
       >
-        <Alert onClose={closeSnackbar} severity={snackbar.severity} sx={{ width: "100%" }}>
+        <Alert
+          onClose={closeSnackbar}
+          severity={snackbar.severity}
+          sx={{ width: "100%" }}
+        >
           {snackbar.message}
         </Alert>
       </Snackbar>

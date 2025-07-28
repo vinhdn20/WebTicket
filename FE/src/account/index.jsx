@@ -6,12 +6,12 @@ const AccountCreation = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const navigate = useNavigate();
-
+  const API_URL = process.env.REACT_APP_API_URL;
   const handleSubmit = async (e) => {
     e.preventDefault();
     
     try {
-      const response = await fetch("https://localhost:7113/login", {
+      const response = await fetch(`${API_URL}/login`, {
         method: 'POST',
         credentials: "include",
         headers: {

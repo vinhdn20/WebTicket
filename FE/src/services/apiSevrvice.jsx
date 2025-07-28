@@ -1,9 +1,9 @@
-const API_BASE_URL = "https://localhost:7113/Ve";
+const API_BASE_URL = process.env.REACT_APP_API_URL;
 
 const apiService = {
   fetchPhoneNumbers: async () => {
     const accessToken = localStorage.getItem("accessToken");
-    const response = await fetch(`${API_BASE_URL}/ag`, {
+    const response = await fetch(`${API_BASE_URL}/Ve/ag`, {
       method: "GET",
       headers: {
         "Content-Type": "application/json",
@@ -20,7 +20,7 @@ const apiService = {
 
   fetchCardNumbers: async () => {
     const accessToken = localStorage.getItem("accessToken");
-    const response = await fetch(`${API_BASE_URL}/card`, {
+    const response = await fetch(`${API_BASE_URL}/Ve/card`, {
       method: "GET",
       headers: {
         "Content-Type": "application/json",

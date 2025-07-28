@@ -1,5 +1,5 @@
 // src/form/AddOnTable.jsx
-import React, { useState, useMemo, useCallback, useEffect } from "react";
+import React, { useState, useCallback, useEffect } from "react";
 import PropTypes from "prop-types";
 import Dialog from "@mui/material/Dialog";
 import AppBar from "@mui/material/AppBar";
@@ -142,10 +142,10 @@ const AddOnTable = React.memo(function AddOnTable({
       return;
     }
 
-    onSave(cleanedFormData, rowIndex);
+    onSave(cleanedFormData);
     openSnackbarHandler("Add-On data saved successfully.", "success");
     onClose();
-  }, [formData, rowIndex, onSave, onClose, mode, openSnackbarHandler]);
+  }, [formData, onSave, onClose, mode, openSnackbarHandler]);
 
   return (
     <>

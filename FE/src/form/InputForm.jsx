@@ -2,7 +2,15 @@
 import React, { useCallback, useMemo, useState, useEffect } from "react";
 import "../style/table.css";
 import Button from "@mui/material/Button";
-import { Snackbar, Alert, Dialog, DialogTitle, DialogContent, DialogContentText, DialogActions } from "@mui/material";
+import {
+  Snackbar,
+  Alert,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogContentText,
+  DialogActions,
+} from "@mui/material";
 import FullScreenAGDialog from "./AgInputForm";
 import FullScreenSoTheDialog from "./SoTheInputForm";
 import AddOnTable from "./addOnTable";
@@ -30,7 +38,6 @@ const initialRow = {
   maDatChoHang: "",
   tenKhachHang: "",
   gioiTinh: "Nam",
-  addOn: "",
   maDatChoTrip: "",
   thuAG: "",
   giaXuat: "",
@@ -50,11 +57,17 @@ const InputTable = ({ onTicketCreated }) => {
   const [openSoTheDialog, setOpenSoTheDialog] = useState(false);
   const [openAddOnDialog, setOpenAddOnDialog] = useState(false);
   const [openDeleteDialog, setOpenDeleteDialog] = useState(false);
-  const [addOnRow, setAddOnRow] = useState(null);
+  const [addOnData, setAddOnData] = useState([{ dichVu: "", soTien: "" }]);
   const [snackbar, setSnackbar] = useState({
     open: false,
     message: "",
     severity: "success",
+  });
+  const [formHeaderData, setFormHeaderData] = useState({
+    ngayXuat: getCurrentDateTimeLocal(),
+    sdt: "",
+    mail: "",
+    tenAG: "",
   });
 
   const openSnackbarHandler = useCallback((message, severity = "success") => {
@@ -67,10 +80,11 @@ const InputTable = ({ onTicketCreated }) => {
 
   const columns = useMemo(
     () => [
-      { Header: "Ngày xuất", accessor: "ngayXuat" },
-      { Header: "Liên hệ (SĐT)", accessor: "sdt" },
-      { Header: "Mail", accessor: "mail" },
-      { Header: "Tên AG", accessor: "tenAG" },
+      // { Header: "Ngày xuất", accessor: "ngayXuat" },
+      // { Header: "Liên hệ (SĐT)", accessor: "sdt" },
+      // { Header: "Mail", accessor: "mail" },
+      // { Header: "Tên AG", accessor: "tenAG" },
+      { Header: "", accessor: "select" },
       { Header: "Chặng", accessor: "changDi" },
       { Header: "Ngày giờ bay", accessor: "ngayGioBayDi" },
       // { Header: "Chặng bay đến", accessor: "changVe" },
@@ -81,14 +95,14 @@ const InputTable = ({ onTicketCreated }) => {
       { Header: "Mã đặt chỗ hãng", accessor: "maDatChoHang" },
       { Header: "Tên khách hàng", accessor: "tenKhachHang" },
       { Header: "Giá xuất", accessor: "giaXuat" },
-      { Header: "Giới tính", accessor: "gioiTinh" },
-      { Header: "Add on", accessor: "addOn" },
-      { Header: "Mã đặt chỗ trip", accessor: "maDatChoTrip" },
-      { Header: "Thu AG", accessor: "thuAG" },
-      { Header: "Số thẻ thanh toán", accessor: "soThe" },
-      // { Header: "Tài khoản", accessor: "taiKhoan" },
-      { Header: "Lưu ý", accessor: "luuY" },
-      { Header: "Vé có hoàn hay không", accessor: "veHoanKhay" },
+      // { Header: "Giới tính", accessor: "gioiTinh" },
+      // { Header: "Add on", accessor: "addOn" },
+      // { Header: "Mã đặt chỗ trip", accessor: "maDatChoTrip" },
+      // { Header: "Thu AG", accessor: "thuAG" },
+      // { Header: "Số thẻ thanh toán", accessor: "soThe" },
+      // // { Header: "Tài khoản", accessor: "taiKhoan" },
+      // { Header: "Lưu ý", accessor: "luuY" },
+      // { Header: "Vé có hoàn hay không", accessor: "veHoanKhay" },
     ],
     []
   );
@@ -116,16 +130,11 @@ const InputTable = ({ onTicketCreated }) => {
   const handleAddTicket = useCallback(
     async (e) => {
       e.preventDefault();
+
+      // Validate
       for (const row of data) {
-        if (!row.ngayGioBayDi || !row.ngayGioBayDen) {
-          openSnackbarHandler(
-            "Vui lòng nhập đầy đủ ngày giờ bay đi và ngày giờ bay đến.",
-            "warning"
-          );
-          return;
-        }
-        if (!row.soThe) {
-          openSnackbarHandler("Vui lòng nhập số thẻ thanh toán.", "warning");
+        if (!row.ngayGioBayDi) {
+          openSnackbarHandler("Vui lòng nhập đầy đủ ngày giờ bay đi.", "warning");
           return;
         }
         if (!row.tenKhachHang) {
@@ -134,51 +143,65 @@ const InputTable = ({ onTicketCreated }) => {
         }
       }
 
-      const formattedTickets = data.map((row) => ({
-        ngayXuat: new Date().toISOString(),
-        changDi: row.changDi,
-        ngayGioBayDi: row.ngayGioBayDi
+      // Lấy cardId từ cardOptions
+      const selectedCard = cardOptions.find(
+        (option) => option.soThe === (formHeaderData.soThe || data[0]?.soThe)
+      );
+      const cardId = selectedCard?.id || "";
+
+      // Lấy agCustomerId từ phoneOptions
+      const selectedAgCustomer = phoneOptions.find(
+        (option) => option.sdt === (formHeaderData.sdt || data[0]?.sdt)
+      );
+      const agCustomerId = selectedAgCustomer?.id || "";
+
+      // Build veDetails đúng format
+      const veDetails = data.map((row) => ({
+        agCustomerId: agCustomerId,
+        changBay: row.changDi || "",
+        ngayGioBay: row.ngayGioBayDi
           ? new Date(row.ngayGioBayDi).toISOString()
           : new Date().toISOString(),
-        changVe: row.changVe,
-        ngayGioBayDen: row.ngayGioBayDen
-          ? new Date(row.ngayGioBayDen).toISOString()
-          : new Date().toISOString(),
-        maDatChoHang: row.maDatChoHang,
-        addOn: row.addOn,
-        maDatChoTrip: row.maDatChoTrip,
-        thuAG: row.thuAG,
-        giaXuat: row.giaXuat,
-        luuY: row.luuY,
-        veHoanKhay: row.veHoanKhay,
-        agCustomer: {
-          tenAG: row.tenAG,
-          mail: row.mail,
-          sdt: row.sdt,
-        },
-        customer: {
-          tenKhachHang: row.tenKhachHang,
-          gioiTinh: row.gioiTinh,
-        },
-        card: {
-          soThe: row.soThe,
-        },
-        taiKhoan: row.taiKhoan,
+        hangBay: row.hangBay || "",
+        soHieuChuyenBay: row.soHieuChuyenBay || "",
+        thamChieuHang: row.thamChieuHHK || "",
+        maDatCho: row.maDatChoHang || "",
+        tenKhachHang: row.tenKhachHang || "",
       }));
+
+      // Build payload đúng format
+      const payload = {
+        ngayXuat: formHeaderData.ngayXuat
+          ? new Date(formHeaderData.ngayXuat).toISOString()
+          : new Date().toISOString(),
+        giaXuat: data[0]?.giaXuat || "",
+        addOn: JSON.stringify(addOnData),
+        thuAG: data[0]?.thuAG || "",
+        luuY: data[0]?.luuY || "",
+        veHoanKhay:
+          (data[0]?.veHoanKhay || formHeaderData.veHoanKhay) === "Có"
+            ? true
+            : false,
+        cardId,
+        veDetails,
+      };
+
+      console.log("Payload gửi đi:", payload);
 
       try {
         await fetchWithAuth(
-          "/xuatVe",
+          "/Ve/xuatVe",
           {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(formattedTickets),
+            body: JSON.stringify(payload),
           },
           openSnackbarHandler
         );
         onTicketCreated();
         openSnackbarHandler("Vé đã tạo thành công!", "success");
         setData([initialRow]);
+        setAddOnData([{ dichVu: "", soTien: "" }]);
       } catch (error) {
         openSnackbarHandler(
           "Có lỗi xảy ra khi tạo vé. Vui lòng thử lại.",
@@ -186,23 +209,20 @@ const InputTable = ({ onTicketCreated }) => {
         );
       }
     },
-    [data, onTicketCreated, openSnackbarHandler]
+    [data, addOnData, onTicketCreated, openSnackbarHandler, formHeaderData, cardOptions, phoneOptions]
   );
 
   const handleAddRow = useCallback(() => {
     setData((prevData) => [...prevData, { ...initialRow }]);
   }, []);
 
-  const handleCellEdit = useCallback(
-    (rowIndex, columnId, value) => {
-      setData((prevData) => {
-        const updatedData = [...prevData];
-        updatedData[rowIndex][columnId] = value;
-        return updatedData;
-      });
-    },
-    []
-  );
+  const handleCellEdit = useCallback((rowIndex, columnId, value) => {
+    setData((prevData) => {
+      const updatedData = [...prevData];
+      updatedData[rowIndex][columnId] = value;
+      return updatedData;
+    });
+  }, []);
 
   const handlePhoneSelect = useCallback(
     (rowIndex, newValue) => {
@@ -265,8 +285,8 @@ const InputTable = ({ onTicketCreated }) => {
     setSelectedRows([]);
   }, [selectedRows]);
 
-  const handleClickAddOnOpen = useCallback((index) => {
-    setAddOnRow(index);
+  const handleClickAddOnOpen = useCallback(() => {
+    // setAddOnRow(index);
     setOpenAddOnDialog(true);
   }, []);
 
@@ -319,33 +339,14 @@ const InputTable = ({ onTicketCreated }) => {
   );
 
   // Handle Save from AddOnTable
-  const handleSaveAddOn = useCallback(
-    (formData, rowIndex) => {
-      setData((prevData) => {
-        const updatedData = [...prevData];
-        updatedData[rowIndex].addOn = JSON.stringify(formData);
-        return updatedData;
-      });
-    },
-    []
-  );
+  const handleSaveAddOn = useCallback((formData) => {
+    setAddOnData(formData);
+  }, []);
 
   // Memoized Initial Data for AddOnTable
   const memoizedInitialData = useMemo(() => {
-    if (addOnRow !== null) {
-      try {
-        const parsedData = JSON.parse(
-          data[addOnRow].addOn || '[{"stt": "", "dichVu": "", "soTien": ""}]'
-        );
-        return parsedData;
-      } catch (error) {
-        console.error("Error parsing JSON:", error);
-        return [{ stt: "", dichVu: "", soTien: "" }];
-      }
-    } else {
-      return [{ stt: "", dichVu: "", soTien: "" }];
-    }
-  }, [addOnRow, data]);
+    return addOnData.length > 0 ? addOnData : [{ dichVu: "", soTien: "" }];
+  }, [addOnData]);
 
   const handleOpenDeleteDialog = useCallback(() => {
     setOpenDeleteDialog(true);
@@ -359,6 +360,60 @@ const InputTable = ({ onTicketCreated }) => {
     handleDeleteRows();
     setOpenDeleteDialog(false);
   }, [handleDeleteRows]);
+
+  const handleHeaderInputChange = (field, value) => {
+    setFormHeaderData((prev) => ({
+      ...prev,
+      [field]: value,
+    }));
+
+    // Cập nhật cho tất cả các hàng trong data
+    setData((prevData) =>
+      prevData.map((row) => ({
+        ...row,
+        [field]: value,
+      }))
+    );
+  };
+
+  const handleHeaderPhoneSelect = (value) => {
+    // Tìm option theo SĐT
+    const selectedPhoneOption = phoneOptions.find(
+      (option) => option.sdt === value
+    );
+
+    setFormHeaderData((prev) => ({
+      ...prev,
+      sdt: value,
+      tenAG: selectedPhoneOption?.tenAG || "",
+      mail: selectedPhoneOption?.mail || "",
+    }));
+
+    setData((prevData) =>
+      prevData.map((row) => ({
+        ...row,
+        sdt: value,
+        tenAG: selectedPhoneOption?.tenAG || "",
+        mail: selectedPhoneOption?.mail || "",
+      }))
+    );
+  };
+
+  const handleHeaderSoTheSelect = (value) => {
+    const selectedCard = cardOptions.find((option) => option.soThe === value);
+
+    setFormHeaderData((prev) => ({
+      ...prev,
+      soThe: value,
+    }));
+
+    setData((prevData) =>
+      prevData.map((row) => ({
+        ...row,
+        soThe: selectedCard ? selectedCard.soThe : value,
+      }))
+    );
+  };
 
   return (
     <>
@@ -388,6 +443,166 @@ const InputTable = ({ onTicketCreated }) => {
         onClose={handleDialogSoTheClose}
         data={data}
       />
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: "repeat(4, 1fr)",
+          gap: "24px",
+          marginBottom: "32px",
+          alignItems: "end",
+          background: "#f7fafd",
+          padding: "24px",
+          borderRadius: "8px",
+          border: "1px solid #e0e0e0",
+        }}
+      >
+        <div>
+          <label style={{ fontWeight: 500, marginBottom: 4, display: "block" }}>
+            Ngày xuất
+          </label>
+          <input
+            type="datetime-local"
+            value={formHeaderData.ngayXuat}
+            onChange={(e) =>
+              handleHeaderInputChange("ngayXuat", e.target.value)
+            }
+            style={{ width: "100%", padding: "8px" }}
+          />
+        </div>
+        <div>
+          <label style={{ fontWeight: 500, marginBottom: 4, display: "block" }}>
+            Liên hệ (SĐT)
+          </label>
+          <input
+            list="phone-options-header"
+            type="text"
+            value={formHeaderData.sdt}
+            onChange={(e) => handleHeaderPhoneSelect(e.target.value)}
+            style={{ width: "100%", padding: "8px" }}
+          />
+          <datalist id="phone-options-header">
+            {phoneOptions.map((option, idx) => (
+              <option key={idx} value={option.sdt} />
+            ))}
+          </datalist>
+        </div>
+        <div>
+          <label style={{ fontWeight: 500, marginBottom: 4, display: "block" }}>
+            Mail
+          </label>
+          <input
+            type="email"
+            value={formHeaderData.mail}
+            onChange={(e) => handleHeaderInputChange("mail", e.target.value)}
+            style={{ width: "100%", padding: "8px" }}
+          />
+        </div>
+        <div>
+          <label style={{ fontWeight: 500, marginBottom: 4, display: "block" }}>
+            Tên AG
+          </label>
+          <input
+            type="text"
+            value={formHeaderData.tenAG}
+            onChange={(e) => handleHeaderInputChange("tenAG", e.target.value)}
+            style={{ width: "100%", padding: "8px" }}
+          />
+        </div>
+        {/* <div>
+          <label style={{ fontWeight: 500, marginBottom: 4, display: "block" }}>Giới tính</label>
+          <select
+            value={formHeaderData.gioiTinh || "Nam"}
+            onChange={e => handleHeaderInputChange("gioiTinh", e.target.value)}
+            style={{ width: "100%", padding: "8px" }}
+          >
+            <option value="Nam">Nam</option>
+            <option value="Nữ">Nữ</option>
+          </select>
+        </div> */}
+        <div>
+          <label style={{ fontWeight: 500, marginBottom: 4, display: "block" }}>
+            Vé có hoàn hay không
+          </label>
+          <select
+            value={formHeaderData.veHoanKhay || "Có"}
+            onChange={(e) =>
+              handleHeaderInputChange("veHoanKhay", e.target.value)
+            }
+            style={{ width: "100%", padding: "8px" }}
+          >
+            <option value="Có">Có</option>
+            <option value="Không">Không</option>
+          </select>
+        </div>
+        <div>
+          <label style={{ fontWeight: 500, marginBottom: 4, display: "block" }}>
+            Số thẻ thanh toán
+          </label>
+          <input
+            list="so-the-header"
+            type="text"
+            value={formHeaderData.soThe || ""}
+            onChange={(e) => handleHeaderSoTheSelect(e.target.value)}
+            style={{ width: "100%", padding: "8px" }}
+          />
+          <datalist id="so-the-header">
+            {cardOptions.map((option, idx) => (
+              <option key={idx} value={option.soThe} />
+            ))}
+          </datalist>
+        </div>
+        <div style={{ display: "flex", alignItems: "center", height: "100%" }}>
+          <Button
+            variant="outlined"
+            onClick={handleClickAddOnOpen}
+            className="button-container"
+            style={{ width: "100%", minWidth: 0, padding: "8px 0" }}
+          >
+            Nhập Add on
+          </Button>
+        </div>
+        {/* <div>
+          <label style={{ fontWeight: 500, marginBottom: 4, display: "block" }}>Mã đặt chỗ trip</label>
+          <input
+            type="text"
+            value={formHeaderData.maDatChoTrip || ""}
+            onChange={e => handleHeaderInputChange("maDatChoTrip", e.target.value)}
+            style={{ width: "100%", padding: "8px" }}
+          />
+        </div> */}
+        <div>
+          <label style={{ fontWeight: 500, marginBottom: 4, display: "block" }}>
+            Thu AG
+          </label>
+          <input
+            type="text"
+            value={formHeaderData.thuAG || ""}
+            onChange={(e) => handleHeaderInputChange("thuAG", e.target.value)}
+            style={{ width: "100%", padding: "8px" }}
+          />
+        </div>
+        {/* <div>
+          <label style={{ fontWeight: 500, marginBottom: 4, display: "block" }}>Tài khoản</label>
+          <input
+            type="text"
+            value={formHeaderData.taiKhoan || ""}
+            onChange={e => handleHeaderInputChange("taiKhoan", e.target.value)}
+            style={{ width: "100%", padding: "8px" }}
+          />
+        </div> */}
+        <div>
+          <label style={{ fontWeight: 500, marginBottom: 4, display: "block" }}>
+            Lưu ý
+          </label>
+          <input
+            type="text"
+            value={formHeaderData.luuY || ""}
+            onChange={(e) => handleHeaderInputChange("luuY", e.target.value)}
+            style={{ width: "100%", padding: "8px" }}
+          />
+        </div>
+      </div>
+
       <div
         className="table-wrapper"
         onPaste={handlePaste}
@@ -489,11 +704,7 @@ const InputTable = ({ onTicketCreated }) => {
                       <select
                         value={row.veHoanKhay || "Có"}
                         onChange={(e) =>
-                          handleCellEdit(
-                            rowIndex,
-                            "veHoanKhay",
-                            e.target.value
-                          )
+                          handleCellEdit(rowIndex, "veHoanKhay", e.target.value)
                         }
                         onFocus={() =>
                           setCurrentFocusCell({
@@ -606,7 +817,7 @@ const InputTable = ({ onTicketCreated }) => {
         onSave={handleSaveAddOn}
         initialData={memoizedInitialData}
         data={data}
-        rowIndex={addOnRow}
+        rowIndex={0}
         mode="edit"
       />
       <Dialog
@@ -620,8 +831,8 @@ const InputTable = ({ onTicketCreated }) => {
         </DialogTitle>
         <DialogContent>
           <DialogContentText id="delete-confirmation-dialog-description">
-            Bạn có chắc chắn muốn xóa {selectedRows.length} hàng đã chọn?
-            Hành động này không thể hoàn tác.
+            Bạn có chắc chắn muốn xóa {selectedRows.length} hàng đã chọn? Hành
+            động này không thể hoàn tác.
           </DialogContentText>
         </DialogContent>
         <DialogActions>

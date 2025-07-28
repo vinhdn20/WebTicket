@@ -1,4 +1,4 @@
-import React, {
+import {
   useCallback,
   useEffect,
   useState,
@@ -59,7 +59,7 @@ const TicketTable2 = () => {
       let accessToken = getAccessToken();
 
       try {
-        const response = await fetch(`${API_URL}/ve/filter`, {
+        const response = await fetch(`${API_URL}/Ve/filter`, {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
@@ -75,7 +75,7 @@ const TicketTable2 = () => {
             accessToken = newToken;
             // Retry the original request with the new token
             const retryResponse = await fetch(
-              `${API_URL}/ve/filter`,
+              `${API_URL}/Ve/filter`,
               {
                 method: "POST",
                 headers: {
@@ -235,7 +235,7 @@ const TicketTable2 = () => {
           accessToken = newToken;
           // Retry the original request with the new token
           const retryResponse = await fetch(
-            "https://localhost:7113/Ve/xuatve",
+            `${API_URL}/Ve/xuatve`,
             {
               method: "DELETE",
               headers: {

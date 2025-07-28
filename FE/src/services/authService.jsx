@@ -1,7 +1,7 @@
 // src/services/authService.js
 import { refreshAccessToken } from "../constant";
 
-const API_BASE_URL = "https://localhost:7113/Ve";
+const API_BASE_URL = process.env.REACT_APP_API_URL;
 
 export const fetchWithAuth = async (endpoint, options = {}, openSnackbar) => {
   let accessToken = localStorage.getItem("accessToken");
