@@ -17,7 +17,7 @@ namespace Services.Services.Implement
         public async Task<TableInfo<ThongTinVe>> Filter(TablePageParameter pageParameter)
         {
             var dbQueryParameter = InitQueryParameter(pageParameter);
-            dbQueryParameter.IncludedPropertyList = new List<string> { "AGCustomer", "Customer", "Card" };
+            dbQueryParameter.IncludedPropertyList = new List<string> { "AGCustomer", "VeDetail", "Card" };
             var thongTinVe = await _repository.GetAllWithPagingAsync(dbQueryParameter);
             return thongTinVe;
         }
