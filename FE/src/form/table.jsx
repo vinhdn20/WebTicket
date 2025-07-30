@@ -1,9 +1,15 @@
 // src/form/EditableTable.jsx
-import React, { useState, useMemo, useCallback, useEffect } from "react";
+import React, {
+  useState,
+  useMemo,
+  useCallback,
+  useEffect,
+  useRef,
+} from "react";
 import { saveAs } from "file-saver";
 import * as XLSX from "xlsx";
 import { useTable, usePagination } from "react-table";
-import "../style/table.css";
+import "../style/table-custom.css";
 import { formatDate } from "../constant";
 import {
   Snackbar,
@@ -17,6 +23,20 @@ import {
 } from "@mui/material";
 import AddOnTable from "./addOnTable";
 import apiService from "../services/apiSevrvice";
+import { fetchWithAuth } from "../services/authService";
+
+// Format số có dấu chấm ngăn cách hàng nghìn (1.000.000)
+function formatNumberDot(value) {
+  if (value === null || value === undefined) return "";
+  const str = value.toString().replace(/\D/g, "");
+  if (!str) return "";
+  return str.replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+}
+// Parse số từ string có dấu chấm về số nguyên ("1.000.000" => "1000000")
+function parseNumberDot(value) {
+  if (typeof value !== "string") return value;
+  return value.replace(/\./g, "");
+}
 
 const exportTableToExcel = (tableData, fileName = "table_data.xlsx") => {
   const worksheet = XLSX.utils.json_to_sheet(tableData);
@@ -235,9 +255,7 @@ const EditableTable = ({
 
   const handleSoTheSelect = useCallback(
     (rowId, value) => {
-      const selectedCard = cardOptions.find(
-        (option) => option.soThe === value
-      );
+      const selectedCard = cardOptions.find((option) => option.soThe === value);
       const updatedData = data.map((row) => {
         if (row.id === rowId) {
           return {
@@ -254,21 +272,21 @@ const EditableTable = ({
     [data, cardOptions, setData]
   );
 
+  // Sửa handleCellEdit để luôn format input khi nhập
   const handleCellEdit = useCallback(
     (rowId, columnId, value) => {
-      const updatedData = data.map((row) => {
-        if (row.id === rowId) {
-          return {
-            ...row,
-            [columnId]: value,
-          };
-        }
-        return row;
-      });
-      setData(updatedData);
+      let newValue = value;
+      if (columnId === "thuAG" || columnId === "giaXuat") {
+        newValue = formatNumberDot(value);
+      }
+      setData((prevData) =>
+        prevData.map((row) =>
+          row.id === rowId ? { ...row, [columnId]: newValue } : row
+        )
+      );
       setEditedRows((prev) => new Set(prev).add(rowId));
     },
-    [data, setData]
+    [setData]
   );
 
   const handleVeDetailEdit = useCallback(
@@ -324,21 +342,17 @@ const EditableTable = ({
     }
   }, [selectedRows, tableData, setSelectedRows]);
 
+  // Sửa toggleEditMode để khi gửi API sẽ parse về số
   const toggleEditMode = useCallback(() => {
     if (isEditing) {
-      // Format data correctly for the API according to the expected structure
       const formattedTickets = Array.from(editedRows).map((id) => {
         const row = data.find((item) => item.id === id);
-        
-        // Find the corresponding cardId and agCustomerId from options
         const selectedCard = cardOptions.find(
           (option) => option.soThe === row.soThe
         );
         const selectedAgCustomer = phoneOptions.find(
           (option) => option.sdt === row.sdt
         );
-        
-        // Build veDetails array from row.veDetail
         const veDetails = (row.veDetail || []).map((detail) => ({
           changBay: detail.changBay || "",
           ngayGioBay: detail.ngayGioBay
@@ -350,28 +364,51 @@ const EditableTable = ({
           maDatCho: detail.maDatCho || "",
           tenKhachHang: detail.tenKhachHang || "",
         }));
-
         return {
           id: row.id,
           agCustomerId: selectedAgCustomer?.id || row.agCustomerId || "",
           ngayXuat: row.ngayXuat
             ? new Date(row.ngayXuat).toISOString()
             : new Date().toISOString(),
-          giaXuat: row.giaXuat || "",
+          giaXuat: parseNumberDot(row.giaXuat || ""),
           addOn: row.addOn || "",
-          thuAG: row.thuAG || "",
+          thuAG: parseNumberDot(row.thuAG || ""),
           luuY: row.luuY || "",
           veHoanKhay: row.veHoanKhay === "Có" ? true : false,
           cardId: selectedCard?.id || row.cardId || "",
           veDetails,
         };
       });
-      
-      handleSaveEditedRows(formattedTickets);
-      setEditedRows(new Set());
+      fetchWithAuth(
+        "/Ve/xuatve",
+        {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(formattedTickets),
+        },
+        openSnackbarHandler
+      ).then(() => {
+        setEditedRows(new Set());
+        openSnackbarHandler("Lưu thay đổi thành công!", "success");
+      }).catch(() => {
+        openSnackbarHandler("Có lỗi khi lưu thay đổi!", "error");
+      });
+
+      // Format lại các trường thuAG và giaXuat khi thoát edit mode
+      setData((prevData) =>
+        prevData.map((row) =>
+          editedRows.has(row.id)
+            ? {
+                ...row,
+                thuAG: formatNumberDot(parseNumberDot(row.thuAG || "")),
+                giaXuat: formatNumberDot(parseNumberDot(row.giaXuat || "")),
+              }
+            : row
+        )
+      );
     }
     setIsEditing((prev) => !prev);
-  }, [isEditing, editedRows, data, handleSaveEditedRows, cardOptions, phoneOptions]);
+  }, [isEditing, editedRows, data, cardOptions, phoneOptions, openSnackbarHandler, setData]);
 
   const isAllSelected = useMemo(
     () => selectedRows.length === tableData.length && tableData.length > 0,
@@ -425,10 +462,10 @@ const EditableTable = ({
         className="pagination-button"
         aria-label="Previous Page"
       >
-        ⬅️ Trang trước
+        Trang trước
       </button>
       <span className="pagination-info">
-        📄 Trang {pageIndex} của {pageCount || 1}
+        Trang {pageIndex} của {pageCount || 1}
       </span>
       <button
         onClick={handleNextPage}
@@ -436,7 +473,7 @@ const EditableTable = ({
         className="pagination-button"
         aria-label="Next Page"
       >
-        Trang sau ➡️
+        Trang sau
       </button>
       <select
         value={pageSize}
@@ -446,7 +483,7 @@ const EditableTable = ({
       >
         {[10, 20, 50, 100].map((size) => (
           <option key={size} value={size}>
-            📊 Số hàng {size}
+            Số hàng {size}
           </option>
         ))}
       </select>
@@ -458,376 +495,70 @@ const EditableTable = ({
     <div className="action-buttons">
       <button
         onClick={toggleEditMode}
-        className={`action-button edit ${selectedRows.length === 0 ? 'disabled' : ''}`}
+        className={`action-button edit ${
+          selectedRows.length === 0 ? "disabled" : ""
+        }`}
         aria-label={isEditing ? "Save Changes" : "Edit Table"}
         disabled={selectedRows.length === 0}
       >
-        {isEditing ? "💾 Lưu thay đổi" : "✏️ Chỉnh sửa"}
+        {isEditing ? "Lưu thay đổi" : "Chỉnh sửa"}
       </button>
       <button
         onClick={handleOpenDeleteDialog}
         disabled={selectedRows.length === 0}
-        className={`action-button delete ${selectedRows.length === 0 ? 'disabled' : ''}`}
+        className={`action-button edit ${
+          selectedRows.length === 0 ? "disabled" : ""
+        }`}
         aria-label="Xóa hàng đã chọn"
       >
-        🗑️ Xóa hàng đã chọn ({selectedRows.length})
+        Xóa hàng đã chọn ({selectedRows.length})
       </button>
       <button
         onClick={() => exportTableToExcel(tableData)}
         className="action-button export"
         aria-label="Export to Excel"
       >
-        📊 Xuất file Excel
+        Xuất file Excel
       </button>
     </div>
   );
 
-  // Add horizontal scroll support with Shift + wheel
+  // Add horizontal scroll support with Shift + wheel: dùng ref để đảm bảo luôn bắt sự kiện đúng vùng
+  const tableWrapperRef = useRef(null);
   useEffect(() => {
+    const wrapper = tableWrapperRef.current;
+    if (!wrapper) return;
     const handleWheelScroll = (e) => {
       if (e.shiftKey) {
-        e.preventDefault();
-        e.currentTarget.scrollLeft += e.deltaY;
+        console.log("Shift + Wheel detected, scrolling horizontally");
+        const maxScroll = wrapper.scrollWidth - wrapper.clientWidth;
+        if (maxScroll > 0) {
+          if (
+            (e.deltaY < 0 && wrapper.scrollLeft > 0) ||
+            (e.deltaY > 0 && wrapper.scrollLeft < maxScroll)
+          ) {
+            e.preventDefault();
+            wrapper.scrollLeft += e.deltaY;
+          }
+        }
       }
     };
-
-    const tableWrappers = document.querySelectorAll('.table-wrapper');
-    tableWrappers.forEach(wrapper => {
-      wrapper.addEventListener('wheel', handleWheelScroll, { passive: false });
-    });
-
+    wrapper.addEventListener("wheel", handleWheelScroll, { passive: false });
     return () => {
-      tableWrappers.forEach(wrapper => {
-        wrapper.removeEventListener('wheel', handleWheelScroll);
-      });
+      wrapper.removeEventListener("wheel", handleWheelScroll);
     };
   }, []);
 
   return (
     <>
-      <style>{`
-        /* Modern Table Styling */
-        .table-wrapper {
-          background: white;
-          border-radius: 16px;
-          overflow-x: auto;
-          overflow-y: hidden;
-          box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
-          border: 1px solid #e2e8f0;
-          margin-bottom: 24px;
-          max-width: 100%;
-          /* Smooth scrolling */
-          scroll-behavior: smooth;
-          -webkit-overflow-scrolling: touch;
-        }
-        
-        /* Custom scrollbar styling */
-        .table-wrapper::-webkit-scrollbar {
-          height: 8px;
-        }
-        
-        .table-wrapper::-webkit-scrollbar-track {
-          background: #f1f5f9;
-          border-radius: 4px;
-        }
-        
-        .table-wrapper::-webkit-scrollbar-thumb {
-          background: rgba(59, 130, 246, 0.3);
-          border-radius: 4px;
-        }
-        
-        .table-wrapper::-webkit-scrollbar-thumb:hover {
-          background: rgba(59, 130, 246, 0.5);
-        }
-        
-        .table-container {
-          width: 100%;
-          min-width: 1200px; /* Minimum width to ensure table doesn't get too cramped */
-          border-collapse: collapse;
-          font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-        }
-        
-        .table-container th {
-          background: rgb(59, 130, 246);
-          color: white;
-          padding: 16px 12px;
-          font-weight: 700;
-          font-size: 14px;
-          text-align: center;
-          border: 1px solid rgba(255, 255, 255, 0.2);
-          text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
-          white-space: nowrap; /* Prevent header text from wrapping */
-          min-width: 120px; /* Minimum width for each column */
-        }
-        
-        .table-container td {
-          padding: 12px;
-          border: 1px solid #e2e8f0;
-          text-align: center;
-          font-size: 14px;
-          transition: background-color 0.2s ease;
-          white-space: nowrap; /* Prevent cell content from wrapping */
-          min-width: 120px; /* Minimum width for each column */
-        }
-        
-        .table-container tbody tr:nth-child(even) {
-          background-color: #f8fafc;
-        }
-        
-        .table-container tbody tr:hover {
-          background-color: rgba(59, 130, 246, 0.1);
-        }
-        
-        /* Modern input styling for table */
-        .table-input {
-          width: 100%;
-          min-width: 100px;
-          padding: 8px 12px;
-          border: 2px solid #e2e8f0;
-          border-radius: 8px;
-          font-size: 14px;
-          outline: none;
-          transition: all 0.2s ease;
-          background: white;
-          box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-          box-sizing: border-box;
-        }
-        
-        .table-input:focus {
-          border-color: rgb(59, 130, 246);
-          box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1), 0 1px 3px rgba(0, 0, 0, 0.1);
-          transform: translateY(-1px);
-        }
-        
-        .table-input:hover {
-          border-color: #9ca3af;
-          box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
-        }
-        
-        /* Custom dropdown styling */
-        .dropdown-container {
-          position: relative;
-        }
-        
-        .dropdown-container::after {
-          content: '▼';
-          position: absolute;
-          right: 12px;
-          top: 50%;
-          transform: translateY(-50%);
-          pointer-events: none;
-          font-size: 12px;
-        }
-        
-        .dropdown-container input:focus + .dropdown-icon {
-          color: rgb(59, 130, 246);
-        }
-        
-        /* Custom select styling */
-        .table-select {
-          width: 100%;
-          min-width: 100px;
-          padding: 8px 12px;
-          border: 2px solid #e2e8f0;
-          border-radius: 8px;
-          font-size: 14px;
-          outline: none;
-          background: white;
-          cursor: pointer;
-          transition: all 0.2s ease;
-          box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-          appearance: none;
-          background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16"><path fill="%236b7280" d="M3.5 6L8 10.5L12.5 6z"/></svg>');
-          background-repeat: no-repeat;
-          background-position: right 12px center;
-          background-size: 16px;
-          padding-right: 40px;
-          box-sizing: border-box;
-        }
-        
-        .table-select:focus {
-          border-color: rgb(59, 130, 246);
-          box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1), 0 1px 3px rgba(0, 0, 0, 0.1);
-          background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16"><path fill="rgb(59, 130, 246)" d="M3.5 6L8 10.5L12.5 6z"/></svg>');
-        }
-        
-        .table-select:hover {
-          border-color: #9ca3af;
-          box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
-        }
-        
-        /* Modern checkbox styling */
-        .table-checkbox {
-          width: 20px;
-          height: 20px;
-          cursor: pointer;
-          accent-color: rgb(59, 130, 246);
-          flex-shrink: 0;
-        }
-        
-        /* Responsive table styling */
-        @media (max-width: 768px) {
-          .table-wrapper {
-            margin: 0 -20px;
-            border-radius: 0;
-          }
-          
-          .table-container {
-            min-width: 800px;
-          }
-          
-          .table-container th,
-          .table-container td {
-            min-width: 100px;
-            font-size: 12px;
-            padding: 8px 6px;
-          }
-        }
-        
-        /* Loading and empty state styling */
-        .loading-message, .empty-message {
-          text-align: center;
-          padding: 40px;
-          color: #6b7280;
-          font-size: 16px;
-          background: white;
-          border-radius: 16px;
-          box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
-          border: 1px solid #e2e8f0;
-        }
-        
-        /* Pagination controls styling */
-        .pagination-controls {
-          display: flex;
-          justify-content: center;
-          align-items: center;
-          gap: 16px;
-          margin-top: 24px;
-          padding: 20px;
-          background: white;
-          border-radius: 12px;
-          box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
-          border: 1px solid #e2e8f0;
-        }
-        
-        .pagination-button {
-          padding: 10px 20px;
-          border: 2px solid rgb(59, 130, 246);
-          background: white;
-          color: rgb(59, 130, 246);
-          border-radius: 8px;
-          cursor: pointer;
-          font-weight: 600;
-          font-size: 14px;
-          transition: all 0.2s ease;
-        }
-        
-        .pagination-button:hover:not(:disabled) {
-          background: rgb(59, 130, 246);
-          color: white;
-          transform: translateY(-1px);
-          box-shadow: 0 4px 12px rgba(59, 130, 246, 0.25);
-        }
-        
-        .pagination-button:disabled {
-          border-color: #d1d5db;
-          color: #9ca3af;
-          cursor: not-allowed;
-          opacity: 0.5;
-        }
-        
-        .pagination-info {
-          font-weight: 600;
-          color: #374151;
-          font-size: 14px;
-        }
-        
-        .page-size-select {
-          padding: 8px 16px;
-          border: 2px solid #e2e8f0;
-          border-radius: 8px;
-          font-size: 14px;
-          outline: none;
-          background: white;
-          cursor: pointer;
-          font-weight: 500;
-          height: 43px;
-        }
-        
-        /* Action buttons styling */
-        .action-buttons {
-          display: flex;
-          justify-content: center;
-          gap: 12px;
-          margin-top: 20px;
-          padding: 20px;
-          background: white;
-          border-radius: 12px;
-          box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
-          border: 1px solid #e2e8f0;
-          flex-wrap: wrap;
-        }
-        
-        .action-button {
-          padding: 12px 24px;
-          border: none;
-          border-radius: 10px;
-          font-weight: 600;
-          font-size: 14px;
-          cursor: pointer;
-          transition: all 0.2s ease;
-          text-transform: none;
-          min-width: 140px;
-          box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-        }
-        
-        .action-button.edit {
-          background: rgb(59, 130, 246);
-          color: white;
-        }
-        
-        .action-button.edit:hover:not(:disabled) {
-          background: rgba(59, 130, 246, 0.8);
-          transform: translateY(-2px);
-          box-shadow: 0 6px 16px rgba(59, 130, 246, 0.3);
-        }
-        
-        .action-button.delete {
-          background: rgba(59, 130, 246, 0.7);
-          color: white;
-        }
-        
-        .action-button.delete:hover:not(:disabled) {
-          background: rgba(59, 130, 246, 0.6);
-          transform: translateY(-2px);
-          box-shadow: 0 6px 16px rgba(59, 130, 246, 0.3);
-        }
-        
-        .action-button.export {
-          background: rgba(59, 130, 246, 0.9);
-          color: white;
-        }
-        
-        .action-button.export:hover {
-          background: rgba(59, 130, 246, 0.8);
-          transform: translateY(-2px);
-          box-shadow: 0 6px 16px rgba(59, 130, 246, 0.3);
-        }
-        
-        .action-button:disabled {
-          opacity: 0.5;
-          cursor: not-allowed;
-          transform: none !important;
-          box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1) !important;
-        }
-      `}</style>
-      
-      <div style={{ 
-        backgroundColor: "#f8fafc", 
-        minHeight: "100vh", 
-        padding: "20px",
-        fontFamily: "'Segoe UI', Tahoma, Geneva, Verdana, sans-serif"
-      }}>
+      <div
+        style={{
+          backgroundColor: "#f8fafc",
+          minHeight: "100vh",
+          padding: "20px",
+          fontFamily: "'Segoe UI', Tahoma, Geneva, Verdana, sans-serif",
+        }}
+      >
         {isLoadingPhones || isLoadingCards ? (
           <div className="loading-message">
             <div style={{ fontSize: "24px", marginBottom: "16px" }}>⏳</div>
@@ -840,115 +571,224 @@ const EditableTable = ({
           </div>
         ) : (
           <>
-            <div className="table-wrapper">
+            <div className="table-wrapper" ref={tableWrapperRef}>
               <table {...getTableProps()} className="table-container">
                 <thead>
                   <tr>
-                    <th style={{ width: "50px" }} rowSpan={2}>
-                      <span style={{ fontSize: "16px" }}>✅</span>
+                    <th
+                      style={{
+                        width: "32px",
+                        minWidth: "28px",
+                        textAlign: "center",
+                      }}
+                      rowSpan={2}
+                    >
+                      <input
+                        type="checkbox"
+                        checked={isAllSelected}
+                        onChange={toggleSelectAll}
+                        className="table-checkbox"
+                        aria-label="Chọn tất cả các hàng"
+                        disabled={isEditing}
+                        style={{ margin: 0, width: 15, height: 15 }}
+                      />
                     </th>
                     <th rowSpan={2}>
-                      <span style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: "8px" }}>
-                        📅 Ngày xuất
+                      <span
+                        style={{
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          gap: "8px",
+                        }}
+                      >
+                        Ngày xuất
                       </span>
                     </th>
                     <th rowSpan={2}>
-                      <span style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: "8px" }}>
-                        📞 Liên hệ (SĐT)
+                      <span
+                        style={{
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          gap: "8px",
+                        }}
+                      >
+                        Liên hệ (SĐT)
                       </span>
                     </th>
                     <th rowSpan={2}>
-                      <span style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: "8px" }}>
-                        📧 Mail
+                      <span
+                        style={{
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          gap: "8px",
+                        }}
+                      >
+                        Mail
                       </span>
                     </th>
                     <th rowSpan={2}>
-                      <span style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: "8px" }}>
-                        👤 Tên AG
+                      <span
+                        style={{
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          gap: "8px",
+                        }}
+                      >
+                        Tên AG
                       </span>
                     </th>
                     <th rowSpan={2}>
-                      <span style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: "8px" }}>
-                        🎯 Add on
+                      <span
+                        style={{
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          gap: "8px",
+                        }}
+                      >
+                        Add on
                       </span>
                     </th>
                     <th rowSpan={2}>
-                      <span style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: "8px" }}>
-                        ✅ Có hoàn hay không
+                      <span
+                        style={{
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          gap: "8px",
+                        }}
+                      >
+                        Có hoàn hay không
                       </span>
                     </th>
                     <th rowSpan={2}>
-                      <span style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: "8px" }}>
-                        💳 Số thẻ thanh toán
+                      <span
+                        style={{
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          gap: "8px",
+                        }}
+                      >
+                        Số thẻ thanh toán
                       </span>
                     </th>
                     <th rowSpan={2}>
-                      <span style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: "8px" }}>
-                        📝 Lưu ý
+                      <span
+                        style={{
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          gap: "8px",
+                        }}
+                      >
+                        Lưu ý
                       </span>
                     </th>
                     <th rowSpan={2}>
-                      <span style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: "8px" }}>
-                        💰 Thu AG
+                      <span
+                        style={{
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          gap: "8px",
+                        }}
+                      >
+                        Thu AG
                       </span>
                     </th>
                     <th rowSpan={2}>
-                      <span style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: "8px" }}>
-                        💵 Giá xuất
+                      <span
+                        style={{
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          gap: "8px",
+                        }}
+                      >
+                        Giá xuất
                       </span>
                     </th>
-                    <th style={{ 
-                      background: "rgba(59, 130, 246, 0.9)",
-                      fontSize: "16px",
-                      fontWeight: "800"
-                    }} colSpan={7}>
-                      <span style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: "8px" }}>
-                        🎫 Chi tiết vé
+                    <th
+                      style={{
+                        background: "rgba(59, 130, 246, 0.9)",
+                        fontSize: "16px",
+                        fontWeight: "800",
+                      }}
+                      colSpan={7}
+                    >
+                      <span
+                        style={{
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          gap: "8px",
+                        }}
+                      >
+                        Chi tiết vé
                       </span>
                     </th>
                   </tr>
                   <tr>
-                    <th style={{ 
-                      background: "rgba(59, 130, 246, 0.8)",
-                      fontSize: "13px"
-                    }}>
-                      ✈️ Chặng
+                    <th
+                      style={{
+                        background: "rgba(59, 130, 246, 0.8)",
+                        fontSize: "13px",
+                      }}
+                    >
+                      Chặng
                     </th>
-                    <th style={{ 
-                      background: "rgba(59, 130, 246, 0.8)",
-                      fontSize: "13px"
-                    }}>
-                      🕒 Ngày giờ bay
+                    <th
+                      style={{
+                        background: "rgba(59, 130, 246, 0.8)",
+                        fontSize: "13px",
+                      }}
+                    >
+                      Ngày giờ bay
                     </th>
-                    <th style={{ 
-                      background: "rgba(59, 130, 246, 0.8)",
-                      fontSize: "13px"
-                    }}>
-                      🏢 Hãng bay
+                    <th
+                      style={{
+                        background: "rgba(59, 130, 246, 0.8)",
+                        fontSize: "13px",
+                      }}
+                    >
+                      Hãng bay
                     </th>
-                    <th style={{ 
-                      background: "rgba(59, 130, 246, 0.8)",
-                      fontSize: "13px"
-                    }}>
-                      🔢 Số hiệu chuyến bay
+                    <th
+                      style={{
+                        background: "rgba(59, 130, 246, 0.8)",
+                        fontSize: "13px",
+                      }}
+                    >
+                      Số hiệu chuyến bay
                     </th>
-                    <th style={{ 
-                      background: "rgba(59, 130, 246, 0.8)",
-                      fontSize: "13px"
-                    }}>
-                      📎 Tham chiếu HHK
+                    <th
+                      style={{
+                        background: "rgba(59, 130, 246, 0.8)",
+                        fontSize: "13px",
+                      }}
+                    >
+                      Tham chiếu HHK
                     </th>
-                    <th style={{ 
-                      background: "rgba(59, 130, 246, 0.8)",
-                      fontSize: "13px"
-                    }}>
-                      🎫 Mã đặt chỗ hãng
+                    <th
+                      style={{
+                        background: "rgba(59, 130, 246, 0.8)",
+                        fontSize: "13px",
+                      }}
+                    >
+                      Mã đặt chỗ hãng
                     </th>
-                    <th style={{ 
-                      background: "rgba(59, 130, 246, 0.8)",
-                      fontSize: "13px"
-                    }}>
-                      👥 Tên khách hàng
+                    <th
+                      style={{
+                        background: "rgba(59, 130, 246, 0.8)",
+                        fontSize: "13px",
+                      }}
+                    >
+                      Tên khách hàng
                     </th>
                   </tr>
                 </thead>
@@ -959,10 +799,17 @@ const EditableTable = ({
                     return veDetailRows.length > 0 ? (
                       veDetailRows.map((detail, idx) => (
                         <tr key={row.original.id + "-" + idx}>
-                          {/* Các cột bên trái, chỉ render ở dòng đầu tiên của veDetail */}
                           {idx === 0 && (
                             <>
-                              <td style={{ border: "1px solid #bdbdbd", textAlign: "center" }} rowSpan={veDetailRows.length}>
+                              <td
+                                style={{
+                                  width: "32px",
+                                  minWidth: "28px",
+                                  textAlign: "center",
+                                  border: "1px solid #bdbdbd",
+                                }}
+                                rowSpan={veDetailRows.length}
+                              >
                                 <input
                                   type="checkbox"
                                   checked={selectedRows.includes(row.original.id)}
@@ -970,31 +817,64 @@ const EditableTable = ({
                                   className="table-checkbox"
                                   aria-label={`Chọn hàng ${row.original.id}`}
                                   disabled={isEditing}
+                                  style={{ margin: 0, width: 15, height: 15 }}
                                 />
                               </td>
-                              <td style={{ border: "1px solid #bdbdbd", textAlign: "center" }} rowSpan={veDetailRows.length}>
-                                {isEditing && selectedRows.includes(row.original.id) ? (
+                              <td
+                                style={{
+                                  border: "1px solid #bdbdbd",
+                                  textAlign: "center",
+                                }}
+                                rowSpan={veDetailRows.length}
+                              >
+                                {isEditing &&
+                                selectedRows.includes(row.original.id) ? (
                                   <input
                                     type="datetime-local"
-                                    value={row.original.ngayXuat ? new Date(row.original.ngayXuat).toISOString().slice(0, 16) : ""}
-                                    onChange={(e) => handleCellEdit(row.original.id, "ngayXuat", e.target.value)}
+                                    value={
+                                      row.original.ngayXuat
+                                        ? new Date(row.original.ngayXuat)
+                                            .toISOString()
+                                            .slice(0, 16)
+                                        : ""
+                                    }
+                                    onChange={(e) =>
+                                      handleCellEdit(
+                                        row.original.id,
+                                        "ngayXuat",
+                                        e.target.value
+                                      )
+                                    }
                                     className="table-input"
                                   />
                                 ) : (
                                   formatDate(row.original.ngayXuat)
                                 )}
                               </td>
-                              <td style={{ border: "1px solid #bdbdbd", textAlign: "center" }} rowSpan={veDetailRows.length}>
-                                {isEditing && selectedRows.includes(row.original.id) ? (
+                              <td
+                                style={{
+                                  border: "1px solid #bdbdbd",
+                                  textAlign: "center",
+                                }}
+                                rowSpan={veDetailRows.length}
+                              >
+                                {isEditing &&
+                                selectedRows.includes(row.original.id) ? (
                                   <div className="dropdown-container">
                                     <input
                                       list={`phone-options-edit-${row.original.id}`}
                                       value={row.original.sdt || ""}
-                                      onChange={(e) => handlePhoneSelect(row.original.id, { sdt: e.target.value })}
+                                      onChange={(e) =>
+                                        handlePhoneSelect(row.original.id, {
+                                          sdt: e.target.value,
+                                        })
+                                      }
                                       placeholder="Chọn hoặc nhập SĐT"
                                       className="table-input"
                                     />
-                                    <datalist id={`phone-options-edit-${row.original.id}`}>
+                                    <datalist
+                                      id={`phone-options-edit-${row.original.id}`}
+                                    >
                                       {phoneOptions.map((option, idx) => (
                                         <option key={idx} value={option.sdt} />
                                       ))}
@@ -1004,12 +884,25 @@ const EditableTable = ({
                                   row.original.sdt
                                 )}
                               </td>
-                              <td style={{ border: "1px solid #bdbdbd", textAlign: "center" }} rowSpan={veDetailRows.length}>
-                                {isEditing && selectedRows.includes(row.original.id) ? (
+                              <td
+                                style={{
+                                  border: "1px solid #bdbdbd",
+                                  textAlign: "center",
+                                }}
+                                rowSpan={veDetailRows.length}
+                              >
+                                {isEditing &&
+                                selectedRows.includes(row.original.id) ? (
                                   <input
                                     type="email"
                                     value={row.original.mail || ""}
-                                    onChange={(e) => handleCellEdit(row.original.id, "mail", e.target.value)}
+                                    onChange={(e) =>
+                                      handleCellEdit(
+                                        row.original.id,
+                                        "mail",
+                                        e.target.value
+                                      )
+                                    }
                                     placeholder="example@email.com"
                                     className="table-input"
                                   />
@@ -1017,12 +910,25 @@ const EditableTable = ({
                                   row.original.mail
                                 )}
                               </td>
-                              <td style={{ border: "1px solid #bdbdbd", textAlign: "center" }} rowSpan={veDetailRows.length}>
-                                {isEditing && selectedRows.includes(row.original.id) ? (
+                              <td
+                                style={{
+                                  border: "1px solid #bdbdbd",
+                                  textAlign: "center",
+                                }}
+                                rowSpan={veDetailRows.length}
+                              >
+                                {isEditing &&
+                                selectedRows.includes(row.original.id) ? (
                                   <input
                                     type="text"
                                     value={row.original.tenAG || ""}
-                                    onChange={(e) => handleCellEdit(row.original.id, "tenAG", e.target.value)}
+                                    onChange={(e) =>
+                                      handleCellEdit(
+                                        row.original.id,
+                                        "tenAG",
+                                        e.target.value
+                                      )
+                                    }
                                     placeholder="Nhập tên AG"
                                     style={{ width: "100%", padding: "4px" }}
                                   />
@@ -1030,11 +936,19 @@ const EditableTable = ({
                                   row.original.tenAG
                                 )}
                               </td>
-                              <td style={{ border: "1px solid #bdbdbd", textAlign: "center" }} rowSpan={veDetailRows.length}>
+                              <td
+                                style={{
+                                  border: "1px solid #bdbdbd",
+                                  textAlign: "center",
+                                }}
+                                rowSpan={veDetailRows.length}
+                              >
                                 <button
-                                  onClick={() => handleClickAddOnOpen(row.original.id)}
+                                  onClick={() =>
+                                    handleClickAddOnOpen(row.original.id)
+                                  }
                                   className="button-container"
-                                  style={{ 
+                                  style={{
                                     width: "100%",
                                     padding: "8px 16px",
                                     backgroundColor: "rgba(59, 130, 246, 0.9)",
@@ -1044,46 +958,78 @@ const EditableTable = ({
                                     fontSize: "12px",
                                     fontWeight: "600",
                                     cursor: "pointer",
-                                    transition: "all 0.2s ease"
+                                    transition: "all 0.2s ease",
                                   }}
                                   aria-label={
-                                    isEditing && selectedRows.includes(row.original.id)
+                                    isEditing &&
+                                    selectedRows.includes(row.original.id)
                                       ? "Xem và sửa Add On"
                                       : "Xem Add On"
                                   }
                                 >
-                                  {isEditing && selectedRows.includes(row.original.id)
+                                  {isEditing &&
+                                  selectedRows.includes(row.original.id)
                                     ? "Xem và sửa"
                                     : "Xem"}
                                 </button>
                               </td>
-                              <td style={{ border: "1px solid #bdbdbd", textAlign: "center" }} rowSpan={veDetailRows.length}>
-                                {isEditing && selectedRows.includes(row.original.id) ? (
+                              <td
+                                style={{
+                                  border: "1px solid #bdbdbd",
+                                  textAlign: "center",
+                                }}
+                                rowSpan={veDetailRows.length}
+                              >
+                                {isEditing &&
+                                selectedRows.includes(row.original.id) ? (
                                   <select
                                     value={row.original.veHoanKhay || "Có"}
-                                    onChange={(e) => handleCellEdit(row.original.id, "veHoanKhay", e.target.value)}
+                                    onChange={(e) =>
+                                      handleCellEdit(
+                                        row.original.id,
+                                        "veHoanKhay",
+                                        e.target.value
+                                      )
+                                    }
                                     style={{ width: "100%", padding: "4px" }}
                                   >
                                     <option value="Có">Có</option>
                                     <option value="Không">Không</option>
                                   </select>
                                 ) : (
-                                  row.original.veHoanKhay
+                                  row.original.veHoanKhay ? "Có hoàn" : "Không hoàn"
                                 )}
                               </td>
-                              <td style={{ border: "1px solid #bdbdbd", textAlign: "center" }} rowSpan={veDetailRows.length}>
-                                {isEditing && selectedRows.includes(row.original.id) ? (
+                              <td
+                                style={{
+                                  border: "1px solid #bdbdbd",
+                                  textAlign: "center",
+                                }}
+                                rowSpan={veDetailRows.length}
+                              >
+                                {isEditing &&
+                                selectedRows.includes(row.original.id) ? (
                                   <>
                                     <input
                                       list={`card-options-edit-${row.original.id}`}
                                       value={row.original.soThe || ""}
-                                      onChange={(e) => handleSoTheSelect(row.original.id, e.target.value)}
+                                      onChange={(e) =>
+                                        handleSoTheSelect(
+                                          row.original.id,
+                                          e.target.value
+                                        )
+                                      }
                                       placeholder="Nhập số thẻ"
                                       style={{ width: "100%", padding: "4px" }}
                                     />
-                                    <datalist id={`card-options-edit-${row.original.id}`}>
+                                    <datalist
+                                      id={`card-options-edit-${row.original.id}`}
+                                    >
                                       {cardOptions.map((option, idx) => (
-                                        <option key={idx} value={option.soThe} />
+                                        <option
+                                          key={idx}
+                                          value={option.soThe}
+                                        />
                                       ))}
                                     </datalist>
                                   </>
@@ -1091,12 +1037,25 @@ const EditableTable = ({
                                   row.original.soThe
                                 )}
                               </td>
-                              <td style={{ border: "1px solid #bdbdbd", textAlign: "center" }} rowSpan={veDetailRows.length}>
-                                {isEditing && selectedRows.includes(row.original.id) ? (
+                              <td
+                                style={{
+                                  border: "1px solid #bdbdbd",
+                                  textAlign: "center",
+                                }}
+                                rowSpan={veDetailRows.length}
+                              >
+                                {isEditing &&
+                                selectedRows.includes(row.original.id) ? (
                                   <input
                                     type="text"
                                     value={row.original.luuY || ""}
-                                    onChange={(e) => handleCellEdit(row.original.id, "luuY", e.target.value)}
+                                    onChange={(e) =>
+                                      handleCellEdit(
+                                        row.original.id,
+                                        "luuY",
+                                        e.target.value
+                                      )
+                                    }
                                     placeholder="Nhập lưu ý"
                                     style={{ width: "100%", padding: "4px" }}
                                   />
@@ -1104,41 +1063,80 @@ const EditableTable = ({
                                   row.original.luuY
                                 )}
                               </td>
-                              <td style={{ border: "1px solid #bdbdbd", textAlign: "center" }} rowSpan={veDetailRows.length}>
-                                {isEditing && selectedRows.includes(row.original.id) ? (
-                                  <input
-                                    type="text"
-                                    value={row.original.thuAG || ""}
-                                    onChange={(e) => handleCellEdit(row.original.id, "thuAG", e.target.value)}
-                                    placeholder="Nhập thu AG"
-                                    style={{ width: "100%", padding: "4px" }}
-                                  />
-                                ) : (
-                                  row.original.thuAG
-                                )}
+                              <td
+                                style={{
+                                  border: "1px solid #bdbdbd",
+                                  textAlign: "center",
+                                }}
+                                rowSpan={veDetailRows.length}
+                              >
+                                {isEditing &&
+                selectedRows.includes(row.original.id) ? (
+                  <input
+                    type="text"
+                    value={formatNumberDot(row.original.thuAG || "")}
+                    onChange={(e) =>
+                      handleCellEdit(
+                        row.original.id,
+                        "thuAG",
+                        e.target.value
+                      )
+                    }
+                    placeholder="Nhập thu AG"
+                    style={{ width: "100%", padding: "4px" }}
+                  />
+                ) : (
+                  formatNumberDot(row.original.thuAG)
+                )}
                               </td>
-                              <td style={{ border: "1px solid #bdbdbd", textAlign: "center" }} rowSpan={veDetailRows.length}>
-                                {isEditing && selectedRows.includes(row.original.id) ? (
-                                  <input
-                                    type="text"
-                                    value={row.original.giaXuat || ""}
-                                    onChange={(e) => handleCellEdit(row.original.id, "giaXuat", e.target.value)}
-                                    placeholder="Nhập giá xuất"
-                                    style={{ width: "100%", padding: "4px" }}
-                                  />
-                                ) : (
-                                  row.original.giaXuat
-                                )}
+                              <td
+                                style={{
+                                  border: "1px solid #bdbdbd",
+                                  textAlign: "center",
+                                }}
+                                rowSpan={veDetailRows.length}
+                              >
+                                {isEditing &&
+                selectedRows.includes(row.original.id) ? (
+                  <input
+                    type="text"
+                    value={formatNumberDot(row.original.giaXuat || "")}
+                    onChange={(e) =>
+                      handleCellEdit(
+                        row.original.id,
+                        "giaXuat",
+                        e.target.value
+                      )
+                    }
+                    placeholder="Nhập giá xuất"
+                    style={{ width: "100%", padding: "4px" }}
+                  />
+                ) : (
+                  formatNumberDot(row.original.giaXuat)
+                )}
                               </td>
                             </>
                           )}
                           {/* Các cột chi tiết vé */}
-                          <td style={{ border: "1px solid #bdbdbd", textAlign: "center" }}>
-                            {isEditing && selectedRows.includes(row.original.id) ? (
+                          <td
+                            style={{
+                              border: "1px solid #bdbdbd",
+                              textAlign: "center",
+                            }}
+                          >
+                            {isEditing &&
+                            selectedRows.includes(row.original.id) ? (
                               <input
                                 type="text"
                                 value={detail.changBay || ""}
-                                onChange={(e) => handleVeDetailEdit(row.original.id, idx, "changBay", e.target.value)}
+                                onChange={(e) =>
+                                  handleVeDetailEdit(
+                                    row.original.id,
+                                    idx,
+                                    "changBay",
+                                    e.target.value
+                                  )
+                                }
                                 placeholder="Nhập chặng bay"
                                 style={{ width: "100%", padding: "4px" }}
                               />
@@ -1146,24 +1144,56 @@ const EditableTable = ({
                               detail.changBay
                             )}
                           </td>
-                          <td style={{ border: "1px solid #bdbdbd", textAlign: "center" }}>
-                            {isEditing && selectedRows.includes(row.original.id) ? (
+                          <td
+                            style={{
+                              border: "1px solid #bdbdbd",
+                              textAlign: "center",
+                            }}
+                          >
+                            {isEditing &&
+                            selectedRows.includes(row.original.id) ? (
                               <input
                                 type="datetime-local"
-                                value={detail.ngayGioBay ? new Date(detail.ngayGioBay).toISOString().slice(0, 16) : ""}
-                                onChange={(e) => handleVeDetailEdit(row.original.id, idx, "ngayGioBay", e.target.value)}
+                                value={
+                                  detail.ngayGioBay
+                                    ? new Date(detail.ngayGioBay)
+                                        .toISOString()
+                                        .slice(0, 16)
+                                    : ""
+                                }
+                                onChange={(e) =>
+                                  handleVeDetailEdit(
+                                    row.original.id,
+                                    idx,
+                                    "ngayGioBay",
+                                    e.target.value
+                                  )
+                                }
                                 style={{ width: "100%", padding: "4px" }}
                               />
                             ) : (
                               formatDate(detail.ngayGioBay)
                             )}
                           </td>
-                          <td style={{ border: "1px solid #bdbdbd", textAlign: "center" }}>
-                            {isEditing && selectedRows.includes(row.original.id) ? (
+                          <td
+                            style={{
+                              border: "1px solid #bdbdbd",
+                              textAlign: "center",
+                            }}
+                          >
+                            {isEditing &&
+                            selectedRows.includes(row.original.id) ? (
                               <input
                                 type="text"
                                 value={detail.hangBay || ""}
-                                onChange={(e) => handleVeDetailEdit(row.original.id, idx, "hangBay", e.target.value)}
+                                onChange={(e) =>
+                                  handleVeDetailEdit(
+                                    row.original.id,
+                                    idx,
+                                    "hangBay",
+                                    e.target.value
+                                  )
+                                }
                                 placeholder="Nhập hãng bay"
                                 style={{ width: "100%", padding: "4px" }}
                               />
@@ -1171,12 +1201,25 @@ const EditableTable = ({
                               detail.hangBay
                             )}
                           </td>
-                          <td style={{ border: "1px solid #bdbdbd", textAlign: "center" }}>
-                            {isEditing && selectedRows.includes(row.original.id) ? (
+                          <td
+                            style={{
+                              border: "1px solid #bdbdbd",
+                              textAlign: "center",
+                            }}
+                          >
+                            {isEditing &&
+                            selectedRows.includes(row.original.id) ? (
                               <input
                                 type="text"
                                 value={detail.soHieuChuyenBay || ""}
-                                onChange={(e) => handleVeDetailEdit(row.original.id, idx, "soHieuChuyenBay", e.target.value)}
+                                onChange={(e) =>
+                                  handleVeDetailEdit(
+                                    row.original.id,
+                                    idx,
+                                    "soHieuChuyenBay",
+                                    e.target.value
+                                  )
+                                }
                                 placeholder="Nhập số hiệu"
                                 style={{ width: "100%", padding: "4px" }}
                               />
@@ -1184,12 +1227,25 @@ const EditableTable = ({
                               detail.soHieuChuyenBay
                             )}
                           </td>
-                          <td style={{ border: "1px solid #bdbdbd", textAlign: "center" }}>
-                            {isEditing && selectedRows.includes(row.original.id) ? (
+                          <td
+                            style={{
+                              border: "1px solid #bdbdbd",
+                              textAlign: "center",
+                            }}
+                          >
+                            {isEditing &&
+                            selectedRows.includes(row.original.id) ? (
                               <input
                                 type="text"
                                 value={detail.thamChieuHang || ""}
-                                onChange={(e) => handleVeDetailEdit(row.original.id, idx, "thamChieuHang", e.target.value)}
+                                onChange={(e) =>
+                                  handleVeDetailEdit(
+                                    row.original.id,
+                                    idx,
+                                    "thamChieuHang",
+                                    e.target.value
+                                  )
+                                }
                                 placeholder="Nhập tham chiếu"
                                 style={{ width: "100%", padding: "4px" }}
                               />
@@ -1197,12 +1253,25 @@ const EditableTable = ({
                               detail.thamChieuHang
                             )}
                           </td>
-                          <td style={{ border: "1px solid #bdbdbd", textAlign: "center" }}>
-                            {isEditing && selectedRows.includes(row.original.id) ? (
+                          <td
+                            style={{
+                              border: "1px solid #bdbdbd",
+                              textAlign: "center",
+                            }}
+                          >
+                            {isEditing &&
+                            selectedRows.includes(row.original.id) ? (
                               <input
                                 type="text"
                                 value={detail.maDatCho || ""}
-                                onChange={(e) => handleVeDetailEdit(row.original.id, idx, "maDatCho", e.target.value)}
+                                onChange={(e) =>
+                                  handleVeDetailEdit(
+                                    row.original.id,
+                                    idx,
+                                    "maDatCho",
+                                    e.target.value
+                                  )
+                                }
                                 placeholder="Nhập mã đặt chỗ"
                                 style={{ width: "100%", padding: "4px" }}
                               />
@@ -1210,12 +1279,25 @@ const EditableTable = ({
                               detail.maDatCho
                             )}
                           </td>
-                          <td style={{ border: "1px solid #bdbdbd", textAlign: "center" }}>
-                            {isEditing && selectedRows.includes(row.original.id) ? (
+                          <td
+                            style={{
+                              border: "1px solid #bdbdbd",
+                              textAlign: "center",
+                            }}
+                          >
+                            {isEditing &&
+                            selectedRows.includes(row.original.id) ? (
                               <input
                                 type="text"
                                 value={detail.tenKhachHang || ""}
-                                onChange={(e) => handleVeDetailEdit(row.original.id, idx, "tenKhachHang", e.target.value)}
+                                onChange={(e) =>
+                                  handleVeDetailEdit(
+                                    row.original.id,
+                                    idx,
+                                    "tenKhachHang",
+                                    e.target.value
+                                  )
+                                }
                                 placeholder="Nhập tên khách hàng"
                                 style={{ width: "100%", padding: "4px" }}
                               />
@@ -1228,7 +1310,12 @@ const EditableTable = ({
                     ) : (
                       <tr key={row.original.id}>
                         {/* Các cột bên trái */}
-                        <td style={{ textAlign: "center", border: "1px solid #bdbdbd" }}>
+                        <td
+                          style={{
+                            textAlign: "center",
+                            border: "1px solid #bdbdbd",
+                          }}
+                        >
                           <input
                             type="checkbox"
                             checked={selectedRows.includes(row.original.id)}
@@ -1237,29 +1324,59 @@ const EditableTable = ({
                             disabled={isEditing}
                           />
                         </td>
-                        <td style={{ border: "1px solid #bdbdbd", textAlign: "center" }}>
-                          {isEditing && selectedRows.includes(row.original.id) ? (
+                        <td
+                          style={{
+                            border: "1px solid #bdbdbd",
+                            textAlign: "center",
+                          }}
+                        >
+                          {isEditing &&
+                          selectedRows.includes(row.original.id) ? (
                             <input
                               type="datetime-local"
-                              value={row.original.ngayXuat ? new Date(row.original.ngayXuat).toISOString().slice(0, 16) : ""}
-                              onChange={(e) => handleCellEdit(row.original.id, "ngayXuat", e.target.value)}
+                              value={
+                                row.original.ngayXuat
+                                  ? new Date(row.original.ngayXuat)
+                                      .toISOString()
+                                      .slice(0, 16)
+                                  : ""
+                              }
+                              onChange={(e) =>
+                                handleCellEdit(
+                                  row.original.id,
+                                  "ngayXuat",
+                                  e.target.value
+                                )
+                              }
                               style={{ width: "100%", padding: "4px" }}
                             />
                           ) : (
                             formatDate(row.original.ngayXuat)
                           )}
                         </td>
-                        <td style={{ border: "1px solid #bdbdbd", textAlign: "center" }}>
-                          {isEditing && selectedRows.includes(row.original.id) ? (
+                        <td
+                          style={{
+                            border: "1px solid #bdbdbd",
+                            textAlign: "center",
+                          }}
+                        >
+                          {isEditing &&
+                          selectedRows.includes(row.original.id) ? (
                             <>
                               <input
                                 list={`phone-options-edit-${row.original.id}`}
                                 value={row.original.sdt || ""}
-                                onChange={(e) => handlePhoneSelect(row.original.id, { sdt: e.target.value })}
+                                onChange={(e) =>
+                                  handlePhoneSelect(row.original.id, {
+                                    sdt: e.target.value,
+                                  })
+                                }
                                 placeholder="Nhập số điện thoại"
                                 style={{ width: "100%", padding: "4px" }}
                               />
-                              <datalist id={`phone-options-edit-${row.original.id}`}>
+                              <datalist
+                                id={`phone-options-edit-${row.original.id}`}
+                              >
                                 {phoneOptions.map((option, idx) => (
                                   <option key={idx} value={option.sdt} />
                                 ))}
@@ -1269,12 +1386,24 @@ const EditableTable = ({
                             row.original.sdt
                           )}
                         </td>
-                        <td style={{ border: "1px solid #bdbdbd", textAlign: "center" }}>
-                          {isEditing && selectedRows.includes(row.original.id) ? (
+                        <td
+                          style={{
+                            border: "1px solid #bdbdbd",
+                            textAlign: "center",
+                          }}
+                        >
+                          {isEditing &&
+                          selectedRows.includes(row.original.id) ? (
                             <input
                               type="email"
                               value={row.original.mail || ""}
-                              onChange={(e) => handleCellEdit(row.original.id, "mail", e.target.value)}
+                              onChange={(e) =>
+                                handleCellEdit(
+                                  row.original.id,
+                                  "mail",
+                                  e.target.value
+                                )
+                              }
                               placeholder="Nhập email"
                               style={{ width: "100%", padding: "4px" }}
                             />
@@ -1282,12 +1411,24 @@ const EditableTable = ({
                             row.original.mail
                           )}
                         </td>
-                        <td style={{ border: "1px solid #bdbdbd", textAlign: "center" }}>
-                          {isEditing && selectedRows.includes(row.original.id) ? (
+                        <td
+                          style={{
+                            border: "1px solid #bdbdbd",
+                            textAlign: "center",
+                          }}
+                        >
+                          {isEditing &&
+                          selectedRows.includes(row.original.id) ? (
                             <input
                               type="text"
                               value={row.original.tenAG || ""}
-                              onChange={(e) => handleCellEdit(row.original.id, "tenAG", e.target.value)}
+                              onChange={(e) =>
+                                handleCellEdit(
+                                  row.original.id,
+                                  "tenAG",
+                                  e.target.value
+                                )
+                              }
                               placeholder="Nhập tên AG"
                               style={{ width: "100%", padding: "4px" }}
                             />
@@ -1295,74 +1436,165 @@ const EditableTable = ({
                             row.original.tenAG
                           )}
                         </td>
-                        <td style={{ border: "1px solid #bdbdbd", textAlign: "center" }}>
-                          <button
-                            onClick={() => handleClickAddOnOpen(row.original.id)}
-                            className="button-container"
-                            style={{ 
-                              width: "100%",
-                              padding: "8px 16px",
-                              backgroundColor: "rgba(59, 130, 246, 0.9)",
-                              color: "white",
-                              border: "none",
-                              borderRadius: "6px",
-                              fontSize: "12px",
-                              fontWeight: "600",
-                              cursor: "pointer",
-                              transition: "all 0.2s ease"
-                            }}
-                            aria-label={
-                              isEditing && selectedRows.includes(row.original.id)
-                                ? "Xem và sửa Add On"
-                                : "Xem Add On"
-                            }
-                          >
-                            {isEditing && selectedRows.includes(row.original.id)
-                              ? "Xem và sửa"
-                              : "Xem"}
-                          </button>
+                        <td
+                          style={{
+                            border: "1px solid #bdbdbd",
+                            textAlign: "center",
+                          }}
+                        >
+                          {isEditing &&
+                          selectedRows.includes(row.original.id) ? (
+                            <button
+                              onClick={() =>
+                                handleClickAddOnOpen(row.original.id)
+                              }
+                              className="button-container"
+                              style={{
+                                width: "100%",
+                                padding: "8px 16px",
+                                backgroundColor: "rgba(59, 130, 246, 0.9)",
+                                color: "white",
+                                border: "none",
+                                borderRadius: "6px",
+                                fontSize: "12px",
+                                fontWeight: "600",
+                                cursor: "pointer",
+                                transition: "all 0.2s ease",
+                              }}
+                              aria-label={
+                                isEditing &&
+                                selectedRows.includes(row.original.id)
+                                  ? "Xem và sửa Add On"
+                                  : "Xem Add On"
+                              }
+                            >
+                              {isEditing &&
+                              selectedRows.includes(row.original.id)
+                                ? "Xem và sửa"
+                                : "Xem"}
+                            </button>
+                          ) : (
+                            <div
+                              style={{
+                                display: "flex",
+                                alignItems: "center",
+                                justifyContent: "center",
+                                height: "100%",
+                                fontSize: "14px",
+                                fontWeight: "500",
+                                color: "rgba(0, 0, 0, 0.87)",
+                              }}
+                            >
+                              {row.original.addOn
+                                ? JSON.parse(row.original.addOn).map(
+                                    (item, index) => (
+                                      <div
+                                        key={index}
+                                        style={{
+                                          display: "flex",
+                                          alignItems: "center",
+                                          justifyContent: "space-between",
+                                          width: "100%",
+                                        }}
+                                      >
+                                        <span
+                                          style={{
+                                            flex: 1,
+                                            textAlign: "left",
+                                            padding: "4px 8px",
+                                            borderRadius: "4px",
+                                            backgroundColor: "rgba(229, 229, 229, 1)",
+                                            marginRight: "4px",
+                                          }}
+                                        >
+                                          {item.dichVu}
+                                        </span>
+                                        <span
+                                          style={{
+                                            width: "80px",
+                                            textAlign: "right",
+                                            padding: "4px 8px",
+                                            borderRadius: "4px",
+                                            backgroundColor: "rgba(229, 229, 229, 1)",
+                                          }}
+                                        >
+                                          {formatNumberDot(item.soTien)}
+                                        </span>
+                                      </div>
+                                    )
+                                  )
+                                : "Không có dịch vụ nào"}
+                            </div>
+                          )}
                         </td>
-                        
-                        <td style={{ border: "1px solid #bdbdbd", textAlign: "center" }}>
-                          {isEditing && selectedRows.includes(row.original.id) ? (
+                        <td
+                          style={{
+                            border: "1px solid #bdbdbd",
+                            textAlign: "center",
+                          }}
+                        >
+                          {isEditing &&
+                          selectedRows.includes(row.original.id) ? (
                             <select
                               value={row.original.veHoanKhay || "Có"}
-                              onChange={(e) => handleCellEdit(row.original.id, "veHoanKhay", e.target.value)}
+                              onChange={(e) =>
+                                handleCellEdit(
+                                  row.original.id,
+                                  "veHoanKhay",
+                                  e.target.value
+                                )
+                              }
                               style={{ width: "100%", padding: "4px" }}
                             >
                               <option value="Có">Có</option>
                               <option value="Không">Không</option>
                             </select>
                           ) : (
-                            row.original.veHoanKhay
+                            row.original.veHoanKhay ? "Có hoàn" : "Không hoàn"
                           )}
                         </td>
-                        <td style={{ border: "1px solid #bdbdbd", textAlign: "center" }}>
-                          {isEditing && selectedRows.includes(row.original.id) ? (
-                            <>
-                              <input
-                                list={`card-options-edit-${row.original.id}`}
-                                value={row.original.soThe || ""}
-                                onChange={(e) => handleSoTheSelect(row.original.id, e.target.value)}
-                                placeholder="Nhập số thẻ"
-                                style={{ width: "100%", padding: "4px" }}
-                              />
-                              <datalist id={`card-options-edit-${row.original.id}`}>
-                                {cardOptions.map((option, idx) => (
-                                  <option key={idx} value={option.soThe} />
-                                ))}
-                              </datalist>
-                            </>
+                        <td
+                          style={{
+                            border: "1px solid #bdbdbd",
+                            textAlign: "center",
+                          }}
+                        >
+                          {isEditing &&
+                          selectedRows.includes(row.original.id) ? (
+                            <input
+                              list={`card-options-edit-${row.original.id}`}
+                              value={row.original.soThe || ""}
+                              onChange={(e) =>
+                                handleSoTheSelect(
+                                  row.original.id,
+                                  e.target.value
+                                )
+                              }
+                              placeholder="Nhập số thẻ"
+                              style={{ width: "100%", padding: "4px" }}
+                            />
                           ) : (
                             row.original.soThe
                           )}
                         </td>
-                        <td style={{ border: "1px solid #bdbdbd", textAlign: "center" }}>
-                          {isEditing && selectedRows.includes(row.original.id) ? (
+                        <td
+                          style={{
+                            border: "1px solid #bdbdbd",
+                            textAlign: "center",
+                          }}
+                        >
+                          {isEditing &&
+                          selectedRows.includes(row.original.id) ? (
                             <input
                               type="text"
                               value={row.original.luuY || ""}
-                              onChange={(e) => handleCellEdit(row.original.id, "luuY", e.target.value)}
+                              onChange={(e) =>
+                                handleCellEdit(
+                                  row.original.id,
+                                  "luuY",
+                                  e.target.value
+                                )
+                              }
                               placeholder="Nhập lưu ý"
                               style={{ width: "100%", padding: "4px" }}
                             />
@@ -1370,35 +1602,55 @@ const EditableTable = ({
                             row.original.luuY
                           )}
                         </td>
-                        <td style={{ border: "1px solid #bdbdbd", textAlign: "center" }}>
-                          {isEditing && selectedRows.includes(row.original.id) ? (
+                        <td
+                          style={{
+                            border: "1px solid #bdbdbd",
+                            textAlign: "center",
+                          }}
+                        >
+                          {isEditing &&
+                          selectedRows.includes(row.original.id) ? (
                             <input
                               type="text"
                               value={row.original.thuAG || ""}
-                              onChange={(e) => handleCellEdit(row.original.id, "thuAG", e.target.value)}
+                              onChange={(e) =>
+                                handleCellEdit(
+                                  row.original.id,
+                                  "thuAG",
+                                  e.target.value
+                                )
+                              }
                               placeholder="Nhập thu AG"
                               style={{ width: "100%", padding: "4px" }}
                             />
                           ) : (
-                            row.original.thuAG
+                            formatNumberDot(row.original.thuAG)
                           )}
                         </td>
-                        <td style={{ border: "1px solid #bdbdbd", textAlign: "center" }}>
-                          {isEditing && selectedRows.includes(row.original.id) ? (
+                        <td
+                          style={{
+                            border: "1px solid #bdbdbd",
+                            textAlign: "center",
+                          }}
+                        >
+                          {isEditing &&
+                          selectedRows.includes(row.original.id) ? (
                             <input
                               type="text"
                               value={row.original.giaXuat || ""}
-                              onChange={(e) => handleCellEdit(row.original.id, "giaXuat", e.target.value)}
+                              onChange={(e) =>
+                                handleCellEdit(
+                                  row.original.id,
+                                  "giaXuat",
+                                  e.target.value
+                                )
+                              }
                               placeholder="Nhập giá xuất"
                               style={{ width: "100%", padding: "4px" }}
                             />
                           ) : (
-                            row.original.giaXuat
+                            formatNumberDot(row.original.giaXuat)
                           )}
-                        </td>
-                        {/* Các cột chi tiết vé trống */}
-                        <td colSpan={8} style={{ border: "1px solid #bdbdbd", textAlign: "center" }}>
-                          Không có chi tiết vé
                         </td>
                       </tr>
                     );
@@ -1411,112 +1663,71 @@ const EditableTable = ({
           </>
         )}
       </div>
-      
-      <AddOnTable
-        open={openAddOn}
-        onClose={handleDialogAddOnClose}
-        onSave={handleSave}
-        initialData={memoizedInitialData}
-        setData={setData}
-        data={data}
-        rowIndex={addOnRow}
-        mode={addOnMode}
-      />
-      
+      <Snackbar
+        open={snackbar.open}
+        autoHideDuration={6000}
+        onClose={closeSnackbarHandler}
+        anchorOrigin={{ vertical: "top", horizontal: "center" }}
+      >
+        <Alert
+          onClose={closeSnackbarHandler}
+          severity={snackbar.severity}
+          sx={{ width: "100%" }}
+        >
+          {snackbar.message}
+        </Alert>
+      </Snackbar>
       <Dialog
         open={openDeleteDialog}
         onClose={handleCloseDeleteDialog}
-        aria-labelledby="delete-confirmation-dialog-title"
-        aria-describedby="delete-confirmation-dialog-description"
-        PaperProps={{
-          style: {
-            borderRadius: "16px",
-            padding: "8px"
-          }
-        }}
+        aria-labelledby="alert-dialog-title"
+        aria-describedby="alert-dialog-description"
       >
-        <DialogTitle id="delete-confirmation-dialog-title" style={{
-          fontSize: "20px",
-          fontWeight: "700",
-          color: "#1e293b",
-          paddingBottom: "8px",
-          display: "flex",
-          alignItems: "center",
-          gap: "12px"
-        }}>
-          🗑️ Xác nhận xóa
+        <DialogTitle id="alert-dialog-title">
+          {"Xóa hàng đã chọn?"}
         </DialogTitle>
         <DialogContent>
-          <DialogContentText id="delete-confirmation-dialog-description" style={{
-            fontSize: "16px",
-            color: "#64748b",
-            lineHeight: "1.6"
-          }}>
-            Bạn có chắc chắn muốn xóa <strong>{selectedRows.length}</strong> hàng đã chọn? 
-            <br />
-            <span style={{ color: "#dc2626", fontWeight: "600" }}>
-              ⚠️ Hành động này không thể hoàn tác.
-            </span>
+          <DialogContentText id="alert-dialog-description">
+            Bạn có chắc chắn muốn xóa {selectedRows.length} hàng đã chọn?
           </DialogContentText>
         </DialogContent>
-        <DialogActions style={{ padding: "16px 24px 24px", gap: "12px" }}>
-          <Button 
-            onClick={handleCloseDeleteDialog}
-            style={{
-              color: "#6b7280",
-              backgroundColor: "#f3f4f6",
-              padding: "10px 20px",
-              borderRadius: "8px",
-              fontSize: "14px",
-              fontWeight: "600",
-              textTransform: "none",
-              border: "2px solid #e5e7eb"
-            }}
-          >
-            ❌ Hủy
+        <DialogActions>
+          <Button onClick={handleCloseDeleteDialog} color="primary">
+            Hủy
           </Button>
-          <Button 
-            onClick={handleConfirmDelete} 
+          <Button
+            onClick={handleConfirmDelete}
+            color="secondary"
             autoFocus
-            style={{
-              backgroundColor: "rgba(59, 130, 246, 0.8)",
-              color: "white",
-              padding: "10px 20px",
-              borderRadius: "8px",
-              fontSize: "14px",
-              fontWeight: "600",
-              textTransform: "none",
-              boxShadow: "0 4px 12px rgba(59, 130, 246, 0.25)",
-              border: "none"
-            }}
+            variant="contained"
           >
-            🗑️ Xóa ngay
+            Xóa
           </Button>
         </DialogActions>
       </Dialog>
-      
-      {snackbar.open && (
-        <Snackbar
-          open={snackbar.open}
-          autoHideDuration={6000}
-          onClose={closeSnackbarHandler}
-          anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
-        >
-          <Alert
-            onClose={closeSnackbarHandler}
-            severity={snackbar.severity}
-            sx={{ 
-              width: "100%",
-              borderRadius: "12px",
-              fontSize: "14px",
-              fontWeight: "600",
-              boxShadow: "0 8px 24px rgba(0, 0, 0, 0.15)"
-            }}
-          >
-            {snackbar.message}
-          </Alert>
-        </Snackbar>
-      )}
+      <Dialog
+        open={openAddOn}
+        onClose={handleDialogAddOnClose}
+        aria-labelledby="form-dialog-title"
+        maxWidth="md"
+        fullWidth
+      >
+        <DialogTitle id="form-dialog-title">
+          {addOnMode === "edit" ? "Sửa Add On" : "Thêm Add On"}
+        </DialogTitle>
+        <DialogContent>
+          <DialogContentText>
+            {addOnMode === "edit"
+              ? "Chỉnh sửa thông tin Add On cho vé đã chọn."
+              : "Thêm thông tin Add On cho vé."}
+          </DialogContentText>
+          <AddOnTable
+            initialData={memoizedInitialData}
+            onSave={(formData) => handleSave(formData, addOnRow)}
+            onClose={handleDialogAddOnClose}
+          />
+        </DialogContent>
+      </Dialog>
     </>
   );
 };

@@ -1,26 +1,46 @@
 const API_URL = process.env.REACT_APP_API_URL;
+
 export async function refreshAccessToken() {
   try {
+    const refreshToken = localStorage.getItem("refreshToken");
+    
+    if (!refreshToken) {
+      console.log("No refresh token found");
+      return null;
+    }
+
     const refreshResponse = await fetch(`${API_URL}/refresh`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
+        "Authorization": `Bearer ${refreshToken}`
       },
       credentials: "include",
     });
 
     if (!refreshResponse.ok) {
-      throw new Error(
-        "Failed to refresh access token: " + refreshResponse.statusText
-      );
+      // Refresh token hết hạn hoặc không hợp lệ
+      console.log("Refresh token expired or invalid");
+      // Xóa tokens cũ và chuyển về trang đăng nhập
+      localStorage.removeItem("accessToken");
+      localStorage.removeItem("refreshToken");
+      window.location.href = "/";
+      return null;
     }
 
     const refreshData = await refreshResponse.json();
-    const newAccessToken = refreshData.accessToken;
-    localStorage.setItem("accessToken", newAccessToken); // Save new token to localStorage
-    return newAccessToken;
+    
+    // Lưu cả access token và refresh token mới
+    localStorage.setItem("accessToken", refreshData.accessToken);
+    localStorage.setItem("refreshToken", refreshData.refreshToken);
+    
+    return refreshData.accessToken;
   } catch (error) {
     console.error("Error refreshing access token:", error);
+    // Xóa tokens cũ và chuyển về trang đăng nhập
+    localStorage.removeItem("accessToken");
+    localStorage.removeItem("refreshToken");
+    window.location.href = "/";
     return null;
   }
 }

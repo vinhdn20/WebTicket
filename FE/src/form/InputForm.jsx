@@ -177,9 +177,9 @@ const InputTable = ({ onTicketCreated }) => {
         ngayXuat: formHeaderData.ngayXuat
           ? new Date(formHeaderData.ngayXuat).toISOString()
           : new Date().toISOString(),
-        giaXuat: formHeaderData.giaXuat || "",
+        giaXuat: parseNumberDot(formHeaderData.giaXuat || ""),
         addOn: JSON.stringify(addOnData),
-        thuAG: formHeaderData.thuAG || "",
+        thuAG: parseNumberDot(formHeaderData.thuAG || ""),
         luuY: formHeaderData.luuY || "",
         veHoanKhay: formHeaderData.veHoanKhay === "Có" ? true : false,
         cardId,
@@ -370,18 +370,18 @@ const InputTable = ({ onTicketCreated }) => {
   }, [handleDeleteRows]);
 
   const handleHeaderInputChange = (field, value) => {
-    setFormHeaderData((prev) => ({
-      ...prev,
-      [field]: value,
-    }));
-
-    // Cập nhật cho tất cả các hàng trong data
-    setData((prevData) =>
-      prevData.map((row) => ({
-        ...row,
-        [field]: value,
-      }))
-    );
+    if (field === "giaXuat" || field === "thuAG") {
+      const formatted = formatNumberDot(value);
+      setFormHeaderData((prev) => ({ ...prev, [field]: formatted }));
+      setData((prevData) =>
+        prevData.map((row) => ({ ...row, [field]: formatted }))
+      );
+    } else {
+      setFormHeaderData((prev) => ({ ...prev, [field]: value }));
+      setData((prevData) =>
+        prevData.map((row) => ({ ...row, [field]: value }))
+      );
+    }
   };
 
   const handleHeaderPhoneSelect = (value) => {
@@ -499,17 +499,6 @@ const InputTable = ({ onTicketCreated }) => {
           position: relative;
         }
         
-        .dropdown-container::after {
-          content: '▼';
-          position: absolute;
-          right: 12px;
-          top: 50%;
-          transform: translateY(-50%);
-          pointer-events: none;
-          color: #6b7280;
-          font-size: 12px;
-        }
-        
         .dropdown-container input:focus + .dropdown-icon {
           color: rgb(59, 130, 246);
         }
@@ -577,7 +566,7 @@ const InputTable = ({ onTicketCreated }) => {
             variant="contained"
             onClick={() => setOpenSoTheDialog(true)}
             style={{ 
-              backgroundColor: "rgba(59, 130, 246, 0.8)",
+              backgroundColor: "rgb(59, 130, 246)",
               color: "white",
               padding: "12px 24px",
               borderRadius: "12px",
@@ -662,17 +651,7 @@ const InputTable = ({ onTicketCreated }) => {
                   outline: "none",
                   boxShadow: "0 1px 3px rgba(0, 0, 0, 0.1)"
                 }}
-                placeholder="Chọn hoặc nhập số điện thoại"
               />
-              <span style={{
-                position: "absolute",
-                right: "12px",
-                top: "50%",
-                transform: "translateY(-50%)",
-                pointerEvents: "none",
-                color: "#6b7280",
-                fontSize: "12px"
-              }}>▼</span>
             </div>
             <datalist id="phone-options-header">
               {phoneOptions.map((option, idx) => (
@@ -707,7 +686,6 @@ const InputTable = ({ onTicketCreated }) => {
                 outline: "none",
                 boxShadow: "0 1px 3px rgba(0, 0, 0, 0.1)"
               }}
-              placeholder="example@email.com"
             />
           </div>
           
@@ -737,7 +715,6 @@ const InputTable = ({ onTicketCreated }) => {
                 outline: "none",
                 boxShadow: "0 1px 3px rgba(0, 0, 0, 0.1)"
               }}
-              placeholder="Tên đại lý"
             />
           </div>
 
@@ -770,8 +747,8 @@ const InputTable = ({ onTicketCreated }) => {
                 boxShadow: "0 1px 3px rgba(0, 0, 0, 0.1)"
               }}
             >
-              <option value="Có">✅ Có hoàn</option>
-              <option value="Không">❌ Không hoàn</option>
+              <option value="Có">Có hoàn</option>
+              <option value="Không">Không hoàn</option>
             </select>
           </div>
 
@@ -803,17 +780,7 @@ const InputTable = ({ onTicketCreated }) => {
                   outline: "none",
                   boxShadow: "0 1px 3px rgba(0, 0, 0, 0.1)"
                 }}
-                placeholder="Chọn hoặc nhập số thẻ"
               />
-              <span style={{
-                position: "absolute",
-                right: "12px",
-                top: "50%",
-                transform: "translateY(-50%)",
-                pointerEvents: "none",
-                color: "#6b7280",
-                fontSize: "12px"
-              }}>▼</span>
             </div>
             <datalist id="so-the-header">
               {cardOptions.map((option, idx) => (
@@ -879,7 +846,6 @@ const InputTable = ({ onTicketCreated }) => {
                 outline: "none",
                 boxShadow: "0 1px 3px rgba(0, 0, 0, 0.1)"
               }}
-              placeholder="Ghi chú thêm"
             />
           </div>
 
@@ -909,7 +875,6 @@ const InputTable = ({ onTicketCreated }) => {
                 outline: "none",
                 boxShadow: "0 1px 3px rgba(0, 0, 0, 0.1)"
               }}
-              placeholder="Thu AG"
             />
           </div>
 
@@ -939,7 +904,6 @@ const InputTable = ({ onTicketCreated }) => {
                 outline: "none",
                 boxShadow: "0 1px 3px rgba(0, 0, 0, 0.1)"
               }}
-              placeholder="Giá xuất"
             />
           </div>
         </div>
@@ -1051,7 +1015,6 @@ const InputTable = ({ onTicketCreated }) => {
                                 sdt: e.target.value,
                               });
                             }}
-                            placeholder="Chọn hoặc nhập SĐT"
                             onFocus={() =>
                               setCurrentFocusCell({
                                 rowIndex,
@@ -1071,15 +1034,6 @@ const InputTable = ({ onTicketCreated }) => {
                               boxShadow: "0 1px 2px rgba(0, 0, 0, 0.05)"
                             }}
                           />
-                          <span style={{
-                            position: "absolute",
-                            right: "8px",
-                            top: "50%",
-                            transform: "translateY(-50%)",
-                            pointerEvents: "none",
-                            color: "#9ca3af",
-                            fontSize: "10px"
-                          }}>▼</span>
                           <datalist id={`phone-options-${rowIndex}`}>
                             {phoneOptions.map((option, idx) => (
                               <option key={idx} value={option.sdt} />
@@ -1096,7 +1050,6 @@ const InputTable = ({ onTicketCreated }) => {
                                 soThe: e.target.value,
                               });
                             }}
-                            placeholder="Chọn hoặc nhập số thẻ"
                             onFocus={() =>
                               setCurrentFocusCell({
                                 rowIndex,
@@ -1116,15 +1069,6 @@ const InputTable = ({ onTicketCreated }) => {
                               boxShadow: "0 1px 2px rgba(0, 0, 0, 0.05)"
                             }}
                           />
-                          <span style={{
-                            position: "absolute",
-                            right: "8px",
-                            top: "50%",
-                            transform: "translateY(-50%)",
-                            pointerEvents: "none",
-                            color: "#9ca3af",
-                            fontSize: "10px"
-                          }}>▼</span>
                           <datalist id={`so-the-${rowIndex}`}>
                             {cardOptions.map((option, idx) => (
                               <option key={idx} value={option.soThe} />
@@ -1322,7 +1266,7 @@ const InputTable = ({ onTicketCreated }) => {
             onClick={handleAddRow}
             variant="contained"
             style={{ 
-              backgroundColor: "rgba(59, 130, 246, 0.8)",
+              backgroundColor: "rgb(59, 130, 246)",
               color: "white",
               padding: "12px 24px",
               borderRadius: "10px",
@@ -1334,13 +1278,13 @@ const InputTable = ({ onTicketCreated }) => {
               minWidth: "140px"
             }}
           >
-            ➕ Thêm Hàng
+            Thêm Hàng
           </Button>
           <Button
             onClick={handleOpenDeleteDialog}
             variant="contained"
             style={{ 
-              backgroundColor: "rgba(59, 130, 246, 0.6)",
+              backgroundColor: "rgb(59, 130, 246)",
               color: "white",
               padding: "12px 24px",
               borderRadius: "10px",
@@ -1355,7 +1299,7 @@ const InputTable = ({ onTicketCreated }) => {
             }}
             disabled={selectedRows.length === 0}
           >
-            🗑️ Xóa Hàng Đã Chọn
+            Xóa Hàng Đã Chọn
           </Button>
           <Button 
             onClick={handleAddTicket} 
@@ -1373,7 +1317,7 @@ const InputTable = ({ onTicketCreated }) => {
               minWidth: "160px"
             }}
           >
-            🎫 Xuất Vé
+            Xuất Vé
           </Button>
         </div>
       </div>
@@ -1489,5 +1433,28 @@ const InputTable = ({ onTicketCreated }) => {
     </div>
   );
 };
+
+// Format số có dấu chấm ngăn cách hàng nghìn (1.000.000)
+function formatNumberDot(value) {
+  if (value === null || value === undefined) return "";
+  const str = value.toString().replace(/\D/g, "");
+  if (!str) return "";
+  return str.replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+}
+
+// Parse số từ string có dấu chấm về số nguyên ("1.000.000" => "1000000")
+function parseNumberDot(value) {
+  if (typeof value !== "string") return value;
+  return value.replace(/\./g, "");
+}
+
+// Khi nhận data từ API, format lại giaXuat và thuAG nếu có
+export function formatApiTicketData(ticket) {
+  return {
+    ...ticket,
+    giaXuat: ticket.giaXuat ? formatNumberDot(ticket.giaXuat.toString()) : "",
+    thuAG: ticket.thuAG ? formatNumberDot(ticket.thuAG.toString()) : "",
+  };
+}
 
 export default InputTable;

@@ -9,9 +9,10 @@ import "../style/table.css";
 import InputForm from "./InputForm";
 import DataTable from "./table";
 import SearchComponent from "./search";
-import { processResult, refreshAccessToken } from "../constant";
+import { processResult } from "../constant";
+import { logout, fetchWithAuth } from "../services/authService";
 import { debounce } from "lodash";
-import { Snackbar, Alert } from "@mui/material";
+import { Snackbar, Alert, Button } from "@mui/material";
 import ErrorBoundary from "../component/ErrorBoundary";
 
 const initTable = {
@@ -56,58 +57,14 @@ const TicketTable2 = () => {
 
   const fetchInitialData = useCallback(
     async (filters) => {
-      let accessToken = getAccessToken();
-
       try {
-        const response = await fetch(`${API_URL}/Ve/filter`, {
+        const result = await fetchWithAuth('/Ve/filter', {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
-            Authorization: `Bearer ${accessToken}`,
           },
           body: JSON.stringify(filters),
-        });
-
-        if (response.status === 401) {
-          // Token expired or unauthorized, refresh the token
-          const newToken = await refreshAccessToken();
-          if (newToken) {
-            accessToken = newToken;
-            // Retry the original request with the new token
-            const retryResponse = await fetch(
-              `${API_URL}/Ve/filter`,
-              {
-                method: "POST",
-                headers: {
-                  "Content-Type": "application/json",
-                  Authorization: `Bearer ${accessToken}`,
-                },
-                body: JSON.stringify(filters),
-              }
-            );
-
-            if (!retryResponse.ok) {
-              throw new Error(
-                "Failed to fetch data after refreshing token: " +
-                  retryResponse.statusText
-              );
-            }
-            const retryResult = await retryResponse.json();
-            setPageCount(retryResult.pageCount);
-            return processResult(retryResult);
-          } else {
-            window.location.href = "/";
-            throw new Error("Failed to refresh access token");
-          }
-        }
-
-        if (!response.ok) {
-          throw new Error(
-            "Failed to fetch initial data: " + response.statusText
-          );
-        }
-
-        const result = await response.json();
+        }, openSnackbar);
         setPageCount(result.pageCount);
         return processResult(result);
       } catch (error) {
@@ -144,59 +101,14 @@ const TicketTable2 = () => {
 
   const handleSaveEditedRows = useCallback(
     async (payload) => {
-      let accessToken = getAccessToken();
       try {
-        const response = await fetch(`${API_URL}/Ve/xuatve`, {
+        await fetchWithAuth('/Ve/xuatve', {
           method: "PUT",
           headers: {
             "Content-Type": "application/json",
-            Authorization: `Bearer ${accessToken}`,
           },
           body: JSON.stringify(payload),
-        });
-
-        if (response.status === 401) {
-          // Token expired, try to refresh
-          const newToken = await refreshAccessToken();
-          if (newToken) {
-            accessToken = newToken;
-            // Retry the original request with the new token
-            const retryResponse = await fetch(
-              `${API_URL}/Ve/xuatve`,
-              {
-                method: "PUT",
-                headers: {
-                  "Content-Type": "application/json",
-                  Authorization: `Bearer ${accessToken}`,
-                },
-                body: JSON.stringify(payload),
-              }
-            );
-
-            if (!retryResponse.ok) {
-              throw new Error(
-                "Failed to update rows after refreshing token: " +
-                  retryResponse.statusText
-              );
-            }
-
-            openSnackbar(
-              "Các hàng đã chỉnh sửa được lưu thành công!",
-              "success"
-            );
-            setSelectedRows([]);
-            debouncedLoad();
-            return;
-          } else {
-            window.location.href = "/";
-            throw new Error("Failed to refresh access token");
-          }
-        }
-
-        if (!response.ok) {
-          throw new Error("Failed to update rows: " + response.statusText);
-        }
-
+        }, openSnackbar);
         openSnackbar("Các hàng đã chỉnh sửa được lưu thành công!", "success");
         setSelectedRows([]);
         debouncedLoad();
@@ -214,58 +126,14 @@ const TicketTable2 = () => {
       openSnackbar("Không có hàng nào được chọn để xóa.", "warning");
       return;
     }
-
-    let accessToken = getAccessToken();
-
     try {
-      const response = await fetch(`${API_URL}/Ve/xuatve`, {
+      await fetchWithAuth('/Ve/xuatve', {
         method: "DELETE",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${accessToken}`,
         },
         body: JSON.stringify(payload),
-      });
-
-      if (response.status === 401) {
-        // Token expired, try to refresh
-        const newToken = await refreshAccessToken();
-        if (newToken) {
-          accessToken = newToken;
-          // Retry the original request with the new token
-          const retryResponse = await fetch(
-            `${API_URL}/Ve/xuatve`,
-            {
-              method: "DELETE",
-              headers: {
-                "Content-Type": "application/json",
-                Authorization: `Bearer ${accessToken}`,
-              },
-              body: JSON.stringify(payload),
-            }
-          );
-
-          if (!retryResponse.ok) {
-            throw new Error(
-              "Failed to delete rows after refreshing token: " +
-                retryResponse.statusText
-            );
-          }
-
-          openSnackbar("Các hàng đã chọn được xóa thành công!", "success");
-          setSelectedRows([]);
-          debouncedLoad();
-          return;
-        } else {
-          window.location.href = "/";
-          throw new Error("Failed to refresh access token");
-        }
-      }
-
-      if (!response.ok) {
-        throw new Error("Failed to delete rows: " + response.statusText);
-      }
-
+      }, openSnackbar);
       openSnackbar("Các hàng đã chọn được xóa thành công!", "success");
       setSelectedRows([]);
       debouncedLoad();
@@ -278,6 +146,61 @@ const TicketTable2 = () => {
   return (
     <ErrorBoundary>
       <div className="container">
+        {/* Header với nút logout */}
+        <div style={{
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          padding: "16px 20px",
+          backgroundColor: "white",
+          borderRadius: "12px",
+          marginBottom: "20px",
+          boxShadow: "0 2px 8px rgba(0, 0, 0, 0.1)",
+          border: "1px solid #e2e8f0"
+        }}>
+          <h1 style={{
+            margin: 0,
+            color: "#1e293b",
+            fontSize: "24px",
+            fontWeight: "700",
+            display: "flex",
+            alignItems: "center",
+            gap: "12px"
+          }}>
+            <span style={{
+              backgroundColor: "rgb(59, 130, 246)",
+              color: "white",
+              borderRadius: "50%",
+              width: "40px",
+              height: "40px",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              fontSize: "18px"
+            }}>🎫</span>
+            Hệ Thống Quản Lý Bán Vé
+          </h1>
+          
+          <Button
+            variant="contained"
+            onClick={logout}
+            style={{
+              backgroundColor: "rgba(59, 130, 246, 0.8)",
+              color: "white",
+              padding: "10px 20px",
+              borderRadius: "8px",
+              fontSize: "14px",
+              fontWeight: "600",
+              textTransform: "none",
+              boxShadow: "0 2px 8px rgba(59, 130, 246, 0.25)",
+              border: "none",
+              transition: "all 0.2s ease"
+            }}
+          >
+            🚪 Đăng xuất
+          </Button>
+        </div>
+
         <InputForm onTicketCreated={debouncedLoad} />
         <SearchComponent
           setColumnFilters={setColumnFilters}
