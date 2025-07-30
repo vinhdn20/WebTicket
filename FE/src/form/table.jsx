@@ -387,12 +387,14 @@ const EditableTable = ({
           body: JSON.stringify(formattedTickets),
         },
         openSnackbarHandler
-      ).then(() => {
-        setEditedRows(new Set());
-        openSnackbarHandler("Lưu thay đổi thành công!", "success");
-      }).catch(() => {
-        openSnackbarHandler("Có lỗi khi lưu thay đổi!", "error");
-      });
+      )
+        .then(() => {
+          setEditedRows(new Set());
+          openSnackbarHandler("Lưu thay đổi thành công!", "success");
+        })
+        .catch(() => {
+          openSnackbarHandler("Có lỗi khi lưu thay đổi!", "error");
+        });
 
       // Format lại các trường thuAG và giaXuat khi thoát edit mode
       setData((prevData) =>
@@ -408,7 +410,15 @@ const EditableTable = ({
       );
     }
     setIsEditing((prev) => !prev);
-  }, [isEditing, editedRows, data, cardOptions, phoneOptions, openSnackbarHandler, setData]);
+  }, [
+    isEditing,
+    editedRows,
+    data,
+    cardOptions,
+    phoneOptions,
+    openSnackbarHandler,
+    setData,
+  ]);
 
   const isAllSelected = useMemo(
     () => selectedRows.length === tableData.length && tableData.length > 0,
@@ -442,15 +452,21 @@ const EditableTable = ({
       if (row && row.addOn) {
         try {
           const parsedData = JSON.parse(row.addOn);
-          return parsedData;
+          // Always return array of {dichVu, soTien} objects
+          if (Array.isArray(parsedData)) {
+            return parsedData.map((item) => ({
+              dichVu: item.dichVu || "",
+              soTien: item.soTien || "",
+            }));
+          }
         } catch (error) {
           console.error("Error parsing JSON:", error);
-          return [{ stt: "", dichVu: "", soTien: "" }];
         }
       }
-      return [{ stt: "", dichVu: "", soTien: "" }];
+      // Default: one empty row
+      return [{ dichVu: "", soTien: "" }];
     }
-    return [{ stt: "", dichVu: "", soTien: "" }];
+    return [{ dichVu: "", soTien: "" }];
   }, [addOnRow, data]);
 
   // Internal function for rendering Pagination Controls
@@ -812,8 +828,12 @@ const EditableTable = ({
                               >
                                 <input
                                   type="checkbox"
-                                  checked={selectedRows.includes(row.original.id)}
-                                  onChange={() => toggleRowSelection(row.original.id)}
+                                  checked={selectedRows.includes(
+                                    row.original.id
+                                  )}
+                                  onChange={() =>
+                                    toggleRowSelection(row.original.id)
+                                  }
                                   className="table-checkbox"
                                   aria-label={`Chọn hàng ${row.original.id}`}
                                   disabled={isEditing}
@@ -845,7 +865,18 @@ const EditableTable = ({
                                         e.target.value
                                       )
                                     }
-                                    className="table-input"
+                                    style={{
+                                      width: "100%",
+                                      padding: "10px 14px",
+                                      border: "1.5px solid #60a5fa",
+                                      borderRadius: "8px",
+                                      fontSize: "15px",
+                                      background: "#fff",
+                                      boxSizing: "border-box",
+                                      outline: "none",
+                                      transition: "border-color 0.2s",
+                                      margin: 0,
+                                    }}
                                   />
                                 ) : (
                                   formatDate(row.original.ngayXuat)
@@ -870,7 +901,18 @@ const EditableTable = ({
                                         })
                                       }
                                       placeholder="Chọn hoặc nhập SĐT"
-                                      className="table-input"
+                                      style={{
+                                        width: "100%",
+                                        padding: "10px 14px",
+                                        border: "1.5px solid #60a5fa",
+                                        borderRadius: "8px",
+                                        fontSize: "15px",
+                                        background: "#fff",
+                                        boxSizing: "border-box",
+                                        outline: "none",
+                                        transition: "border-color 0.2s",
+                                        margin: 0,
+                                      }}
                                     />
                                     <datalist
                                       id={`phone-options-edit-${row.original.id}`}
@@ -904,7 +946,18 @@ const EditableTable = ({
                                       )
                                     }
                                     placeholder="example@email.com"
-                                    className="table-input"
+                                    style={{
+                                      width: "100%",
+                                      padding: "10px 14px",
+                                      border: "1.5px solid #60a5fa",
+                                      borderRadius: "8px",
+                                      fontSize: "15px",
+                                      background: "#fff",
+                                      boxSizing: "border-box",
+                                      outline: "none",
+                                      transition: "border-color 0.2s",
+                                      margin: 0,
+                                    }}
                                   />
                                 ) : (
                                   row.original.mail
@@ -930,7 +983,18 @@ const EditableTable = ({
                                       )
                                     }
                                     placeholder="Nhập tên AG"
-                                    style={{ width: "100%", padding: "4px" }}
+                                    style={{
+                                      width: "100%",
+                                      padding: "10px 14px",
+                                      border: "1.5px solid #60a5fa",
+                                      borderRadius: "8px",
+                                      fontSize: "15px",
+                                      background: "#fff",
+                                      boxSizing: "border-box",
+                                      outline: "none",
+                                      transition: "border-color 0.2s",
+                                      margin: 0,
+                                    }}
                                   />
                                 ) : (
                                   row.original.tenAG
@@ -991,13 +1055,26 @@ const EditableTable = ({
                                         e.target.value
                                       )
                                     }
-                                    style={{ width: "100%", padding: "4px" }}
+                                    style={{
+                                      width: "100%",
+                                      padding: "10px 14px",
+                                      border: "1.5px solid #60a5fa",
+                                      borderRadius: "8px",
+                                      fontSize: "15px",
+                                      background: "#fff",
+                                      boxSizing: "border-box",
+                                      outline: "none",
+                                      transition: "border-color 0.2s",
+                                      margin: 0,
+                                    }}
                                   >
                                     <option value="Có">Có</option>
                                     <option value="Không">Không</option>
                                   </select>
+                                ) : row.original.veHoanKhay ? (
+                                  "Có hoàn"
                                 ) : (
-                                  row.original.veHoanKhay ? "Có hoàn" : "Không hoàn"
+                                  "Không hoàn"
                                 )}
                               </td>
                               <td
@@ -1020,7 +1097,18 @@ const EditableTable = ({
                                         )
                                       }
                                       placeholder="Nhập số thẻ"
-                                      style={{ width: "100%", padding: "4px" }}
+                                      style={{
+                                        width: "100%",
+                                        padding: "10px 14px",
+                                        border: "1.5px solid #60a5fa",
+                                        borderRadius: "8px",
+                                        fontSize: "15px",
+                                        background: "#fff",
+                                        boxSizing: "border-box",
+                                        outline: "none",
+                                        transition: "border-color 0.2s",
+                                        margin: 0,
+                                      }}
                                     />
                                     <datalist
                                       id={`card-options-edit-${row.original.id}`}
@@ -1057,7 +1145,18 @@ const EditableTable = ({
                                       )
                                     }
                                     placeholder="Nhập lưu ý"
-                                    style={{ width: "100%", padding: "4px" }}
+                                    style={{
+                                      width: "100%",
+                                      padding: "10px 14px",
+                                      border: "1.5px solid #60a5fa",
+                                      borderRadius: "8px",
+                                      fontSize: "15px",
+                                      background: "#fff",
+                                      boxSizing: "border-box",
+                                      outline: "none",
+                                      transition: "border-color 0.2s",
+                                      margin: 0,
+                                    }}
                                   />
                                 ) : (
                                   row.original.luuY
@@ -1071,23 +1170,36 @@ const EditableTable = ({
                                 rowSpan={veDetailRows.length}
                               >
                                 {isEditing &&
-                selectedRows.includes(row.original.id) ? (
-                  <input
-                    type="text"
-                    value={formatNumberDot(row.original.thuAG || "")}
-                    onChange={(e) =>
-                      handleCellEdit(
-                        row.original.id,
-                        "thuAG",
-                        e.target.value
-                      )
-                    }
-                    placeholder="Nhập thu AG"
-                    style={{ width: "100%", padding: "4px" }}
-                  />
-                ) : (
-                  formatNumberDot(row.original.thuAG)
-                )}
+                                selectedRows.includes(row.original.id) ? (
+                                  <input
+                                    type="text"
+                                    value={formatNumberDot(
+                                      row.original.thuAG || ""
+                                    )}
+                                    onChange={(e) =>
+                                      handleCellEdit(
+                                        row.original.id,
+                                        "thuAG",
+                                        e.target.value
+                                      )
+                                    }
+                                    placeholder="Nhập thu AG"
+                                    style={{
+                                      width: "100%",
+                                      padding: "10px 14px",
+                                      border: "1.5px solid #60a5fa",
+                                      borderRadius: "8px",
+                                      fontSize: "15px",
+                                      background: "#fff",
+                                      boxSizing: "border-box",
+                                      outline: "none",
+                                      transition: "border-color 0.2s",
+                                      margin: 0,
+                                    }}
+                                  />
+                                ) : (
+                                  formatNumberDot(row.original.thuAG)
+                                )}
                               </td>
                               <td
                                 style={{
@@ -1097,23 +1209,36 @@ const EditableTable = ({
                                 rowSpan={veDetailRows.length}
                               >
                                 {isEditing &&
-                selectedRows.includes(row.original.id) ? (
-                  <input
-                    type="text"
-                    value={formatNumberDot(row.original.giaXuat || "")}
-                    onChange={(e) =>
-                      handleCellEdit(
-                        row.original.id,
-                        "giaXuat",
-                        e.target.value
-                      )
-                    }
-                    placeholder="Nhập giá xuất"
-                    style={{ width: "100%", padding: "4px" }}
-                  />
-                ) : (
-                  formatNumberDot(row.original.giaXuat)
-                )}
+                                selectedRows.includes(row.original.id) ? (
+                                  <input
+                                    type="text"
+                                    value={formatNumberDot(
+                                      row.original.giaXuat || ""
+                                    )}
+                                    onChange={(e) =>
+                                      handleCellEdit(
+                                        row.original.id,
+                                        "giaXuat",
+                                        e.target.value
+                                      )
+                                    }
+                                    placeholder="Nhập giá xuất"
+                                    style={{
+                                      width: "100%",
+                                      padding: "10px 14px",
+                                      border: "1.5px solid #60a5fa",
+                                      borderRadius: "8px",
+                                      fontSize: "15px",
+                                      background: "#fff",
+                                      boxSizing: "border-box",
+                                      outline: "none",
+                                      transition: "border-color 0.2s",
+                                      margin: 0,
+                                    }}
+                                  />
+                                ) : (
+                                  formatNumberDot(row.original.giaXuat)
+                                )}
                               </td>
                             </>
                           )}
@@ -1348,7 +1473,18 @@ const EditableTable = ({
                                   e.target.value
                                 )
                               }
-                              style={{ width: "100%", padding: "4px" }}
+                              style={{
+                                width: "100%",
+                                padding: "10px 14px",
+                                border: "1.5px solid #60a5fa",
+                                borderRadius: "8px",
+                                fontSize: "15px",
+                                background: "#fff",
+                                boxSizing: "border-box",
+                                outline: "none",
+                                transition: "border-color 0.2s",
+                                margin: 0,
+                              }}
                             />
                           ) : (
                             formatDate(row.original.ngayXuat)
@@ -1372,7 +1508,18 @@ const EditableTable = ({
                                   })
                                 }
                                 placeholder="Nhập số điện thoại"
-                                style={{ width: "100%", padding: "4px" }}
+                                style={{
+                                  width: "100%",
+                                  padding: "10px 14px",
+                                  border: "1.5px solid #60a5fa",
+                                  borderRadius: "8px",
+                                  fontSize: "15px",
+                                  background: "#fff",
+                                  boxSizing: "border-box",
+                                  outline: "none",
+                                  transition: "border-color 0.2s",
+                                  margin: 0,
+                                }}
                               />
                               <datalist
                                 id={`phone-options-edit-${row.original.id}`}
@@ -1405,7 +1552,18 @@ const EditableTable = ({
                                 )
                               }
                               placeholder="Nhập email"
-                              style={{ width: "100%", padding: "4px" }}
+                              style={{
+                                width: "100%",
+                                padding: "10px 14px",
+                                border: "1.5px solid #60a5fa",
+                                borderRadius: "8px",
+                                fontSize: "15px",
+                                background: "#fff",
+                                boxSizing: "border-box",
+                                outline: "none",
+                                transition: "border-color 0.2s",
+                                margin: 0,
+                              }}
                             />
                           ) : (
                             row.original.mail
@@ -1430,7 +1588,18 @@ const EditableTable = ({
                                 )
                               }
                               placeholder="Nhập tên AG"
-                              style={{ width: "100%", padding: "4px" }}
+                              style={{
+                                width: "100%",
+                                padding: "10px 14px",
+                                border: "1.5px solid #60a5fa",
+                                borderRadius: "8px",
+                                fontSize: "15px",
+                                background: "#fff",
+                                boxSizing: "border-box",
+                                outline: "none",
+                                transition: "border-color 0.2s",
+                                margin: 0,
+                              }}
                             />
                           ) : (
                             row.original.tenAG
@@ -1451,15 +1620,16 @@ const EditableTable = ({
                               className="button-container"
                               style={{
                                 width: "100%",
-                                padding: "8px 16px",
+                                padding: "12px 18px",
                                 backgroundColor: "rgba(59, 130, 246, 0.9)",
                                 color: "white",
                                 border: "none",
-                                borderRadius: "6px",
-                                fontSize: "12px",
+                                borderRadius: "8px",
+                                fontSize: "15px",
                                 fontWeight: "600",
                                 cursor: "pointer",
                                 transition: "all 0.2s ease",
+                                margin: 0,
                               }}
                               aria-label={
                                 isEditing &&
@@ -1503,7 +1673,8 @@ const EditableTable = ({
                                             textAlign: "left",
                                             padding: "4px 8px",
                                             borderRadius: "4px",
-                                            backgroundColor: "rgba(229, 229, 229, 1)",
+                                            backgroundColor:
+                                              "rgba(229, 229, 229, 1)",
                                             marginRight: "4px",
                                           }}
                                         >
@@ -1515,7 +1686,8 @@ const EditableTable = ({
                                             textAlign: "right",
                                             padding: "4px 8px",
                                             borderRadius: "4px",
-                                            backgroundColor: "rgba(229, 229, 229, 1)",
+                                            backgroundColor:
+                                              "rgba(229, 229, 229, 1)",
                                           }}
                                         >
                                           {formatNumberDot(item.soTien)}
@@ -1544,13 +1716,26 @@ const EditableTable = ({
                                   e.target.value
                                 )
                               }
-                              style={{ width: "100%", padding: "4px" }}
+                              style={{
+                                width: "100%",
+                                padding: "10px 14px",
+                                border: "1.5px solid #60a5fa",
+                                borderRadius: "8px",
+                                fontSize: "15px",
+                                background: "#fff",
+                                boxSizing: "border-box",
+                                outline: "none",
+                                transition: "border-color 0.2s",
+                                margin: 0,
+                              }}
                             >
                               <option value="Có">Có</option>
                               <option value="Không">Không</option>
                             </select>
+                          ) : row.original.veHoanKhay ? (
+                            "Có hoàn"
                           ) : (
-                            row.original.veHoanKhay ? "Có hoàn" : "Không hoàn"
+                            "Không hoàn"
                           )}
                         </td>
                         <td
@@ -1571,7 +1756,18 @@ const EditableTable = ({
                                 )
                               }
                               placeholder="Nhập số thẻ"
-                              style={{ width: "100%", padding: "4px" }}
+                              style={{
+                                width: "100%",
+                                padding: "10px 14px",
+                                border: "1.5px solid #60a5fa",
+                                borderRadius: "8px",
+                                fontSize: "15px",
+                                background: "#fff",
+                                boxSizing: "border-box",
+                                outline: "none",
+                                transition: "border-color 0.2s",
+                                margin: 0,
+                              }}
                             />
                           ) : (
                             row.original.soThe
@@ -1596,7 +1792,18 @@ const EditableTable = ({
                                 )
                               }
                               placeholder="Nhập lưu ý"
-                              style={{ width: "100%", padding: "4px" }}
+                              style={{
+                                width: "100%",
+                                padding: "10px 14px",
+                                border: "1.5px solid #60a5fa",
+                                borderRadius: "8px",
+                                fontSize: "15px",
+                                background: "#fff",
+                                boxSizing: "border-box",
+                                outline: "none",
+                                transition: "border-color 0.2s",
+                                margin: 0,
+                              }}
                             />
                           ) : (
                             row.original.luuY
@@ -1683,9 +1890,7 @@ const EditableTable = ({
         aria-labelledby="alert-dialog-title"
         aria-describedby="alert-dialog-description"
       >
-        <DialogTitle id="alert-dialog-title">
-          {"Xóa hàng đã chọn?"}
-        </DialogTitle>
+        <DialogTitle id="alert-dialog-title">{"Xóa hàng đã chọn?"}</DialogTitle>
         <DialogContent>
           <DialogContentText id="alert-dialog-description">
             Bạn có chắc chắn muốn xóa {selectedRows.length} hàng đã chọn?
@@ -1722,9 +1927,14 @@ const EditableTable = ({
               : "Thêm thông tin Add On cho vé."}
           </DialogContentText>
           <AddOnTable
-            initialData={memoizedInitialData}
-            onSave={(formData) => handleSave(formData, addOnRow)}
+            open={openAddOn}
             onClose={handleDialogAddOnClose}
+            onSave={(formData) => handleSave(formData, addOnRow)}
+            initialData={memoizedInitialData}
+            setData={setData}
+            data={data}
+            rowIndex={addOnRow}
+            mode={addOnMode}
           />
         </DialogContent>
       </Dialog>
