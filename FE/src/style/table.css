@@ -124,10 +124,6 @@ button:hover {
   color: #333;
 }
 
-.table-container td {
-  color: #555;
-}
-
 input[type="checkbox"] {
   transform: scale(1.2);
   margin: 0;

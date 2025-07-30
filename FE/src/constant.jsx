@@ -29,27 +29,32 @@ export function processResult(result) {
   return result.items.map((item) => ({
     id: item.id,
     cardId: item.cardId,
-    agCustomerId: item.agId,
+    agCustomerId: item.agCustomerId || item.agId,
     customerId: item.customerId,
     ngayXuat: item.ngayXuat,
-    changDi: item.changDi,
-    ngayGioBayDi: item.ngayGioBayDi,
-    changVe: item.changVe,
-    ngayGioBayDen: item.ngayGioBayDen,
-    maDatChoHang: item.maDatChoHang,
-    addOn: item.addOn,
-    maDatChoTrip: item.maDatChoTrip,
-    thuAG: item.thuAG,
     giaXuat: item.giaXuat,
+    addOn: item.addOn,
+    thuAG: item.thuAG,
     luuY: item.luuY,
     veHoanKhay: item.veHoanKhay,
     tenAG: item.agCustomer?.tenAG || null,
     mail: item.agCustomer?.mail || null,
     sdt: item.agCustomer?.sdt || null,
-    tenKhachHang: item.customer?.tenKhachHang || null,
-    gioiTinh: item.customer?.gioiTinh || null,
     soThe: item.card?.soThe || null,
     taiKhoan: item.taiKhoan || null,
+    // Lấy veDetail nếu có, nếu không thì mảng rỗng
+    veDetail: Array.isArray(item.veDetail)
+      ? item.veDetail.map((v) => ({
+          changBay: v.changBay,
+          ngayGioBay: v.ngayGioBay,
+          hangBay: v.hangBay,
+          soHieuChuyenBay: v.soHieuChuyenBay,
+          thamChieuHang: v.thamChieuHang,
+          maDatCho: v.maDatCho,
+          tenKhachHang: v.tenKhachHang,
+          id: v.id,
+        }))
+      : [],
   }));
 }
 

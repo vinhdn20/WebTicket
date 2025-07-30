@@ -94,7 +94,7 @@ const InputTable = ({ onTicketCreated }) => {
       { Header: "Tham chiếu HHK", accessor: "thamChieuHHK" },
       { Header: "Mã đặt chỗ hãng", accessor: "maDatChoHang" },
       { Header: "Tên khách hàng", accessor: "tenKhachHang" },
-      { Header: "Giá xuất", accessor: "giaXuat" },
+      // { Header: "Giá xuất", accessor: "giaXuat" },
       // { Header: "Giới tính", accessor: "gioiTinh" },
       // { Header: "Add on", accessor: "addOn" },
       // { Header: "Mã đặt chỗ trip", accessor: "maDatChoTrip" },
@@ -134,7 +134,10 @@ const InputTable = ({ onTicketCreated }) => {
       // Validate
       for (const row of data) {
         if (!row.ngayGioBayDi) {
-          openSnackbarHandler("Vui lòng nhập đầy đủ ngày giờ bay đi.", "warning");
+          openSnackbarHandler(
+            "Vui lòng nhập đầy đủ ngày giờ bay đi.",
+            "warning"
+          );
           return;
         }
         if (!row.tenKhachHang) {
@@ -157,7 +160,6 @@ const InputTable = ({ onTicketCreated }) => {
 
       // Build veDetails đúng format
       const veDetails = data.map((row) => ({
-        agCustomerId: agCustomerId,
         changBay: row.changDi || "",
         ngayGioBay: row.ngayGioBayDi
           ? new Date(row.ngayGioBayDi).toISOString()
@@ -171,17 +173,15 @@ const InputTable = ({ onTicketCreated }) => {
 
       // Build payload đúng format
       const payload = {
+        agCustomerId: agCustomerId,
         ngayXuat: formHeaderData.ngayXuat
           ? new Date(formHeaderData.ngayXuat).toISOString()
           : new Date().toISOString(),
-        giaXuat: data[0]?.giaXuat || "",
+        giaXuat: formHeaderData.giaXuat || "",
         addOn: JSON.stringify(addOnData),
-        thuAG: data[0]?.thuAG || "",
-        luuY: data[0]?.luuY || "",
-        veHoanKhay:
-          (data[0]?.veHoanKhay || formHeaderData.veHoanKhay) === "Có"
-            ? true
-            : false,
+        thuAG: formHeaderData.thuAG || "",
+        luuY: formHeaderData.luuY || "",
+        veHoanKhay: formHeaderData.veHoanKhay === "Có" ? true : false,
         cardId,
         veDetails,
       };
@@ -196,7 +196,7 @@ const InputTable = ({ onTicketCreated }) => {
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify(payload),
           },
-          openSnackbarHandler
+          openSnackbarHandler("Vé đã tạo thành công!", "success")
         );
         onTicketCreated();
         openSnackbarHandler("Vé đã tạo thành công!", "success");
@@ -209,7 +209,15 @@ const InputTable = ({ onTicketCreated }) => {
         );
       }
     },
-    [data, addOnData, onTicketCreated, openSnackbarHandler, formHeaderData, cardOptions, phoneOptions]
+    [
+      data,
+      addOnData,
+      onTicketCreated,
+      openSnackbarHandler,
+      formHeaderData,
+      cardOptions,
+      phoneOptions,
+    ]
   );
 
   const handleAddRow = useCallback(() => {
@@ -416,450 +424,1069 @@ const InputTable = ({ onTicketCreated }) => {
   };
 
   return (
-    <>
-      <Button
-        variant="outlined"
-        onClick={() => setOpenAGDialog(true)}
-        className="button-container"
-        style={{ marginBottom: "15px", width: "200px" }}
-      >
-        Nhập bảng AG
-      </Button>
-      <FullScreenAGDialog
-        open={openAGDialog}
-        onClose={handleDialogClose}
-        data={data}
-      />
-      <Button
-        variant="outlined"
-        onClick={() => setOpenSoTheDialog(true)}
-        className="button-container"
-        style={{ marginBottom: "15px", marginLeft: "15px", width: "300px" }}
-      >
-        Nhập số thẻ thanh toán
-      </Button>
-      <FullScreenSoTheDialog
-        open={openSoTheDialog}
-        onClose={handleDialogSoTheClose}
-        data={data}
-      />
-      <div
-        style={{
-          display: "grid",
-          gridTemplateColumns: "repeat(4, 1fr)",
-          gap: "24px",
-          marginBottom: "32px",
-          alignItems: "end",
-          background: "#f7fafd",
-          padding: "24px",
-          borderRadius: "8px",
-          border: "1px solid #e0e0e0",
-        }}
-      >
-        <div>
-          <label style={{ fontWeight: 500, marginBottom: 4, display: "block" }}>
-            Ngày xuất
-          </label>
-          <input
-            type="datetime-local"
-            value={formHeaderData.ngayXuat}
-            onChange={(e) =>
-              handleHeaderInputChange("ngayXuat", e.target.value)
-            }
-            style={{ width: "100%", padding: "8px" }}
-          />
-        </div>
-        <div>
-          <label style={{ fontWeight: 500, marginBottom: 4, display: "block" }}>
-            Liên hệ (SĐT)
-          </label>
-          <input
-            list="phone-options-header"
-            type="text"
-            value={formHeaderData.sdt}
-            onChange={(e) => handleHeaderPhoneSelect(e.target.value)}
-            style={{ width: "100%", padding: "8px" }}
-          />
-          <datalist id="phone-options-header">
-            {phoneOptions.map((option, idx) => (
-              <option key={idx} value={option.sdt} />
-            ))}
-          </datalist>
-        </div>
-        <div>
-          <label style={{ fontWeight: 500, marginBottom: 4, display: "block" }}>
-            Mail
-          </label>
-          <input
-            type="email"
-            value={formHeaderData.mail}
-            onChange={(e) => handleHeaderInputChange("mail", e.target.value)}
-            style={{ width: "100%", padding: "8px" }}
-          />
-        </div>
-        <div>
-          <label style={{ fontWeight: 500, marginBottom: 4, display: "block" }}>
-            Tên AG
-          </label>
-          <input
-            type="text"
-            value={formHeaderData.tenAG}
-            onChange={(e) => handleHeaderInputChange("tenAG", e.target.value)}
-            style={{ width: "100%", padding: "8px" }}
-          />
-        </div>
-        {/* <div>
-          <label style={{ fontWeight: 500, marginBottom: 4, display: "block" }}>Giới tính</label>
-          <select
-            value={formHeaderData.gioiTinh || "Nam"}
-            onChange={e => handleHeaderInputChange("gioiTinh", e.target.value)}
-            style={{ width: "100%", padding: "8px" }}
-          >
-            <option value="Nam">Nam</option>
-            <option value="Nữ">Nữ</option>
-          </select>
-        </div> */}
-        <div>
-          <label style={{ fontWeight: 500, marginBottom: 4, display: "block" }}>
-            Vé có hoàn hay không
-          </label>
-          <select
-            value={formHeaderData.veHoanKhay || "Có"}
-            onChange={(e) =>
-              handleHeaderInputChange("veHoanKhay", e.target.value)
-            }
-            style={{ width: "100%", padding: "8px" }}
-          >
-            <option value="Có">Có</option>
-            <option value="Không">Không</option>
-          </select>
-        </div>
-        <div>
-          <label style={{ fontWeight: 500, marginBottom: 4, display: "block" }}>
-            Số thẻ thanh toán
-          </label>
-          <input
-            list="so-the-header"
-            type="text"
-            value={formHeaderData.soThe || ""}
-            onChange={(e) => handleHeaderSoTheSelect(e.target.value)}
-            style={{ width: "100%", padding: "8px" }}
-          />
-          <datalist id="so-the-header">
-            {cardOptions.map((option, idx) => (
-              <option key={idx} value={option.soThe} />
-            ))}
-          </datalist>
-        </div>
-        <div style={{ display: "flex", alignItems: "center", height: "100%" }}>
+    <div style={{ 
+      backgroundColor: "#f8fafc", 
+      padding: "20px",
+      fontFamily: "'Segoe UI', Tahoma, Geneva, Verdana, sans-serif"
+    }}>
+      {/* Custom CSS for dropdown styling */}
+      <style>{`
+        /* Custom datalist styling */
+        input[list]::-webkit-calendar-picker-indicator {
+          background: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16"><path fill="%233b82f6" d="M3.5 6L8 10.5L12.5 6z"/></svg>') no-repeat;
+          background-size: 16px;
+          width: 20px;
+          height: 20px;
+          cursor: pointer;
+        }
+        
+        /* Enhanced input focus states */
+        .modern-input {
+          transition: all 0.2s ease !important;
+          box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1) !important;
+        }
+        
+        .modern-input:focus {
+          border-color: rgb(59, 130, 246) !important;
+          box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1), 0 1px 3px rgba(0, 0, 0, 0.1) !important;
+          transform: translateY(-1px);
+        }
+        
+        .modern-input:hover {
+          border-color: #6b7280 !important;
+          box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15) !important;
+        }
+        
+        /* Custom dropdown arrow for select elements */
+        .modern-select {
+          background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16"><path fill="%236b7280" d="M3.5 6L8 10.5L12.5 6z"/></svg>');
+          background-repeat: no-repeat;
+          background-position: right 12px center;
+          background-size: 16px;
+          appearance: none;
+          -webkit-appearance: none;
+          -moz-appearance: none;
+          padding-right: 40px !important;
+        }
+        
+        .modern-select:focus {
+          background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16"><path fill="rgb(59, 130, 246)" d="M3.5 6L8 10.5L12.5 6z"/></svg>');
+        }
+        
+        /* Table input styling */
+        .table-input {
+          transition: all 0.2s ease !important;
+          box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05) !important;
+        }
+        
+        .table-input:focus {
+          border-color: rgb(59, 130, 246) !important;
+          box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.1), 0 1px 2px rgba(0, 0, 0, 0.05) !important;
+        }
+        
+        .table-input:hover {
+          border-color: #9ca3af !important;
+          box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1) !important;
+        }
+        
+        /* Datalist option styling enhancement */
+        input[list] {
+          position: relative;
+        }
+        
+        /* Custom styles for better dropdown appearance */
+        .dropdown-container {
+          position: relative;
+        }
+        
+        .dropdown-container::after {
+          content: '▼';
+          position: absolute;
+          right: 12px;
+          top: 50%;
+          transform: translateY(-50%);
+          pointer-events: none;
+          color: #6b7280;
+          font-size: 12px;
+        }
+        
+        .dropdown-container input:focus + .dropdown-icon {
+          color: rgb(59, 130, 246);
+        }
+      `}</style>
+
+      {/* Header Section */}
+      <div style={{ 
+        backgroundColor: "white", 
+        borderRadius: "16px", 
+        padding: "32px", 
+        marginBottom: "24px",
+        boxShadow: "0 4px 16px rgba(0, 0, 0, 0.08)",
+        border: "1px solid #e2e8f0"
+      }}>
+        <h2 style={{ 
+          margin: "0 0 24px 0", 
+          color: "#1e293b", 
+          fontSize: "24px", 
+          fontWeight: "700",
+          display: "flex",
+          alignItems: "center",
+          gap: "12px"
+        }}>
+          <span style={{ 
+            backgroundColor: "#3b82f6", 
+            color: "white", 
+            borderRadius: "50%", 
+            width: "40px", 
+            height: "40px", 
+            display: "flex", 
+            alignItems: "center", 
+            justifyContent: "center",
+            fontSize: "18px"
+          }}>✈️</span>
+          Bảng Nhập Dữ Liệu
+        </h2>
+        
+        {/* Action Buttons */}
+        <div style={{ 
+          display: "flex", 
+          gap: "16px", 
+          marginBottom: "32px", 
+          flexWrap: "wrap" 
+        }}>
           <Button
-            variant="outlined"
-            onClick={handleClickAddOnOpen}
-            className="button-container"
-            style={{ width: "100%", minWidth: 0, padding: "8px 0" }}
+            variant="contained"
+            onClick={() => setOpenAGDialog(true)}
+            style={{ 
+              backgroundColor: "rgb(59, 130, 246)",
+              color: "white",
+              padding: "12px 24px",
+              borderRadius: "12px",
+              fontSize: "14px",
+              fontWeight: "600",
+              textTransform: "none",
+              boxShadow: "0 4px 12px rgba(59, 130, 246, 0.25)",
+              border: "none",
+              minWidth: "180px",
+              transition: "all 0.2s ease"
+            }}
           >
-            Nhập Add on
+            📊 Nhập bảng AG
+          </Button>
+          <Button
+            variant="contained"
+            onClick={() => setOpenSoTheDialog(true)}
+            style={{ 
+              backgroundColor: "rgba(59, 130, 246, 0.8)",
+              color: "white",
+              padding: "12px 24px",
+              borderRadius: "12px",
+              fontSize: "14px",
+              fontWeight: "600",
+              textTransform: "none",
+              boxShadow: "0 4px 12px rgba(59, 130, 246, 0.25)",
+              border: "none",
+              minWidth: "220px",
+              transition: "all 0.2s ease"
+            }}
+          >
+            💳 Nhập số thẻ thanh toán
           </Button>
         </div>
-        {/* <div>
-          <label style={{ fontWeight: 500, marginBottom: 4, display: "block" }}>Mã đặt chỗ trip</label>
-          <input
-            type="text"
-            value={formHeaderData.maDatChoTrip || ""}
-            onChange={e => handleHeaderInputChange("maDatChoTrip", e.target.value)}
-            style={{ width: "100%", padding: "8px" }}
-          />
-        </div> */}
-        <div>
-          <label style={{ fontWeight: 500, marginBottom: 4, display: "block" }}>
-            Thu AG
-          </label>
-          <input
-            type="text"
-            value={formHeaderData.thuAG || ""}
-            onChange={(e) => handleHeaderInputChange("thuAG", e.target.value)}
-            style={{ width: "100%", padding: "8px" }}
-          />
-        </div>
-        {/* <div>
-          <label style={{ fontWeight: 500, marginBottom: 4, display: "block" }}>Tài khoản</label>
-          <input
-            type="text"
-            value={formHeaderData.taiKhoan || ""}
-            onChange={e => handleHeaderInputChange("taiKhoan", e.target.value)}
-            style={{ width: "100%", padding: "8px" }}
-          />
-        </div> */}
-        <div>
-          <label style={{ fontWeight: 500, marginBottom: 4, display: "block" }}>
-            Lưu ý
-          </label>
-          <input
-            type="text"
-            value={formHeaderData.luuY || ""}
-            onChange={(e) => handleHeaderInputChange("luuY", e.target.value)}
-            style={{ width: "100%", padding: "8px" }}
-          />
+
+        {/* Form Fields */}
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))",
+            gap: "20px",
+            alignItems: "start"
+          }}
+        >
+          <div style={{ position: "relative" }}>
+            <label style={{ 
+              fontWeight: "600", 
+              marginBottom: "8px", 
+              display: "block",
+              color: "#374151",
+              fontSize: "14px"
+            }}>
+              📅 Ngày xuất
+            </label>
+            <input
+              type="datetime-local"
+              value={formHeaderData.ngayXuat}
+              onChange={(e) =>
+                handleHeaderInputChange("ngayXuat", e.target.value)
+              }
+              className="modern-input"
+              style={{ 
+                width: "100%", 
+                padding: "12px 16px",
+                border: "2px solid #e2e8f0",
+                borderRadius: "8px",
+                fontSize: "14px",
+                backgroundColor: "white",
+                transition: "border-color 0.2s ease",
+                outline: "none",
+                boxShadow: "0 1px 3px rgba(0, 0, 0, 0.1)"
+              }}
+            />
+          </div>
+          
+          <div style={{ position: "relative" }}>
+            <label style={{ 
+              fontWeight: "600", 
+              marginBottom: "8px", 
+              display: "block",
+              color: "#374151",
+              fontSize: "14px"
+            }}>
+              📞 Liên hệ (SĐT)
+            </label>
+            <div className="dropdown-container">
+              <input
+                list="phone-options-header"
+                type="text"
+                value={formHeaderData.sdt}
+                onChange={(e) => handleHeaderPhoneSelect(e.target.value)}
+                className="modern-input"
+                style={{ 
+                  width: "100%", 
+                  padding: "12px 40px 12px 16px",
+                  border: "2px solid #e2e8f0",
+                  borderRadius: "8px",
+                  fontSize: "14px",
+                  backgroundColor: "white",
+                  transition: "border-color 0.2s ease",
+                  outline: "none",
+                  boxShadow: "0 1px 3px rgba(0, 0, 0, 0.1)"
+                }}
+                placeholder="Chọn hoặc nhập số điện thoại"
+              />
+              <span style={{
+                position: "absolute",
+                right: "12px",
+                top: "50%",
+                transform: "translateY(-50%)",
+                pointerEvents: "none",
+                color: "#6b7280",
+                fontSize: "12px"
+              }}>▼</span>
+            </div>
+            <datalist id="phone-options-header">
+              {phoneOptions.map((option, idx) => (
+                <option key={idx} value={option.sdt} />
+              ))}
+            </datalist>
+          </div>
+          
+          <div style={{ position: "relative" }}>
+            <label style={{ 
+              fontWeight: "600", 
+              marginBottom: "8px", 
+              display: "block",
+              color: "#374151",
+              fontSize: "14px"
+            }}>
+              📧 Mail
+            </label>
+            <input
+              type="email"
+              value={formHeaderData.mail}
+              onChange={(e) => handleHeaderInputChange("mail", e.target.value)}
+              className="modern-input"
+              style={{ 
+                width: "100%", 
+                padding: "12px 16px",
+                border: "2px solid #e2e8f0",
+                borderRadius: "8px",
+                fontSize: "14px",
+                backgroundColor: "white",
+                transition: "border-color 0.2s ease",
+                outline: "none",
+                boxShadow: "0 1px 3px rgba(0, 0, 0, 0.1)"
+              }}
+              placeholder="example@email.com"
+            />
+          </div>
+          
+          <div style={{ position: "relative" }}>
+            <label style={{ 
+              fontWeight: "600", 
+              marginBottom: "8px", 
+              display: "block",
+              color: "#374151",
+              fontSize: "14px"
+            }}>
+              👤 Tên AG
+            </label>
+            <input
+              type="text"
+              value={formHeaderData.tenAG}
+              onChange={(e) => handleHeaderInputChange("tenAG", e.target.value)}
+              className="modern-input"
+              style={{ 
+                width: "100%", 
+                padding: "12px 16px",
+                border: "2px solid #e2e8f0",
+                borderRadius: "8px",
+                fontSize: "14px",
+                backgroundColor: "white",
+                transition: "border-color 0.2s ease",
+                outline: "none",
+                boxShadow: "0 1px 3px rgba(0, 0, 0, 0.1)"
+              }}
+              placeholder="Tên đại lý"
+            />
+          </div>
+
+          <div style={{ position: "relative" }}>
+            <label style={{ 
+              fontWeight: "600", 
+              marginBottom: "8px", 
+              display: "block",
+              color: "#374151",
+              fontSize: "14px"
+            }}>
+              ✅ Vé có hoàn hay không
+            </label>
+            <select
+              value={formHeaderData.veHoanKhay || "Có"}
+              onChange={(e) =>
+                handleHeaderInputChange("veHoanKhay", e.target.value)
+              }
+              className="modern-input modern-select"
+              style={{ 
+                width: "100%", 
+                padding: "12px 16px",
+                border: "2px solid #e2e8f0",
+                borderRadius: "8px",
+                fontSize: "14px",
+                backgroundColor: "white",
+                transition: "border-color 0.2s ease",
+                outline: "none",
+                cursor: "pointer",
+                boxShadow: "0 1px 3px rgba(0, 0, 0, 0.1)"
+              }}
+            >
+              <option value="Có">✅ Có hoàn</option>
+              <option value="Không">❌ Không hoàn</option>
+            </select>
+          </div>
+
+          <div style={{ position: "relative" }}>
+            <label style={{ 
+              fontWeight: "600", 
+              marginBottom: "8px", 
+              display: "block",
+              color: "#374151",
+              fontSize: "14px"
+            }}>
+              💳 Số thẻ thanh toán
+            </label>
+            <div className="dropdown-container">
+              <input
+                list="so-the-header"
+                type="text"
+                value={formHeaderData.soThe || ""}
+                onChange={(e) => handleHeaderSoTheSelect(e.target.value)}
+                className="modern-input"
+                style={{ 
+                  width: "100%", 
+                  padding: "12px 40px 12px 16px",
+                  border: "2px solid #e2e8f0",
+                  borderRadius: "8px",
+                  fontSize: "14px",
+                  backgroundColor: "white",
+                  transition: "border-color 0.2s ease",
+                  outline: "none",
+                  boxShadow: "0 1px 3px rgba(0, 0, 0, 0.1)"
+                }}
+                placeholder="Chọn hoặc nhập số thẻ"
+              />
+              <span style={{
+                position: "absolute",
+                right: "12px",
+                top: "50%",
+                transform: "translateY(-50%)",
+                pointerEvents: "none",
+                color: "#6b7280",
+                fontSize: "12px"
+              }}>▼</span>
+            </div>
+            <datalist id="so-the-header">
+              {cardOptions.map((option, idx) => (
+                <option key={idx} value={option.soThe} />
+              ))}
+            </datalist>
+          </div>
+
+          <div style={{ position: "relative" }}>
+            <label style={{ 
+              fontWeight: "600", 
+              marginBottom: "8px", 
+              display: "block",
+              color: "#374151",
+              fontSize: "14px"
+            }}>
+              🎯 Add On
+            </label>
+            <Button
+              variant="contained"
+              onClick={handleClickAddOnOpen}
+              style={{ 
+                width: "100%",
+                padding: "12px 16px",
+                backgroundColor: "rgba(59, 130, 246, 0.9)",
+                color: "white",
+                borderRadius: "8px",
+                fontSize: "14px",
+                fontWeight: "600",
+                textTransform: "none",
+                boxShadow: "0 2px 8px rgba(59, 130, 246, 0.25)",
+                border: "none",
+                transition: "all 0.2s ease"
+              }}
+            >
+              ➕ Nhập Add on
+            </Button>
+          </div>
+
+          <div style={{ position: "relative" }}>
+            <label style={{ 
+              fontWeight: "600", 
+              marginBottom: "8px", 
+              display: "block",
+              color: "#374151",
+              fontSize: "14px"
+            }}>
+              📝 Lưu ý
+            </label>
+            <input
+              type="text"
+              value={formHeaderData.luuY || ""}
+              onChange={(e) => handleHeaderInputChange("luuY", e.target.value)}
+              className="modern-input"
+              style={{ 
+                width: "100%", 
+                padding: "12px 16px",
+                border: "2px solid #e2e8f0",
+                borderRadius: "8px",
+                fontSize: "14px",
+                backgroundColor: "white",
+                transition: "border-color 0.2s ease",
+                outline: "none",
+                boxShadow: "0 1px 3px rgba(0, 0, 0, 0.1)"
+              }}
+              placeholder="Ghi chú thêm"
+            />
+          </div>
+
+          <div style={{ position: "relative" }}>
+            <label style={{ 
+              fontWeight: "600", 
+              marginBottom: "8px", 
+              display: "block",
+              color: "#374151",
+              fontSize: "14px"
+            }}>
+              💰 Thu AG
+            </label>
+            <input
+              type="text"
+              value={formHeaderData.thuAG || ""}
+              onChange={(e) => handleHeaderInputChange("thuAG", e.target.value)}
+              className="modern-input"
+              style={{ 
+                width: "100%", 
+                padding: "12px 16px",
+                border: "2px solid #e2e8f0",
+                borderRadius: "8px",
+                fontSize: "14px",
+                backgroundColor: "white",
+                transition: "border-color 0.2s ease",
+                outline: "none",
+                boxShadow: "0 1px 3px rgba(0, 0, 0, 0.1)"
+              }}
+              placeholder="Thu AG"
+            />
+          </div>
+
+          <div style={{ position: "relative" }}>
+            <label style={{ 
+              fontWeight: "600", 
+              marginBottom: "8px", 
+              display: "block",
+              color: "#374151",
+              fontSize: "14px"
+            }}>
+              💵 Giá xuất
+            </label>
+            <input
+              type="text"
+              value={formHeaderData.giaXuat || ""}
+              onChange={(e) => handleHeaderInputChange("giaXuat", e.target.value)}
+              className="modern-input"
+              style={{ 
+                width: "100%", 
+                padding: "12px 16px",
+                border: "2px solid #e2e8f0",
+                borderRadius: "8px",
+                fontSize: "14px",
+                backgroundColor: "white",
+                transition: "border-color 0.2s ease",
+                outline: "none",
+                boxShadow: "0 1px 3px rgba(0, 0, 0, 0.1)"
+              }}
+              placeholder="Giá xuất"
+            />
+          </div>
         </div>
       </div>
 
-      <div
-        className="table-wrapper"
-        onPaste={handlePaste}
-        tabIndex={0}
-        style={{ outline: "none" }}
-      >
-        <table className="table-container">
-          <thead>
-            <tr>
-              {columns.map((column) => (
-                <th key={column.accessor}>{column.Header}</th>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
-            {data.map((row, rowIndex) => (
-              <tr key={rowIndex}>
+      {/* Table Section */}
+      <div style={{ 
+        backgroundColor: "white", 
+        borderRadius: "16px", 
+        padding: "32px", 
+        marginBottom: "24px",
+        boxShadow: "0 4px 16px rgba(0, 0, 0, 0.08)",
+        border: "1px solid #e2e8f0"
+      }}>
+        <h3 style={{ 
+          margin: "0 0 24px 0", 
+          color: "#1e293b", 
+          fontSize: "20px", 
+          fontWeight: "700",
+          display: "flex",
+          alignItems: "center",
+          gap: "12px"
+        }}>
+          <span style={{ 
+            backgroundColor: "#10b981", 
+            color: "white", 
+            borderRadius: "50%", 
+            width: "32px", 
+            height: "32px", 
+            display: "flex", 
+            alignItems: "center", 
+            justifyContent: "center",
+            fontSize: "16px"
+          }}>📋</span>
+          Chi tiết vé
+        </h3>
+
+        <div
+          className="table-wrapper"
+          onPaste={handlePaste}
+          tabIndex={0}
+          style={{ 
+            outline: "none",
+            borderRadius: "12px",
+            overflow: "hidden",
+            border: "2px solid #e2e8f0"
+          }}
+        >
+          <table className="table-container" style={{
+            width: "100%",
+            borderCollapse: "collapse",
+            backgroundColor: "white"
+          }}>
+            <thead>
+              <tr style={{ backgroundColor: "#f8fafc" }}>
                 {columns.map((column) => (
-                  <td key={column.accessor}>
-                    {column.accessor === "select" ? (
-                      <input
-                        type="checkbox"
-                        checked={selectedRows.includes(rowIndex)}
-                        onChange={(e) =>
-                          handleSelectRow(rowIndex, e.target.checked)
-                        }
-                        onFocus={() =>
-                          setCurrentFocusCell({
-                            rowIndex,
-                            columnId: column.accessor,
-                          })
-                        }
-                      />
-                    ) : column.accessor === "sdt" ? (
-                      <>
-                        <input
-                          list={`phone-options-${rowIndex}`}
-                          value={row.sdt}
-                          onChange={(e) => {
-                            handlePhoneSelect(rowIndex, {
-                              sdt: e.target.value,
-                            });
-                          }}
-                          placeholder="Nhập số điện thoại"
-                          onFocus={() =>
-                            setCurrentFocusCell({
-                              rowIndex,
-                              columnId: column.accessor,
-                            })
-                          }
-                        />
-                        <datalist id={`phone-options-${rowIndex}`}>
-                          {phoneOptions.map((option, idx) => (
-                            <option key={idx} value={option.sdt} />
-                          ))}
-                        </datalist>
-                      </>
-                    ) : column.accessor === "soThe" ? (
-                      <>
-                        <input
-                          list={`so-the-${rowIndex}`}
-                          value={row.soThe}
-                          onChange={(e) => {
-                            handleSoTheSelect(rowIndex, {
-                              soThe: e.target.value,
-                            });
-                          }}
-                          placeholder="Nhập số thẻ"
-                          onFocus={() =>
-                            setCurrentFocusCell({
-                              rowIndex,
-                              columnId: column.accessor,
-                            })
-                          }
-                        />
-                        <datalist id={`so-the-${rowIndex}`}>
-                          {cardOptions.map((option, idx) => (
-                            <option key={idx} value={option.soThe} />
-                          ))}
-                        </datalist>
-                      </>
-                    ) : column.accessor === "gioiTinh" ? (
-                      <select
-                        value={row.gioiTinh || "Nam"}
-                        onChange={(e) =>
-                          handleCellEdit(rowIndex, "gioiTinh", e.target.value)
-                        }
-                        onFocus={() =>
-                          setCurrentFocusCell({
-                            rowIndex,
-                            columnId: column.accessor,
-                          })
-                        }
-                      >
-                        <option value="Nam">Nam</option>
-                        <option value="Nữ">Nữ</option>
-                      </select>
-                    ) : column.accessor === "veHoanKhay" ? (
-                      <select
-                        value={row.veHoanKhay || "Có"}
-                        onChange={(e) =>
-                          handleCellEdit(rowIndex, "veHoanKhay", e.target.value)
-                        }
-                        onFocus={() =>
-                          setCurrentFocusCell({
-                            rowIndex,
-                            columnId: column.accessor,
-                          })
-                        }
-                      >
-                        <option value="Có">Có</option>
-                        <option value="Không">Không</option>
-                      </select>
-                    ) : column.accessor === "ngayGioBayDi" ||
-                      column.accessor === "ngayGioBayDen" ? (
-                      <input
-                        type="datetime-local"
-                        value={
-                          row[column.accessor]
-                            ? row[column.accessor].slice(0, 16)
-                            : ""
-                        }
-                        required
-                        onChange={(e) =>
-                          handleCellEdit(
-                            rowIndex,
-                            column.accessor,
-                            e.target.value
-                          )
-                        }
-                        onFocus={() =>
-                          setCurrentFocusCell({
-                            rowIndex,
-                            columnId: column.accessor,
-                          })
-                        }
-                      />
-                    ) : column.accessor === "addOn" ? (
-                      <Button
-                        variant="outlined"
-                        onClick={() => handleClickAddOnOpen(rowIndex)}
-                        className="button-container"
-                      >
-                        Nhập
-                      </Button>
-                    ) : column.accessor === "ngayXuat" ? (
-                      <input
-                        type="datetime-local"
-                        value={
-                          row.ngayXuat || new Date().toISOString().slice(0, -1)
-                        }
-                        onChange={(e) =>
-                          handleCellEdit(rowIndex, "ngayXuat", e.target.value)
-                        }
-                        onFocus={() =>
-                          setCurrentFocusCell({
-                            rowIndex,
-                            columnId: column.accessor,
-                          })
-                        }
-                      />
-                    ) : (
-                      <input
-                        type="text"
-                        value={row[column.accessor] || ""}
-                        onChange={(e) =>
-                          handleCellEdit(
-                            rowIndex,
-                            column.accessor,
-                            e.target.value
-                          )
-                        }
-                        onFocus={() =>
-                          setCurrentFocusCell({
-                            rowIndex,
-                            columnId: column.accessor,
-                          })
-                        }
-                      />
-                    )}
-                  </td>
+                  <th key={column.accessor} style={{
+                    padding: "16px 12px",
+                    borderBottom: "2px solid #e2e8f0",
+                    borderRight: "1px solid #e2e8f0",
+                    fontSize: "14px",
+                    fontWeight: "700",
+                    color: "#374151",
+                    textAlign: "left",
+                    backgroundColor: "#f8fafc"
+                  }}>{column.Header}</th>
                 ))}
               </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-      <div style={{ marginTop: "20px", textAlign: "center" }}>
-        <Button
-          onClick={handleAddRow}
-          variant="contained"
-          style={{ marginRight: "10px" }}
-        >
-          Thêm Hàng
-        </Button>
-        <Button
-          onClick={handleOpenDeleteDialog}
-          variant="contained"
-          color="secondary"
-          style={{ marginRight: "10px" }}
-          disabled={selectedRows.length === 0}
-        >
-          Xóa Hàng Đã Chọn
-        </Button>
-        <Button onClick={handleAddTicket} variant="contained" color="primary">
-          Xuất Vé
-        </Button>
-      </div>
-      <AddOnTable
-        open={openAddOnDialog}
-        onClose={handleDialogAddOnClose}
-        onSave={handleSaveAddOn}
-        initialData={memoizedInitialData}
-        data={data}
-        rowIndex={0}
-        mode="edit"
-      />
-      <Dialog
-        open={openDeleteDialog}
-        onClose={handleCloseDeleteDialog}
-        aria-labelledby="delete-confirmation-dialog-title"
-        aria-describedby="delete-confirmation-dialog-description"
-      >
-        <DialogTitle id="delete-confirmation-dialog-title">
-          Xác nhận xóa
-        </DialogTitle>
-        <DialogContent>
-          <DialogContentText id="delete-confirmation-dialog-description">
-            Bạn có chắc chắn muốn xóa {selectedRows.length} hàng đã chọn? Hành
-            động này không thể hoàn tác.
-          </DialogContentText>
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={handleCloseDeleteDialog} color="primary">
-            Hủy
+            </thead>
+            <tbody>
+              {data.map((row, rowIndex) => (
+                <tr key={rowIndex} style={{
+                  backgroundColor: rowIndex % 2 === 0 ? "white" : "#f8fafc",
+                  transition: "background-color 0.2s ease"
+                }}>
+                  {columns.map((column) => (
+                    <td key={column.accessor} style={{
+                      padding: "12px",
+                      borderBottom: "1px solid #e2e8f0",
+                      borderRight: "1px solid #e2e8f0",
+                      fontSize: "14px"
+                    }}>
+                      {column.accessor === "select" ? (
+                        <input
+                          type="checkbox"
+                          checked={selectedRows.includes(rowIndex)}
+                          onChange={(e) =>
+                            handleSelectRow(rowIndex, e.target.checked)
+                          }
+                          onFocus={() =>
+                            setCurrentFocusCell({
+                              rowIndex,
+                              columnId: column.accessor,
+                            })
+                          }
+                          style={{
+                            width: "18px",
+                            height: "18px",
+                            cursor: "pointer"
+                          }}
+                        />
+                      ) : column.accessor === "sdt" ? (
+                        <div className="dropdown-container" style={{ position: "relative" }}>
+                          <input
+                            list={`phone-options-${rowIndex}`}
+                            value={row.sdt}
+                            onChange={(e) => {
+                              handlePhoneSelect(rowIndex, {
+                                sdt: e.target.value,
+                              });
+                            }}
+                            placeholder="Chọn hoặc nhập SĐT"
+                            onFocus={() =>
+                              setCurrentFocusCell({
+                                rowIndex,
+                                columnId: column.accessor,
+                              })
+                            }
+                            className="table-input"
+                            style={{
+                              width: "100%",
+                              padding: "8px 32px 8px 12px",
+                              border: "1px solid #d1d5db",
+                              borderRadius: "6px",
+                              fontSize: "14px",
+                              outline: "none",
+                              transition: "border-color 0.2s ease",
+                              backgroundColor: "white",
+                              boxShadow: "0 1px 2px rgba(0, 0, 0, 0.05)"
+                            }}
+                          />
+                          <span style={{
+                            position: "absolute",
+                            right: "8px",
+                            top: "50%",
+                            transform: "translateY(-50%)",
+                            pointerEvents: "none",
+                            color: "#9ca3af",
+                            fontSize: "10px"
+                          }}>▼</span>
+                          <datalist id={`phone-options-${rowIndex}`}>
+                            {phoneOptions.map((option, idx) => (
+                              <option key={idx} value={option.sdt} />
+                            ))}
+                          </datalist>
+                        </div>
+                      ) : column.accessor === "soThe" ? (
+                        <div className="dropdown-container" style={{ position: "relative" }}>
+                          <input
+                            list={`so-the-${rowIndex}`}
+                            value={row.soThe}
+                            onChange={(e) => {
+                              handleSoTheSelect(rowIndex, {
+                                soThe: e.target.value,
+                              });
+                            }}
+                            placeholder="Chọn hoặc nhập số thẻ"
+                            onFocus={() =>
+                              setCurrentFocusCell({
+                                rowIndex,
+                                columnId: column.accessor,
+                              })
+                            }
+                            className="table-input"
+                            style={{
+                              width: "100%",
+                              padding: "8px 32px 8px 12px",
+                              border: "1px solid #d1d5db",
+                              borderRadius: "6px",
+                              fontSize: "14px",
+                              outline: "none",
+                              transition: "border-color 0.2s ease",
+                              backgroundColor: "white",
+                              boxShadow: "0 1px 2px rgba(0, 0, 0, 0.05)"
+                            }}
+                          />
+                          <span style={{
+                            position: "absolute",
+                            right: "8px",
+                            top: "50%",
+                            transform: "translateY(-50%)",
+                            pointerEvents: "none",
+                            color: "#9ca3af",
+                            fontSize: "10px"
+                          }}>▼</span>
+                          <datalist id={`so-the-${rowIndex}`}>
+                            {cardOptions.map((option, idx) => (
+                              <option key={idx} value={option.soThe} />
+                            ))}
+                          </datalist>
+                        </div>
+                      ) : column.accessor === "gioiTinh" ? (
+                        <select
+                          value={row.gioiTinh || "Nam"}
+                          onChange={(e) =>
+                            handleCellEdit(rowIndex, "gioiTinh", e.target.value)
+                          }
+                          onFocus={() =>
+                            setCurrentFocusCell({
+                              rowIndex,
+                              columnId: column.accessor,
+                            })
+                          }
+                          className="table-input modern-select"
+                          style={{
+                            width: "100%",
+                            padding: "8px 12px",
+                            border: "1px solid #d1d5db",
+                            borderRadius: "6px",
+                            fontSize: "14px",
+                            outline: "none",
+                            backgroundColor: "white",
+                            cursor: "pointer",
+                            boxShadow: "0 1px 2px rgba(0, 0, 0, 0.05)"
+                          }}
+                        >
+                          <option value="Nam">👨 Nam</option>
+                          <option value="Nữ">👩 Nữ</option>
+                        </select>
+                      ) : column.accessor === "veHoanKhay" ? (
+                        <select
+                          value={row.veHoanKhay || "Có"}
+                          onChange={(e) =>
+                            handleCellEdit(rowIndex, "veHoanKhay", e.target.value)
+                          }
+                          onFocus={() =>
+                            setCurrentFocusCell({
+                              rowIndex,
+                              columnId: column.accessor,
+                            })
+                          }
+                          className="table-input modern-select"
+                          style={{
+                            width: "100%",
+                            padding: "8px 12px",
+                            border: "1px solid #d1d5db",
+                            borderRadius: "6px",
+                            fontSize: "14px",
+                            outline: "none",
+                            backgroundColor: "white",
+                            cursor: "pointer",
+                            boxShadow: "0 1px 2px rgba(0, 0, 0, 0.05)"
+                          }}
+                        >
+                          <option value="Có">✅ Có</option>
+                          <option value="Không">❌ Không</option>
+                        </select>
+                      ) : column.accessor === "ngayGioBayDi" ||
+                        column.accessor === "ngayGioBayDen" ? (
+                        <input
+                          type="datetime-local"
+                          value={
+                            row[column.accessor]
+                              ? row[column.accessor].slice(0, 16)
+                              : ""
+                          }
+                          required
+                          onChange={(e) =>
+                            handleCellEdit(
+                              rowIndex,
+                              column.accessor,
+                              e.target.value
+                            )
+                          }
+                          onFocus={() =>
+                            setCurrentFocusCell({
+                              rowIndex,
+                              columnId: column.accessor,
+                            })
+                          }
+                          className="table-input"
+                          style={{
+                            width: "100%",
+                            padding: "8px 12px",
+                            border: "1px solid #d1d5db",
+                            borderRadius: "6px",
+                            fontSize: "14px",
+                            outline: "none",
+                            transition: "border-color 0.2s ease",
+                            backgroundColor: "white",
+                            boxShadow: "0 1px 2px rgba(0, 0, 0, 0.05)"
+                          }}
+                        />
+                      ) : column.accessor === "addOn" ? (
+                        <Button
+                          variant="contained"
+                          onClick={() => handleClickAddOnOpen(rowIndex)}
+                          style={{
+                            backgroundColor: "rgba(59, 130, 246, 0.9)",
+                            color: "white",
+                            padding: "6px 12px",
+                            borderRadius: "6px",
+                            fontSize: "12px",
+                            fontWeight: "600",
+                            textTransform: "none",
+                            boxShadow: "0 2px 4px rgba(59, 130, 246, 0.25)",
+                            border: "none",
+                            minWidth: "80px",
+                            transition: "all 0.2s ease"
+                          }}
+                        >
+                          ➕ Nhập
+                        </Button>
+                      ) : column.accessor === "ngayXuat" ? (
+                        <input
+                          type="datetime-local"
+                          value={
+                            row.ngayXuat || new Date().toISOString().slice(0, -1)
+                          }
+                          onChange={(e) =>
+                            handleCellEdit(rowIndex, "ngayXuat", e.target.value)
+                          }
+                          onFocus={() =>
+                            setCurrentFocusCell({
+                              rowIndex,
+                              columnId: column.accessor,
+                            })
+                          }
+                          className="table-input"
+                          style={{
+                            width: "100%",
+                            padding: "8px 12px",
+                            border: "1px solid #d1d5db",
+                            borderRadius: "6px",
+                            fontSize: "14px",
+                            outline: "none",
+                            transition: "border-color 0.2s ease",
+                            backgroundColor: "white",
+                            boxShadow: "0 1px 2px rgba(0, 0, 0, 0.05)"
+                          }}
+                        />
+                      ) : (
+                        <input
+                          type="text"
+                          value={row[column.accessor] || ""}
+                          onChange={(e) =>
+                            handleCellEdit(
+                              rowIndex,
+                              column.accessor,
+                              e.target.value
+                            )
+                          }
+                          onFocus={() =>
+                            setCurrentFocusCell({
+                              rowIndex,
+                              columnId: column.accessor,
+                            })
+                          }
+                          className="table-input"
+                          style={{
+                            width: "100%",
+                            padding: "8px 12px",
+                            border: "1px solid #d1d5db",
+                            borderRadius: "6px",
+                            fontSize: "14px",
+                            outline: "none",
+                            transition: "border-color 0.2s ease",
+                            backgroundColor: "white",
+                            boxShadow: "0 1px 2px rgba(0, 0, 0, 0.05)"
+                          }}
+                        />
+                      )}
+                    </td>
+                  ))}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+
+        {/* Action Buttons */}
+        <div style={{ 
+          marginTop: "24px", 
+          display: "flex", 
+          gap: "12px", 
+          flexWrap: "wrap",
+          justifyContent: "center"
+        }}>
+          <Button
+            onClick={handleAddRow}
+            variant="contained"
+            style={{ 
+              backgroundColor: "rgba(59, 130, 246, 0.8)",
+              color: "white",
+              padding: "12px 24px",
+              borderRadius: "10px",
+              fontSize: "14px",
+              fontWeight: "600",
+              textTransform: "none",
+              boxShadow: "0 4px 12px rgba(59, 130, 246, 0.25)",
+              border: "none",
+              minWidth: "140px"
+            }}
+          >
+            ➕ Thêm Hàng
           </Button>
-          <Button onClick={handleConfirmDelete} color="secondary" autoFocus>
-            Xóa
+          <Button
+            onClick={handleOpenDeleteDialog}
+            variant="contained"
+            style={{ 
+              backgroundColor: "rgba(59, 130, 246, 0.6)",
+              color: "white",
+              padding: "12px 24px",
+              borderRadius: "10px",
+              fontSize: "14px",
+              fontWeight: "600",
+              textTransform: "none",
+              boxShadow: "0 4px 12px rgba(59, 130, 246, 0.25)",
+              border: "none",
+              minWidth: "180px",
+              opacity: selectedRows.length === 0 ? 0.5 : 1,
+              cursor: selectedRows.length === 0 ? "not-allowed" : "pointer"
+            }}
+            disabled={selectedRows.length === 0}
+          >
+            🗑️ Xóa Hàng Đã Chọn
           </Button>
-        </DialogActions>
-      </Dialog>
-      {/* Snackbar for notifications */}
-      <Snackbar
-        open={snackbar.open}
-        autoHideDuration={6000}
-        onClose={closeSnackbarHandler}
-        anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
-      >
-        <Alert
+          <Button 
+            onClick={handleAddTicket} 
+            variant="contained" 
+            style={{ 
+              backgroundColor: "rgb(59, 130, 246)",
+              color: "white",
+              padding: "16px 32px",
+              borderRadius: "10px",
+              fontSize: "16px",
+              fontWeight: "700",
+              textTransform: "none",
+              boxShadow: "0 6px 16px rgba(59, 130, 246, 0.3)",
+              border: "none",
+              minWidth: "160px"
+            }}
+          >
+            🎫 Xuất Vé
+          </Button>
+        </div>
+      </div>
+
+      {/* Hidden Components */}
+      <>
+        <FullScreenAGDialog
+          open={openAGDialog}
+          onClose={handleDialogClose}
+          data={data}
+        />
+        <FullScreenSoTheDialog
+          open={openSoTheDialog}
+          onClose={handleDialogSoTheClose}
+          data={data}
+        />
+        
+        <AddOnTable
+          open={openAddOnDialog}
+          onClose={handleDialogAddOnClose}
+          onSave={handleSaveAddOn}
+          initialData={memoizedInitialData}
+          data={data}
+          rowIndex={0}
+          mode="edit"
+        />
+        
+        <Dialog
+          open={openDeleteDialog}
+          onClose={handleCloseDeleteDialog}
+          aria-labelledby="delete-confirmation-dialog-title"
+          aria-describedby="delete-confirmation-dialog-description"
+          PaperProps={{
+            style: {
+              borderRadius: "16px",
+              padding: "8px"
+            }
+          }}
+        >
+          <DialogTitle id="delete-confirmation-dialog-title" style={{
+            fontSize: "18px",
+            fontWeight: "700",
+            color: "#1e293b",
+            paddingBottom: "8px"
+          }}>
+            🗑️ Xác nhận xóa
+          </DialogTitle>
+          <DialogContent>
+            <DialogContentText id="delete-confirmation-dialog-description" style={{
+              fontSize: "14px",
+              color: "#64748b",
+              lineHeight: "1.5"
+            }}>
+              Bạn có chắc chắn muốn xóa {selectedRows.length} hàng đã chọn? Hành
+              động này không thể hoàn tác.
+            </DialogContentText>
+          </DialogContent>
+          <DialogActions style={{ padding: "16px 24px 24px" }}>
+            <Button 
+              onClick={handleCloseDeleteDialog}
+              style={{
+                color: "#6b7280",
+                backgroundColor: "transparent",
+                padding: "8px 16px",
+                borderRadius: "8px",
+                fontSize: "14px",
+                fontWeight: "600",
+                textTransform: "none"
+              }}
+            >
+              Hủy
+            </Button>
+            <Button 
+              onClick={handleConfirmDelete} 
+              autoFocus
+              style={{
+                backgroundColor: "rgba(59, 130, 246, 0.8)",
+                color: "white",
+                padding: "8px 16px",
+                borderRadius: "8px",
+                fontSize: "14px",
+                fontWeight: "600",
+                textTransform: "none",
+                boxShadow: "0 2px 8px rgba(59, 130, 246, 0.25)"
+              }}
+            >
+              Xóa
+            </Button>
+          </DialogActions>
+        </Dialog>
+        
+        {/* Snackbar for notifications */}
+        <Snackbar
+          open={snackbar.open}
+          autoHideDuration={6000}
           onClose={closeSnackbarHandler}
-          severity={snackbar.severity}
-          sx={{ width: "100%" }}
+          anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
         >
-          {snackbar.message}
-        </Alert>
-      </Snackbar>
-    </>
+          <Alert
+            onClose={closeSnackbarHandler}
+            severity={snackbar.severity}
+            sx={{ 
+              width: "100%",
+              borderRadius: "12px",
+              fontSize: "14px",
+              fontWeight: "500"
+            }}
+          >
+            {snackbar.message}
+          </Alert>
+        </Snackbar>
+      </>
+    </div>
   );
 };
 

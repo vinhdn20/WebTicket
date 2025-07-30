@@ -131,7 +131,6 @@ const TicketTable2 = () => {
           pageSize,
         };
         const initialData = await fetchInitialData(payload);
-        console.log("Fetched Data:", initialData);
         setData(initialData);
       }, 500),
     [columnFilters, pageIndex, pageSize, fetchInitialData]
@@ -279,7 +278,6 @@ const TicketTable2 = () => {
   return (
     <ErrorBoundary>
       <div className="container">
-        <h1>Bảng Nhập Dữ Liệu</h1>
         <InputForm onTicketCreated={debouncedLoad} />
         <SearchComponent
           setColumnFilters={setColumnFilters}
