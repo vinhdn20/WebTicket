@@ -19,7 +19,7 @@ namespace WebTicket.Models
     public class UpdateVe
     {
         public Guid Id { get; set; }
-
+        public Guid AGCustomerId { get; set; }
         public DateTime NgayXuat { get; set; }
         public string GiaXuat { get; set; }
         public string AddOn { get; set; }

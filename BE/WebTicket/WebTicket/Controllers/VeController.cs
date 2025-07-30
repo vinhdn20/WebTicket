@@ -56,16 +56,19 @@ namespace Ve.Controllers
 
         [HttpPut("xuatve")]
         [Authorize]
-        public async Task<IActionResult> UpdateTicket([FromBody] UpdateVe putModel)
+        public async Task<IActionResult> UpdateTicket([FromBody] List<UpdateVe> putModels)
         {
             try
             {
-                var ticketInfo = putModel.Adapt<ThongTinVe>();
-                ticketInfo = InitUpdateInfo(ticketInfo);
-                var updateTicket = ticketInfo.DeepCopy();
-                _context.ThongTinVes.Update(updateTicket);
+                foreach (var putModel in putModels)
+                {
+                    var ticketInfo = putModel.Adapt<ThongTinVe>();
+                    ticketInfo = InitUpdateInfo(ticketInfo);
+                    var updateTicket = ticketInfo.DeepCopy();
+                    _context.ThongTinVes.Update(updateTicket);
+                }
                 await _repository.SaveChangesAsync();
-                return Ok(ticketInfo);
+                return Ok(putModels);
             }
             catch (Exception ex)
             {
