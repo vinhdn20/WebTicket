@@ -34,8 +34,25 @@ const AddOnTable = React.memo(function AddOnTable({
     severity: "success",
   });
 
+  // Format number with dot as thousand separator
+  const formatMoney = (value) => {
+    if (!value) return "";
+    // Remove all non-digit
+    const num = value.replace(/\D/g, "");
+    return num.replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+  };
+
+  // Only keep digits for saving
+  const unformatMoney = (value) => value.replace(/\D/g, "");
+
+  // Khi initialData thay đổi, format lại số tiền cho tất cả các dòng
   useEffect(() => {
-    setFormData(initialData);
+    setFormData(
+      initialData.map(row => ({
+        ...row,
+        soTien: formatMoney(row.soTien || "")
+      }))
+    );
   }, [initialData]);
 
   // Snackbar Handlers
@@ -86,9 +103,15 @@ const AddOnTable = React.memo(function AddOnTable({
     [formData, mode, currentFocusRow, openSnackbarHandler]
   );
 
+
+
   const handleCellChange = useCallback(
     (rowIdx, field, value) => {
-      if (mode === "view") return; // Disable edits in view mode
+      if (mode === "view") return;
+      if (field === "soTien") {
+        // Only allow digits, format with dot
+        value = formatMoney(value);
+      }
       setFormData((prev) =>
         prev.map((row, idx) =>
           idx === rowIdx ? { ...row, [field]: value } : row
@@ -142,7 +165,13 @@ const AddOnTable = React.memo(function AddOnTable({
       return;
     }
 
-    onSave(cleanedFormData);
+    // Convert soTien to number string (remove dot)
+    const sendData = cleanedFormData.map(row => ({
+      ...row,
+      soTien: unformatMoney(row.soTien)
+    }));
+
+    onSave(sendData);
     openSnackbarHandler("Add-On data saved successfully.", "success");
     onClose();
   }, [formData, onSave, onClose, mode, openSnackbarHandler]);
@@ -164,128 +193,162 @@ const AddOnTable = React.memo(function AddOnTable({
           },
         }}
       >
-        <AppBar sx={{ position: "relative" }}>
+        <AppBar sx={{ position: "relative", borderRadius: '10px 10px 0 0', background: '#1976d2' }} elevation={2}>
           <Toolbar>
             <IconButton
               edge="start"
               color="inherit"
               onClick={onClose}
               aria-label="close"
+              sx={{ mr: 2 }}
             >
               <CloseIcon />
             </IconButton>
-            <Typography sx={{ ml: 2, flex: 1 }} variant="h6" component="div">
+            <Typography sx={{ ml: 2, flex: 1, fontWeight: 600, letterSpacing: 1 }} variant="h6" component="div">
               {mode === "view" ? "Xem bảng Add On" : "Nhập bảng Add On"}
             </Typography>
             {mode !== "view" && (
-              <Button autoFocus color="inherit" onClick={handleSaveAddOn}>
-                Save
+              <Button autoFocus color="primary" variant="contained" onClick={handleSaveAddOn} sx={{ fontWeight: 600, boxShadow: 1 }}>
+                Lưu
               </Button>
             )}
           </Toolbar>
         </AppBar>
 
         {/* Table for Input */}
-        <div style={{ padding: "20px" }} onPaste={handlePaste}>
-          <Typography variant="h6">Thêm add</Typography>
-          <table style={{ width: "100%", borderCollapse: "collapse" }}>
-            <thead>
-              <tr>
-                {mode !== "view" && (
-                  <th
-                    style={{
-                      border: "1px solid #ddd",
-                      padding: "8px",
-                      textAlign: "center",
-                    }}
-                  >
-                    Chọn
-                  </th>
-                )}
-                <th style={{ border: "1px solid #ddd", padding: "8px" }}>Stt</th>
-                <th style={{ border: "1px solid #ddd", padding: "8px" }}>
-                  Dịch vụ
-                </th>
-                <th style={{ border: "1px solid #ddd", padding: "8px" }}>
-                  Số tiền
-                </th>
-              </tr>
-            </thead>
-            <tbody>
-              {formData.map((row, rowIdx) => (
-                <tr key={rowIdx}>
+        <div style={{ padding: "32px 32px 16px 32px", background: '#f7fafd', minHeight: '100%' }} onPaste={handlePaste}>
+          <Typography variant="h6" sx={{ fontWeight: 600, mb: 2, color: '#1976d2' }}>Thêm Add-On</Typography>
+          <div style={{ overflowX: 'auto', borderRadius: 12, boxShadow: '0 2px 8px #0001', background: '#fff' }}>
+            <table style={{ width: "100%", borderCollapse: "separate", borderSpacing: 0, borderRadius: 12, overflow: 'hidden' }}>
+              <thead>
+                <tr style={{ background: '#e3f0fb' }}>
                   {mode !== "view" && (
-                    <td
+                    <th
                       style={{
-                        border: "1px solid #ddd",
-                        padding: "8px",
+                        border: "none",
+                        padding: "12px 8px",
                         textAlign: "center",
+                        fontWeight: 600,
+                        color: '#1976d2',
+                        minWidth: 60,
+                        borderTopLeftRadius: 12
                       }}
                     >
-                      <input
-                        type="checkbox"
-                        checked={selectedRows.includes(rowIdx)}
-                        onChange={() => handleCheckboxChange(rowIdx)}
-                        aria-label={`Chọn add on hàng ${rowIdx + 1}`}
-                      />
-                    </td>
+                      Chọn
+                    </th>
                   )}
-                  <td style={{ border: "1px solid #ddd", padding: "8px" }}>
-                    {rowIdx + 1}
-                  </td>
-                  <td style={{ border: "1px solid #ddd", padding: "8px" }}>
-                    {mode === "view" ? (
-                      row.dichVu
-                    ) : (
-                      <input
-                        type="text"
-                        value={row.dichVu}
-                        onFocus={() => setCurrentFocusRow(rowIdx)}
-                        onChange={(e) =>
-                          handleCellChange(rowIdx, "dichVu", e.target.value)
-                        }
-                        style={{
-                          width: "100%",
-                          border: "none",
-                          outline: "none",
-                          padding: "4px",
-                        }}
-                        aria-label={`Dịch vụ hàng ${rowIdx + 1}`}
-                      />
-                    )}
-                  </td>
-                  <td style={{ border: "1px solid #ddd", padding: "8px" }}>
-                    {mode === "view" ? (
-                      row.soTien
-                    ) : (
-                      <input
-                        type="text"
-                        value={row.soTien}
-                        onFocus={() => setCurrentFocusRow(rowIdx)}
-                        onChange={(e) =>
-                          handleCellChange(rowIdx, "soTien", e.target.value)
-                        }
-                        style={{
-                          width: "100%",
-                          border: "none",
-                          outline: "none",
-                          padding: "4px",
-                        }}
-                        aria-label={`Số tiền hàng ${rowIdx + 1}`}
-                      />
-                    )}
-                  </td>
+                  <th style={{ border: "none", padding: "12px 8px", fontWeight: 600, color: '#1976d2', minWidth: 60 }}>Stt</th>
+                  <th style={{ border: "none", padding: "12px 8px", fontWeight: 600, color: '#1976d2', minWidth: 200 }}>Dịch vụ</th>
+                  <th style={{ border: "none", padding: "12px 8px", fontWeight: 600, color: '#1976d2', minWidth: 120, borderTopRightRadius: 12 }}>Số tiền</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {formData.map((row, rowIdx) => (
+                  <tr key={rowIdx} style={{ background: rowIdx % 2 === 0 ? '#f7fafd' : '#fff', transition: 'background 0.2s', cursor: mode !== 'view' ? 'pointer' : 'default' }}
+                    onMouseEnter={e => { if (mode !== 'view') e.currentTarget.style.background = '#e3f0fb'; }}
+                    onMouseLeave={e => { if (mode !== 'view') e.currentTarget.style.background = rowIdx % 2 === 0 ? '#f7fafd' : '#fff'; }}
+                  >
+                    {mode !== "view" && (
+                      <td
+                        style={{
+                          border: "none",
+                          padding: "8px",
+                          textAlign: "center",
+                        }}
+                      >
+                        <input
+                          type="checkbox"
+                          checked={selectedRows.includes(rowIdx)}
+                          onChange={() => handleCheckboxChange(rowIdx)}
+                          aria-label={`Chọn add on hàng ${rowIdx + 1}`}
+                          style={{ width: 18, height: 18, accentColor: '#1976d2' }}
+                        />
+                      </td>
+                    )}
+                    <td
+                      style={{
+                        border: mode === 'view' ? 'none' : undefined,
+                        borderRight: mode === 'view' ? '1px solid #e0e0e0' : undefined,
+                        padding: "8px",
+                        textAlign: 'center',
+                        fontWeight: 500
+                      }}
+                    >
+                      {rowIdx + 1}
+                    </td>
+                    <td
+                      style={{
+                        border: mode === 'view' ? 'none' : undefined,
+                        borderRight: mode === 'view' ? '1px solid #e0e0e0' : undefined,
+                        padding: "8px",
+                        textAlign: mode === 'view' ? 'center' : undefined
+                      }}
+                    >
+                      {mode === "view" ? (
+                        row.dichVu
+                      ) : (
+                        <input
+                          type="text"
+                          value={row.dichVu}
+                          onFocus={() => setCurrentFocusRow(rowIdx)}
+                          onChange={(e) => handleCellChange(rowIdx, "dichVu", e.target.value)}
+                          placeholder="Nhập dịch vụ..."
+                          style={{
+                            width: "100%",
+                            border: "1px solid #cfe2ff",
+                            outline: "none",
+                            padding: "6px 8px",
+                            borderRadius: 6,
+                            background: '#fafdff',
+                            fontSize: 15
+                          }}
+                          aria-label={`Dịch vụ hàng ${rowIdx + 1}`}
+                        />
+                      )}
+                    </td>
+                    <td
+                      style={{
+                        border: mode === 'view' ? 'none' : undefined,
+                        padding: "8px",
+                        textAlign: mode === 'view' ? 'center' : undefined,
+                        fontVariantNumeric: mode === 'view' ? 'tabular-nums' : undefined
+                      }}
+                    >
+                      {mode === "view" ? (
+                        formatMoney(row.soTien)
+                      ) : (
+                        <input
+                          type="text"
+                          inputMode="numeric"
+                          value={row.soTien}
+                          onFocus={() => setCurrentFocusRow(rowIdx)}
+                          onChange={(e) => handleCellChange(rowIdx, "soTien", e.target.value)}
+                          placeholder="Nhập số tiền..."
+                          style={{
+                            width: "100%",
+                            border: "1px solid #cfe2ff",
+                            outline: "none",
+                            padding: "6px 8px",
+                            borderRadius: 6,
+                            background: '#fafdff',
+                            fontSize: 15
+                          }}
+                          aria-label={`Số tiền hàng ${rowIdx + 1}`}
+                        />
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
           {mode !== "view" && (
-            <div style={{ marginTop: "20px" }}>
+            <div style={{ marginTop: "24px", display: 'flex', justifyContent: 'flex-end', gap: 16 }}>
               <Button
                 onClick={handleAddRow}
                 variant="contained"
                 color="primary"
-                style={{ marginRight: "10px" }}
+                sx={{ fontWeight: 600, borderRadius: 2, boxShadow: 1 }}
                 aria-label="Thêm hàng"
               >
                 Thêm Hàng
@@ -293,9 +356,9 @@ const AddOnTable = React.memo(function AddOnTable({
               <Button
                 onClick={handleDeleteSelectedRows}
                 variant="contained"
-                color="secondary"
+                color="error"
                 disabled={selectedRows.length === 0}
-                style={{ marginLeft: "10px" }}
+                sx={{ fontWeight: 600, borderRadius: 2, boxShadow: 1 }}
                 aria-label="Xóa hàng đã chọn"
               >
                 Xóa Hàng Đã Chọn

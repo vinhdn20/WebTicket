@@ -411,23 +411,35 @@ export default function FullScreenSoTheDialog({ open, onClose }) {
       {/* Table for Input */}
       <div style={{ padding: "20px" }} onPaste={handlePaste}>
         <Typography variant="h6">Thêm mới số thẻ thanh toán</Typography>
-        <table style={{ width: "100%", borderCollapse: "collapse" }}>
-          <thead>
-            <tr>
-              <th
-                style={{
-                  border: "1px solid #ddd",
-                  padding: "8px",
-                  textAlign: "center",
+      <table style={{ width: "100%", borderCollapse: "collapse" }}>
+        <thead>
+          <tr>
+            <th
+              style={{
+                border: "1px solid #ddd",
+                padding: "8px",
+                textAlign: "center",
+              }}
+            >
+              <input
+                type="checkbox"
+                checked={formData.length > 0 && selectedRows.length === formData.length}
+                indeterminate={selectedRows.length > 0 && selectedRows.length < formData.length}
+                onChange={e => {
+                  if (e.target.checked) {
+                    setSelectedRows(formData.map((_, idx) => idx));
+                  } else {
+                    setSelectedRows([]);
+                  }
                 }}
-              >
-                Chọn
-              </th>
-              <th style={{ border: "1px solid #ddd", padding: "8px" }}>
-                Số thẻ thanh toán
-              </th>
-            </tr>
-          </thead>
+                style={{ cursor: "pointer" }}
+              />
+            </th>
+            <th style={{ border: "1px solid #ddd", padding: "8px" }}>
+              Số thẻ thanh toán
+            </th>
+          </tr>
+        </thead>
           <tbody>
             {formData.map((row, rowIndex) => (
               <tr key={rowIndex}>
@@ -497,7 +509,19 @@ export default function FullScreenSoTheDialog({ open, onClose }) {
                   textAlign: "center",
                 }}
               >
-                Chọn
+                <input
+                  type="checkbox"
+                  checked={apiData.length > 0 && selectedApiRows.length === apiData.length}
+                  indeterminate={selectedApiRows.length > 0 && selectedApiRows.length < apiData.length}
+                  onChange={e => {
+                    if (e.target.checked) {
+                      setSelectedApiRows(apiData.map(row => row.id));
+                    } else {
+                      setSelectedApiRows([]);
+                    }
+                  }}
+                  style={{ cursor: "pointer" }}
+                />
               </th>
               <th style={{ border: "1px solid #ddd", padding: "8px" }}>
                 Số thẻ thanh toán

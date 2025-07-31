@@ -970,17 +970,58 @@ const InputTable = ({ onTicketCreated }) => {
           }}>
             <thead>
               <tr style={{ backgroundColor: "#f8fafc" }}>
-                {columns.map((column) => (
-                  <th key={column.accessor} style={{
-                    padding: "16px 12px",
-                    borderBottom: "2px solid #e2e8f0",
-                    borderRight: "1px solid #e2e8f0",
-                    fontSize: "14px",
-                    fontWeight: "700",
-                    color: "#374151",
-                    textAlign: "left",
-                    backgroundColor: "#f8fafc"
-                  }}>{column.Header}</th>
+                {columns.map((column, colIdx) => (
+                  colIdx === 0 ? (
+                    <th key={column.accessor} style={{
+                      width: 32,
+                      minWidth: 28,
+                      maxWidth: 36,
+                      padding: "6px 0",
+                      borderBottom: "2px solid #e2e8f0",
+                      borderRight: "1px solid #e2e8f0",
+                      fontSize: "14px",
+                      fontWeight: "700",
+                      color: "#374151",
+                      textAlign: "center",
+                      backgroundColor: "#f8fafc",
+                      borderTopLeftRadius: 12,
+                      borderBottomLeftRadius: 12
+                    }}>
+                      <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: 24 }}>
+                        <input
+                          type="checkbox"
+                          checked={data.length > 0 && selectedRows.length === data.length}
+                          indeterminate={selectedRows.length > 0 && selectedRows.length < data.length}
+                          onChange={e => {
+                            if (e.target.checked) {
+                              setSelectedRows(data.map((_, idx) => idx));
+                            } else {
+                              setSelectedRows([]);
+                            }
+                          }}
+                          style={{
+                            cursor: "pointer",
+                            width: 15,
+                            height: 15,
+                            accentColor: "#3b82f6",
+                            borderRadius: 3,
+                            margin: 0
+                          }}
+                        />
+                      </div>
+                    </th>
+                  ) : (
+                    <th key={column.accessor} style={{
+                      padding: "16px 12px",
+                      borderBottom: "2px solid #e2e8f0",
+                      borderRight: "1px solid #e2e8f0",
+                      fontSize: "14px",
+                      fontWeight: "700",
+                      color: "#374151",
+                      textAlign: "left",
+                      backgroundColor: "#f8fafc"
+                    }}>{column.Header}</th>
+                  )
                 ))}
               </tr>
             </thead>
@@ -992,30 +1033,39 @@ const InputTable = ({ onTicketCreated }) => {
                 }}>
                   {columns.map((column) => (
                     <td key={column.accessor} style={{
-                      padding: "12px",
+                      padding: column.accessor === "select" ? "6px 0" : "12px",
                       borderBottom: "1px solid #e2e8f0",
                       borderRight: "1px solid #e2e8f0",
-                      fontSize: "14px"
+                      fontSize: "14px",
+                      width: column.accessor === "select" ? 32 : undefined,
+                      minWidth: column.accessor === "select" ? 28 : undefined,
+                      maxWidth: column.accessor === "select" ? 36 : undefined,
+                      textAlign: column.accessor === "select" ? "center" : undefined
                     }}>
                       {column.accessor === "select" ? (
-                        <input
-                          type="checkbox"
-                          checked={selectedRows.includes(rowIndex)}
-                          onChange={(e) =>
-                            handleSelectRow(rowIndex, e.target.checked)
-                          }
-                          onFocus={() =>
-                            setCurrentFocusCell({
-                              rowIndex,
-                              columnId: column.accessor,
-                            })
-                          }
-                          style={{
-                            width: "18px",
-                            height: "18px",
-                            cursor: "pointer"
-                          }}
-                        />
+                        <div style={{ display: "flex", justifyContent: "center", alignItems: "center", height: 24 }}>
+                          <input
+                            type="checkbox"
+                            checked={selectedRows.includes(rowIndex)}
+                            onChange={(e) =>
+                              handleSelectRow(rowIndex, e.target.checked)
+                            }
+                            onFocus={() =>
+                              setCurrentFocusCell({
+                                rowIndex,
+                                columnId: column.accessor,
+                              })
+                            }
+                            style={{
+                              width: 15,
+                              height: 15,
+                              cursor: "pointer",
+                              accentColor: "#3b82f6",
+                              borderRadius: 3,
+                              margin: 0
+                            }}
+                          />
+                        </div>
                       ) : column.accessor === "sdt" ? (
                         <div className="dropdown-container" style={{ position: "relative" }}>
                           <input

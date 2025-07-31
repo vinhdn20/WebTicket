@@ -1023,6 +1023,10 @@ const EditableTable = ({
                                     fontWeight: "600",
                                     cursor: "pointer",
                                     transition: "all 0.2s ease",
+                                    display: "flex",
+                                    alignItems: "center",
+                                    justifyContent: "center",
+                                    textAlign: "center"
                                   }}
                                   aria-label={
                                     isEditing &&

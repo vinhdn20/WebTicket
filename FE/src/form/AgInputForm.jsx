@@ -53,6 +53,7 @@ export default function FullScreenAGDialog({ open, onClose }) {
   });
 
   const [apiData, setApiData] = useState([]);
+  const [searchText, setSearchText] = useState("");
   const [selectedRows, setSelectedRows] = useState([]); // Lưu các hàng được chọn
   const [selectedApiRows, setSelectedApiRows] = useState([]);
   const [currentFocusRow, setCurrentFocusRow] = useState(null); // Lưu vị trí hàng được focus
@@ -140,6 +141,17 @@ export default function FullScreenAGDialog({ open, onClose }) {
     }));
     setApiData(mappedData);
   }, []);
+
+  // Lọc dữ liệu API theo searchText
+  const filteredApiData = useMemo(() => {
+    if (!searchText.trim()) return apiData;
+    const lower = searchText.toLowerCase();
+    return apiData.filter(row =>
+      (row.tenAG && row.tenAG.toLowerCase().includes(lower)) ||
+      (row.sdt && row.sdt.toLowerCase().includes(lower)) ||
+      (row.mail && row.mail.toLowerCase().includes(lower))
+    );
+  }, [apiData, searchText]);
 
   // Fetch dữ liệu khi mở dialog
   useEffect(() => {
@@ -512,183 +524,293 @@ export default function FullScreenAGDialog({ open, onClose }) {
       {/* Table for Input */}
       <div style={{ padding: "20px" }} onPaste={handlePaste}>
         <Typography variant="h6">Thêm mới AG</Typography>
-        <table style={{ width: "100%", borderCollapse: "collapse" }}>
-          <thead>
-            <tr>
-              <th
-                style={{
-                  border: "1px solid #ddd",
-                  padding: "8px",
-                  textAlign: "center",
-                }}
-              >
-                Chọn
-              </th>
-              <th style={{ border: "1px solid #ddd", padding: "8px" }}>
-                Tên AG
-              </th>
-              <th style={{ border: "1px solid #ddd", padding: "8px" }}>
-                Số điện thoại
-              </th>
-              <th style={{ border: "1px solid #ddd", padding: "8px" }}>
-                Email
-              </th>
-            </tr>
-          </thead>
-          <tbody>
-            {formData.map((row, rowIndex) => (
-              <tr key={rowIndex}>
-                <td
+        <div style={{
+          width: "100%",
+          overflowX: "auto",
+          borderRadius: 12,
+          boxShadow: "0 2px 8px rgba(0,0,0,0.07)",
+          border: "1px solid #e2e8f0",
+          margin: "16px 0",
+          maxHeight: 340,
+          overflowY: "auto",
+        }}>
+          <table style={{
+            minWidth: 600,
+            width: "100%",
+            borderCollapse: "separate",
+            borderSpacing: 0,
+            background: "white"
+          }}>
+            <thead style={{ position: "sticky", top: 0, zIndex: 2, background: "#f8fafc" }}>
+              <tr>
+                <th
                   style={{
-                    border: "1px solid #ddd",
-                    padding: "8px",
+                    borderBottom: "2px solid #e2e8f0",
+                    padding: "12px 8px",
                     textAlign: "center",
+                    background: "#f8fafc",
+                    position: "sticky",
+                    left: 0,
+                    zIndex: 3,
                   }}
                 >
                   <input
                     type="checkbox"
-                    checked={selectedRows.includes(rowIndex)}
-                    onChange={() => handleCheckboxChange(rowIndex)}
-                  />
-                </td>
-                <td style={{ border: "1px solid #ddd", padding: "8px" }}>
-                  <input
-                    type="text"
-                    value={row.tenAG}
-                    onChange={(e) =>
-                      handleCellChange(rowIndex, "tenAG", e.target.value)
-                    }
-                    onFocus={() => setCurrentFocusRow(rowIndex)}
-                    style={{
-                      width: "100%",
-                      border: "none",
-                      outline: "none",
-                      padding: "4px",
+                    checked={formData.length > 0 && selectedRows.length === formData.length}
+                    indeterminate={selectedRows.length > 0 && selectedRows.length < formData.length}
+                    onChange={e => {
+                      if (e.target.checked) {
+                        setSelectedRows(formData.map((_, idx) => idx));
+                      } else {
+                        setSelectedRows([]);
+                      }
                     }}
-                    placeholder="Nhập tên AG"
+                    style={{ cursor: "pointer" }}
                   />
-                </td>
-                <td style={{ border: "1px solid #ddd", padding: "8px" }}>
-                  <input
-                    type="text"
-                    value={row.sdt}
-                    onChange={(e) =>
-                      handleCellChange(rowIndex, "sdt", e.target.value)
-                    }
-                    onFocus={() => setCurrentFocusRow(rowIndex)}
-                    style={{
-                      width: "100%",
-                      border: "none",
-                      outline: "none",
-                      padding: "4px",
-                    }}
-                    placeholder="Nhập số điện thoại"
-                  />
-                </td>
-                <td style={{ border: "1px solid #ddd", padding: "8px" }}>
-                  <input
-                    type="email"
-                    value={row.mail}
-                    onChange={(e) =>
-                      handleCellChange(rowIndex, "mail", e.target.value)
-                    }
-                    onFocus={() => setCurrentFocusRow(rowIndex)}
-                    style={{
-                      width: "100%",
-                      border: "none",
-                      outline: "none",
-                      padding: "4px",
-                    }}
-                    placeholder="Nhập email"
-                  />
-                </td>
+                </th>
+                <th style={{ borderBottom: "2px solid #e2e8f0", padding: "12px 8px", background: "#f8fafc" }}>
+                  Tên AG
+                </th>
+                <th style={{ borderBottom: "2px solid #e2e8f0", padding: "12px 8px", background: "#f8fafc" }}>
+                  Số điện thoại
+                </th>
+                <th style={{ borderBottom: "2px solid #e2e8f0", padding: "12px 8px", background: "#f8fafc" }}>
+                  Email
+                </th>
               </tr>
-            ))}
-          </tbody>
-        </table>
-        <Button
-          onClick={handleAddRow}
-          variant="contained"
-          color="primary"
-          style={{ marginTop: "20px" }}
-        >
-          Thêm Hàng
-        </Button>
-        <Button
-          onClick={handleOpenDeleteDialogForNormal}
-          variant="contained"
-          color="secondary"
-          style={{ marginTop: "20px", marginLeft: "10px" }}
-          disabled={selectedRows.length === 0}
-        >
-          Xóa Hàng Đã Chọn
-        </Button>
+            </thead>
+            <tbody>
+              {formData.map((row, rowIndex) => (
+                <tr key={rowIndex} style={{ background: rowIndex % 2 === 0 ? "#fff" : "#f8fafc" }}>
+                  <td
+                    style={{
+                      borderBottom: "1px solid #e2e8f0",
+                      padding: "10px 8px",
+                      textAlign: "center",
+                      position: "sticky",
+                      left: 0,
+                      background: rowIndex % 2 === 0 ? "#fff" : "#f8fafc",
+                      zIndex: 2,
+                    }}
+                  >
+                    <input
+                      type="checkbox"
+                      checked={selectedRows.includes(rowIndex)}
+                      onChange={() => handleCheckboxChange(rowIndex)}
+                    />
+                  </td>
+                  <td style={{ borderBottom: "1px solid #e2e8f0", padding: "10px 8px" }}>
+                    <input
+                      type="text"
+                      value={row.tenAG}
+                      onChange={(e) =>
+                        handleCellChange(rowIndex, "tenAG", e.target.value)
+                      }
+                      onFocus={() => setCurrentFocusRow(rowIndex)}
+                      style={{
+                        width: "100%",
+                        border: "1px solid #e2e8f0",
+                        outline: "none",
+                        padding: "6px 8px",
+                        borderRadius: 6,
+                        background: "#f9fafb",
+                        fontSize: 15,
+                        transition: "border-color 0.2s",
+                      }}
+                      placeholder="Nhập tên AG"
+                    />
+                  </td>
+                  <td style={{ borderBottom: "1px solid #e2e8f0", padding: "10px 8px" }}>
+                    <input
+                      type="text"
+                      value={row.sdt}
+                      onChange={(e) =>
+                        handleCellChange(rowIndex, "sdt", e.target.value)
+                      }
+                      onFocus={() => setCurrentFocusRow(rowIndex)}
+                      style={{
+                        width: "100%",
+                        border: "1px solid #e2e8f0",
+                        outline: "none",
+                        padding: "6px 8px",
+                        borderRadius: 6,
+                        background: "#f9fafb",
+                        fontSize: 15,
+                        transition: "border-color 0.2s",
+                      }}
+                      placeholder="Nhập số điện thoại"
+                    />
+                  </td>
+                  <td style={{ borderBottom: "1px solid #e2e8f0", padding: "10px 8px" }}>
+                    <input
+                      type="email"
+                      value={row.mail}
+                      onChange={(e) =>
+                        handleCellChange(rowIndex, "mail", e.target.value)
+                      }
+                      onFocus={() => setCurrentFocusRow(rowIndex)}
+                      style={{
+                        width: "100%",
+                        border: "1px solid #e2e8f0",
+                        outline: "none",
+                        padding: "6px 8px",
+                        borderRadius: 6,
+                        background: "#f9fafb",
+                        fontSize: 15,
+                        transition: "border-color 0.2s",
+                      }}
+                      placeholder="Nhập email"
+                    />
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+        <div style={{ display: "flex", gap: 12, marginTop: 16, flexWrap: "wrap" }}>
+          <Button
+            onClick={handleAddRow}
+            variant="contained"
+            color="primary"
+            style={{ minWidth: 120, borderRadius: 8, fontWeight: 600 }}
+          >
+            Thêm Hàng
+          </Button>
+          <Button
+            onClick={handleOpenDeleteDialogForNormal}
+            variant="contained"
+            color="secondary"
+            style={{ minWidth: 160, borderRadius: 8, fontWeight: 600, opacity: selectedRows.length === 0 ? 0.5 : 1, cursor: selectedRows.length === 0 ? "not-allowed" : "pointer" }}
+            disabled={selectedRows.length === 0}
+          >
+            Xóa Hàng Đã Chọn
+          </Button>
+        </div>
       </div>
 
       {/* Table for API Data */}
       <div style={{ padding: "20px" }}>
         <Typography variant="h6">Dữ liệu từ API</Typography>
-        <table style={{ width: "100%", borderCollapse: "collapse" }}>
-          <thead>
-            <tr>
-              <th
-                style={{
-                  border: "1px solid #ddd",
-                  padding: "8px",
-                  textAlign: "center",
-                }}
-              >
-                Chọn
-              </th>
-              <th style={{ border: "1px solid #ddd", padding: "8px" }}>
-                Tên AG
-              </th>
-              <th style={{ border: "1px solid #ddd", padding: "8px" }}>
-                Số điện thoại
-              </th>
-              <th style={{ border: "1px solid #ddd", padding: "8px" }}>
-                Email
-              </th>
-            </tr>
-          </thead>
-          <tbody>
-            {apiData.map((row) => (
-              <tr key={row.id}>
-                <td
+        <div style={{ margin: "12px 0 20px 0", display: "flex", gap: 12, flexWrap: "wrap" }}>
+          <input
+            type="text"
+            value={searchText}
+            onChange={e => setSearchText(e.target.value)}
+            placeholder="Tìm theo tên AG, số điện thoại hoặc email..."
+            style={{
+              width: 320,
+              maxWidth: "100%",
+              padding: "10px 14px",
+              border: "1.5px solid #e2e8f0",
+              borderRadius: 8,
+              fontSize: 15,
+              background: "#f9fafb",
+              outline: "none",
+              boxShadow: "0 1px 2px rgba(0,0,0,0.04)",
+              transition: "border-color 0.2s"
+            }}
+          />
+        </div>
+        <div style={{
+          width: "100%",
+          overflowX: "auto",
+          borderRadius: 12,
+          boxShadow: "0 2px 8px rgba(0,0,0,0.07)",
+          border: "1px solid #e2e8f0",
+          margin: "16px 0",
+          maxHeight: 340,
+          overflowY: "auto",
+        }}>
+          <table style={{
+            minWidth: 600,
+            width: "100%",
+            borderCollapse: "separate",
+            borderSpacing: 0,
+            background: "white"
+          }}>
+            <thead style={{ position: "sticky", top: 0, zIndex: 2, background: "#f8fafc" }}>
+              <tr>
+                <th
                   style={{
-                    border: "1px solid #ddd",
-                    padding: "8px",
+                    borderBottom: "2px solid #e2e8f0",
+                    padding: "12px 8px",
                     textAlign: "center",
+                    background: "#f8fafc",
+                    position: "sticky",
+                    left: 0,
+                    zIndex: 3,
                   }}
                 >
                   <input
                     type="checkbox"
-                    checked={selectedApiRows.includes(row.id)}
-                    onChange={() => handleApiCheckboxChange(row.id)}
+                    checked={filteredApiData.length > 0 && selectedApiRows.length === filteredApiData.length}
+                    indeterminate={selectedApiRows.length > 0 && selectedApiRows.length < filteredApiData.length}
+                    onChange={e => {
+                      if (e.target.checked) {
+                        setSelectedApiRows(filteredApiData.map(row => row.id));
+                      } else {
+                        setSelectedApiRows([]);
+                      }
+                    }}
+                    style={{ cursor: "pointer" }}
                   />
-                </td>
-                <td style={{ border: "1px solid #ddd", padding: "8px" }}>
-                  {row.tenAG}
-                </td>
-                <td style={{ border: "1px solid #ddd", padding: "8px" }}>
-                  {row.sdt}
-                </td>
-                <td style={{ border: "1px solid #ddd", padding: "8px" }}>
-                  {row.mail}
-                </td>
+                </th>
+                <th style={{ borderBottom: "2px solid #e2e8f0", padding: "12px 8px", background: "#f8fafc" }}>
+                  Tên AG
+                </th>
+                <th style={{ borderBottom: "2px solid #e2e8f0", padding: "12px 8px", background: "#f8fafc" }}>
+                  Số điện thoại
+                </th>
+                <th style={{ borderBottom: "2px solid #e2e8f0", padding: "12px 8px", background: "#f8fafc" }}>
+                  Email
+                </th>
               </tr>
-            ))}
-          </tbody>
-        </table>
-        <Button
-          onClick={handleOpenDeleteDialogForAPI}
-          variant="contained"
-          color="secondary"
-          style={{ marginTop: "20px" }}
-          disabled={selectedApiRows.length === 0}
-        >
-          Xóa Hàng Đã Chọn
-        </Button>
+            </thead>
+            <tbody>
+              {filteredApiData.map((row, rowIndex) => (
+                <tr key={row.id} style={{ background: rowIndex % 2 === 0 ? "#fff" : "#f8fafc" }}>
+                  <td
+                    style={{
+                      borderBottom: "1px solid #e2e8f0",
+                      padding: "10px 8px",
+                      textAlign: "center",
+                      position: "sticky",
+                      left: 0,
+                      background: rowIndex % 2 === 0 ? "#fff" : "#f8fafc",
+                      zIndex: 2,
+                    }}
+                  >
+                    <input
+                      type="checkbox"
+                      checked={selectedApiRows.includes(row.id)}
+                      onChange={() => handleApiCheckboxChange(row.id)}
+                    />
+                  </td>
+                  <td style={{ borderBottom: "1px solid #e2e8f0", padding: "10px 8px" }}>
+                    {row.tenAG}
+                  </td>
+                  <td style={{ borderBottom: "1px solid #e2e8f0", padding: "10px 8px" }}>
+                    {row.sdt}
+                  </td>
+                  <td style={{ borderBottom: "1px solid #e2e8f0", padding: "10px 8px" }}>
+                    {row.mail}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+        <div style={{ display: "flex", gap: 12, marginTop: 16, flexWrap: "wrap" }}>
+          <Button
+            onClick={handleOpenDeleteDialogForAPI}
+            variant="contained"
+            color="secondary"
+            style={{ minWidth: 160, borderRadius: 8, fontWeight: 600, opacity: selectedApiRows.length === 0 ? 0.5 : 1, cursor: selectedApiRows.length === 0 ? "not-allowed" : "pointer" }}
+            disabled={selectedApiRows.length === 0}
+          >
+            Xóa Hàng Đã Chọn
+          </Button>
+        </div>
       </div>
       <Dialog
         open={openDeleteDialog}
