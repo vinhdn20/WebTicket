@@ -162,23 +162,34 @@ export default function FullScreenSoTheDialog({ open, onClose }) {
     (e) => {
       e.preventDefault();
       const clipboardData = e.clipboardData.getData("text");
-      const rows = clipboardData.split("\n").map((row) => row.split("\t"));
+      const rows = clipboardData
+        .split("\n")
+        .map((row) => row.split("\t"))
+        .filter((row) => row.some((cell) => cell.trim() !== ""));
       if (currentFocusRow === null) return;
-      const updatedFormData = [...formData];
-      rows.forEach((rowValues, rowOffset) => {
-        const targetRow = currentFocusRow + rowOffset;
-        if (updatedFormData[targetRow]) {
-          rowValues.forEach((cellValue, colOffset) => {
-            if (colOffset === 0) {
-              updatedFormData[targetRow].soThe = cellValue;
-            }
-          });
+      setFormData((prevFormData) => {
+        let updatedFormData = [...prevFormData];
+        const requiredRows = currentFocusRow + rows.length;
+        if (requiredRows > updatedFormData.length) {
+          const cols = 1;
+          const matrix = generateMatrixValues(requiredRows, cols, 11);
+          for (let i = updatedFormData.length; i < requiredRows; i++) {
+            updatedFormData.push({
+              soThe: "",
+              matrixValue: matrix[i],
+            });
+          }
         }
+        rows.forEach((rowValues, rowOffset) => {
+          const targetRow = currentFocusRow + rowOffset;
+          if (updatedFormData[targetRow]) {
+            if (rowValues[0] !== undefined) updatedFormData[targetRow].soThe = rowValues[0];
+          }
+        });
+        return updatedFormData;
       });
-
-      setFormData(updatedFormData);
     },
-    [formData, currentFocusRow]
+    [currentFocusRow]
   );
 
   const handleCellChange = useCallback((rowIndex, field, value) => {
@@ -246,7 +257,7 @@ export default function FullScreenSoTheDialog({ open, onClose }) {
       console.error("Error deleting data", error);
       openSnackbar("Có lỗi xảy ra khi xóa các hàng đã chọn.", "error");
     }
-  }, [selectedApiRows, callApiWithAuth, fetchApiData, openSnackbar]);
+  }, [selectedApiRows, callApiWithAuth, fetchApiData, openSnackbar, API_URL]);
 
   const handleSave = useCallback(async () => {
     for (const row of formData) {
@@ -275,7 +286,7 @@ export default function FullScreenSoTheDialog({ open, onClose }) {
       console.error("Error saving data", error);
       openSnackbar("Có lỗi xảy ra khi lưu dữ liệu.", "error");
     }
-  }, [formData, callApiWithAuth, fetchApiData, openSnackbar, onClose]);
+  }, [formData, callApiWithAuth, fetchApiData, openSnackbar, onClose, API_URL]);
 
   const handleOpenDeleteDialogForNormal = useCallback(() => {
     setIsApi(false);

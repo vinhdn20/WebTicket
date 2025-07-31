@@ -317,33 +317,44 @@ const InputTable = ({ onTicketCreated }) => {
       e.preventDefault();
 
       const clipboardData = e.clipboardData.getData("text");
-      const rows = clipboardData.split("\n").map((row) => row.split("\t"));
+      const rows = clipboardData
+        .split("\n")
+        .map((row) => row.split("\t"))
+        .filter((row) => row.some((cell) => cell.trim() !== ""));
 
       if (!currentFocusCell) return;
 
       const startRow = currentFocusCell.rowIndex;
-      const startCol = columns.findIndex(
+      // Lấy danh sách các accessor thực sự (bỏ select)
+      const realColumns = columns.filter(
+        (col) => col.accessor !== "select" && col.accessor !== "addOn"
+      );
+      const startCol = realColumns.findIndex(
         (col) => col.accessor === currentFocusCell.columnId
       );
 
-      const updatedData = [...data];
-      rows.forEach((rowValues, rowOffset) => {
-        rowValues.forEach((cellValue, colOffset) => {
-          const targetRow = startRow + rowOffset;
-          const targetCol = startCol + colOffset;
+      setData((prevData) => {
+        let updatedData = [...prevData];
+        const requiredRows = startRow + rows.length;
+        // Thêm đủ hàng nếu thiếu
+        for (let i = updatedData.length; i < requiredRows; i++) {
+          updatedData.push({ ...initialRow });
+        }
 
-          if (updatedData[targetRow]) {
-            const targetKey = columns[targetCol]?.accessor;
-            if (targetKey && targetKey !== "select" && targetKey !== "addOn") {
+        rows.forEach((rowValues, rowOffset) => {
+          const targetRow = startRow + rowOffset;
+          rowValues.forEach((cellValue, colOffset) => {
+            const targetCol = startCol + colOffset;
+            const targetKey = realColumns[targetCol]?.accessor;
+            if (targetKey && updatedData[targetRow]) {
               updatedData[targetRow][targetKey] = cellValue;
             }
-          }
+          });
         });
+        return updatedData;
       });
-
-      setData(updatedData);
     },
-    [currentFocusCell, data, columns]
+    [currentFocusCell, columns]
   );
 
   // Handle Save from AddOnTable

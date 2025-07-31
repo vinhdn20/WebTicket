@@ -26,7 +26,7 @@ const Transition = React.forwardRef(function Transition(props, ref) {
 
 const generateMatrixValues = (rows, cols, startValue = 11) => {
   const matrix = [];
-  let value = startValue; // Bắt đầu từ 11
+  let value = startValue;
   for (let i = 0; i < rows; i++) {
     const row = [];
     for (let j = 0; j < cols; j++) {
@@ -160,31 +160,53 @@ export default function FullScreenAGDialog({ open, onClose }) {
 
       // Lấy dữ liệu từ clipboard
       const clipboardData = e.clipboardData.getData("text");
-      const rows = clipboardData.split("\n").map((row) => row.split("\t")); // Chia dòng và cột từ Excel
+      const rows = clipboardData
+        .split("\n")
+        .map((row) => row.split("\t"))
+        .filter((row) => row.some((cell) => cell.trim() !== "")); // Bỏ dòng trống
 
       if (currentFocusRow === null) return; // Kiểm tra nếu chưa có hàng focus
 
-      // Cập nhật dữ liệu vào bảng
-      const updatedFormData = [...formData];
-      rows.forEach((rowValues, rowOffset) => {
-        const targetRow = currentFocusRow + rowOffset; // Xác định hàng bắt đầu
-        if (updatedFormData[targetRow]) {
-          // Cập nhật các cột
-          rowValues.forEach((cellValue, colOffset) => {
-            if (colOffset === 0) {
-              updatedFormData[targetRow].tenAG = cellValue; // Cột tên AG
-            } else if (colOffset === 1) {
-              updatedFormData[targetRow].sdt = cellValue; // Cột số điện thoại
-            } else if (colOffset === 2) {
-              updatedFormData[targetRow].mail = cellValue; // Cột email
-            }
-          });
+      setFormData((prevFormData) => {
+        // Định nghĩa các trường tương ứng với số cột dán vào
+        const fieldNames = [
+          "tenAG", // Chặng
+          "sdt",   // Ngày giờ bay
+          "mail",  // Hãng bay
+          "col4",  // Số hiệu chuyến bay
+          "col5",  // Tham chiếu HHK
+          "col6",  // Mã đặt chỗ
+          "col7"   // Tên khách hàng
+        ];
+        let updatedFormData = [...prevFormData];
+        const requiredRows = currentFocusRow + rows.length;
+        if (requiredRows > updatedFormData.length) {
+          // Thêm đủ số hàng mới nếu cần
+          const cols = fieldNames.length;
+          const matrix = generateMatrixValues(requiredRows, cols, 11);
+          for (let i = updatedFormData.length; i < requiredRows; i++) {
+            // Tạo object đủ trường
+            const newRow = {};
+            fieldNames.forEach((field, idx) => {
+              newRow[field] = "";
+            });
+            newRow.matrixValue = matrix[i];
+            updatedFormData.push(newRow);
+          }
         }
-      });
 
-      setFormData(updatedFormData); // Cập nhật state
+        rows.forEach((rowValues, rowOffset) => {
+          const targetRow = currentFocusRow + rowOffset;
+          if (updatedFormData[targetRow]) {
+            fieldNames.forEach((field, idx) => {
+              if (rowValues[idx] !== undefined) updatedFormData[targetRow][field] = rowValues[idx];
+            });
+          }
+        });
+        return updatedFormData;
+      });
     },
-    [formData, currentFocusRow]
+    [currentFocusRow]
   );
 
   // Xử lý thay đổi ô dữ liệu
@@ -223,10 +245,10 @@ export default function FullScreenAGDialog({ open, onClose }) {
   }, []);
 
   // Xử lý xóa các hàng đã chọn trong formData
-  const handleDeleteSelectedRows = () => {
+  const handleDeleteSelectedRows = useCallback(() => {
     setFormData((prev) => prev.filter((_, idx) => !selectedRows.includes(idx)));
     setSelectedRows([]);
-  };
+  }, [selectedRows]);
 
   // Xử lý chọn/huỷ chọn hàng trong apiData
   const handleApiCheckboxChange = useCallback((id) => {
@@ -297,7 +319,7 @@ export default function FullScreenAGDialog({ open, onClose }) {
       console.error("Error deleting data", error);
       openSnackbar("Có lỗi xảy ra khi xóa các hàng đã chọn.", "error");
     }
-  }, [selectedApiRows, getAccessToken, fetchApiData, openSnackbar]);
+  }, [selectedApiRows, getAccessToken, fetchApiData, openSnackbar, API_URL]);
 
   const handleSave = useCallback(async () => {
     for (const row of formData) {
@@ -364,7 +386,7 @@ export default function FullScreenAGDialog({ open, onClose }) {
       console.error("Error saving data", error);
       openSnackbar("Có lỗi xảy ra khi lưu dữ liệu.", "error");
     }
-  }, [formData, getAccessToken, fetchApiData, openSnackbar, onClose]);
+  }, [formData, getAccessToken, fetchApiData, openSnackbar, onClose, API_URL]);
 
   const handleOpenDeleteDialogForNormal = useCallback(() => {
     setIsApi(false);
