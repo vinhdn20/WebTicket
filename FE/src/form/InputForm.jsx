@@ -312,6 +312,28 @@ const InputTable = ({ onTicketCreated }) => {
     setOpenAddOnDialog(false);
   }, []);
 
+  // Helper: parse date string to yyyy-MM-ddTHH:mm for input type="datetime-local"
+  function parseToDateTimeLocal(str) {
+    if (!str) return str;
+    // Try ISO first
+    const iso = Date.parse(str);
+    if (!isNaN(iso)) {
+      const d = new Date(iso);
+      return d.toISOString().slice(0, 16);
+    }
+    // Try dd/MM/yyyy or dd-MM-yyyy
+    const match = str.match(/^(\d{1,2})[/-](\d{1,2})[/-](\d{4})(?:[ T](\d{1,2}):(\d{2}))?/);
+    if (match) {
+      const day = match[1].padStart(2, '0');
+      const month = match[2].padStart(2, '0');
+      const year = match[3];
+      const hour = match[4] ? match[4].padStart(2, '0') : '00';
+      const min = match[5] ? match[5].padStart(2, '0') : '00';
+      return `${year}-${month}-${day}T${hour}:${min}`;
+    }
+    return str;
+  }
+
   const handlePaste = useCallback(
     (e) => {
       e.preventDefault();
@@ -347,7 +369,12 @@ const InputTable = ({ onTicketCreated }) => {
             const targetCol = startCol + colOffset;
             const targetKey = realColumns[targetCol]?.accessor;
             if (targetKey && updatedData[targetRow]) {
-              updatedData[targetRow][targetKey] = cellValue;
+              // Nếu là cột ngày thì chuyển đổi định dạng
+              if (targetKey.toLowerCase().includes("ngay") || targetKey.toLowerCase().includes("date")) {
+                updatedData[targetRow][targetKey] = parseToDateTimeLocal(cellValue);
+              } else {
+                updatedData[targetRow][targetKey] = cellValue;
+              }
             }
           });
         });
