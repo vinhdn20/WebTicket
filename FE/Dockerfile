@@ -13,7 +13,7 @@ RUN npm ci --only=production
 # Copy source code
 COPY . .
 
-ARG REACT_APP_API_URL=http://103.188.83.36:5000
+ARG REACT_APP_API_URL=/api
 ENV REACT_APP_API_URL=$REACT_APP_API_URL
 # Build the application
 RUN npm run build
@@ -24,8 +24,8 @@ FROM nginx:alpine
 # Copy built application from build stage
 COPY --from=build /app/build /usr/share/nginx/html
 
-# Copy nginx configuration if needed
-# COPY nginx.conf /etc/nginx/nginx.conf
+# Copy nginx configuration
+COPY nginx.conf /etc/nginx/conf.d/default.conf
 
 # Expose port 80
 EXPOSE 80

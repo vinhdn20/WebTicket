@@ -6,7 +6,7 @@ using WebTicket.Common;
 namespace WebTicket.Controllers
 {
     [ApiController]
-    [Route("[controller]")]
+    [Route("api/[controller]")]
     public class APIBaseController : Controller
     {
         protected internal readonly HttpContext _httpContext;

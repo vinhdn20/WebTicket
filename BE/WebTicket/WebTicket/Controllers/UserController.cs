@@ -8,19 +8,17 @@ using System.Security.Claims;
 
 namespace WebTicket.Controllers
 {
-    public class UserController : Controller
+    public class UserController : APIBaseController
     {
         private readonly IConfiguration _configuration;
         private readonly IUserService _userService;
-        private readonly IDBRepository _repository;
 
 
-        public UserController(IConfiguration configuration, IDBRepository repository,
-                                   IUserService userService)
+        public UserController(IHttpContextAccessor accessor, IConfiguration configuration, IDBRepository repository,
+                                   IUserService userService) : base(accessor, repository)
         {
             _configuration = configuration;
             _userService = userService;
-            _repository = repository;
         }
 
         [HttpPost("add")]
