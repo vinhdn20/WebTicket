@@ -9,7 +9,7 @@ export async function refreshAccessToken() {
       return null;
     }
 
-    const refreshResponse = await fetch(`${API_URL}/refresh`, {
+    const refreshResponse = await fetch(`${API_URL}/User/refresh`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",

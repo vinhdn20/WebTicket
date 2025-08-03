@@ -21,6 +21,7 @@ namespace WebTicket.Controllers
             _userService = userService;
         }
 
+# if DEBUG
         [HttpPost("add")]
         [AllowAnonymous]
         public async Task<IActionResult> AddUser([FromBody] AddUser model)
@@ -46,6 +47,7 @@ namespace WebTicket.Controllers
                 return BadRequest(e.Message);
             }
         }
+#endif
 
         [HttpPost("login")]
         [AllowAnonymous]

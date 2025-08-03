@@ -98,7 +98,7 @@ const AccountCreation = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      const response = await fetch(`${API_URL}/login`, {
+      const response = await fetch(`${API_URL}/User/login`, {
         method: 'POST',
         credentials: "include",
         headers: {
