@@ -11,8 +11,8 @@ import {
   DialogContentText,
   DialogActions,
 } from "@mui/material";
-import FullScreenAGDialog from "./AgInputForm";
-import FullScreenSoTheDialog from "./SoTheInputForm";
+import FullScreenAGDialog from "./Dialog/AgInputForm";
+import FullScreenSoTheDialog from "./Dialog/SoTheInputForm";
 import AddOnTable from "./addOnTable";
 import apiService from "../services/apiSevrvice";
 import { fetchWithAuth } from "../services/authService";
@@ -80,29 +80,14 @@ const InputTable = ({ onTicketCreated }) => {
 
   const columns = useMemo(
     () => [
-      // { Header: "Ngày xuất", accessor: "ngayXuat" },
-      // { Header: "Liên hệ (SĐT)", accessor: "sdt" },
-      // { Header: "Mail", accessor: "mail" },
-      // { Header: "Tên AG", accessor: "tenAG" },
       { Header: "", accessor: "select" },
       { Header: "Chặng", accessor: "changDi" },
       { Header: "Ngày giờ bay", accessor: "ngayGioBayDi" },
-      // { Header: "Chặng bay đến", accessor: "changVe" },
-      // { Header: "Ngày giờ bay đến", accessor: "ngayGioBayDen" },
       { Header: "Hãng bay", accessor: "hangBay" },
       { Header: "Số hiệu chuyến bay", accessor: "soHieuChuyenBay" },
       { Header: "Tham chiếu HHK", accessor: "thamChieuHHK" },
       { Header: "Mã đặt chỗ hãng", accessor: "maDatChoHang" },
       { Header: "Tên khách hàng", accessor: "tenKhachHang" },
-      // { Header: "Giá xuất", accessor: "giaXuat" },
-      // { Header: "Giới tính", accessor: "gioiTinh" },
-      // { Header: "Add on", accessor: "addOn" },
-      // { Header: "Mã đặt chỗ trip", accessor: "maDatChoTrip" },
-      // { Header: "Thu AG", accessor: "thuAG" },
-      // { Header: "Số thẻ thanh toán", accessor: "soThe" },
-      // // { Header: "Tài khoản", accessor: "taiKhoan" },
-      // { Header: "Lưu ý", accessor: "luuY" },
-      // { Header: "Vé có hoàn hay không", accessor: "veHoanKhay" },
     ],
     []
   );
@@ -146,19 +131,16 @@ const InputTable = ({ onTicketCreated }) => {
         }
       }
 
-      // Lấy cardId từ cardOptions
       const selectedCard = cardOptions.find(
         (option) => option.soThe === (formHeaderData.soThe || data[0]?.soThe)
       );
       const cardId = selectedCard?.id || "";
 
-      // Lấy agCustomerId từ phoneOptions
       const selectedAgCustomer = phoneOptions.find(
         (option) => option.sdt === (formHeaderData.sdt || data[0]?.sdt)
       );
       const agCustomerId = selectedAgCustomer?.id || "";
 
-      // Build veDetails đúng format
       const veDetails = data.map((row) => ({
         changBay: row.changDi || "",
         ngayGioBay: row.ngayGioBayDi
@@ -171,7 +153,6 @@ const InputTable = ({ onTicketCreated }) => {
         tenKhachHang: row.tenKhachHang || "",
       }));
 
-      // Build payload đúng format
       const payload = {
         agCustomerId: agCustomerId,
         ngayXuat: formHeaderData.ngayXuat
@@ -294,7 +275,6 @@ const InputTable = ({ onTicketCreated }) => {
   }, [selectedRows]);
 
   const handleClickAddOnOpen = useCallback(() => {
-    // setAddOnRow(index);
     setOpenAddOnDialog(true);
   }, []);
 
@@ -312,23 +292,22 @@ const InputTable = ({ onTicketCreated }) => {
     setOpenAddOnDialog(false);
   }, []);
 
-  // Helper: parse date string to yyyy-MM-ddTHH:mm for input type="datetime-local"
   function parseToDateTimeLocal(str) {
     if (!str) return str;
-    // Try ISO first
     const iso = Date.parse(str);
     if (!isNaN(iso)) {
       const d = new Date(iso);
       return d.toISOString().slice(0, 16);
     }
-    // Try dd/MM/yyyy or dd-MM-yyyy
-    const match = str.match(/^(\d{1,2})[/-](\d{1,2})[/-](\d{4})(?:[ T](\d{1,2}):(\d{2}))?/);
+    const match = str.match(
+      /^(\d{1,2})[/-](\d{1,2})[/-](\d{4})(?:[ T](\d{1,2}):(\d{2}))?/
+    );
     if (match) {
-      const day = match[1].padStart(2, '0');
-      const month = match[2].padStart(2, '0');
+      const day = match[1].padStart(2, "0");
+      const month = match[2].padStart(2, "0");
       const year = match[3];
-      const hour = match[4] ? match[4].padStart(2, '0') : '00';
-      const min = match[5] ? match[5].padStart(2, '0') : '00';
+      const hour = match[4] ? match[4].padStart(2, "0") : "00";
+      const min = match[5] ? match[5].padStart(2, "0") : "00";
       return `${year}-${month}-${day}T${hour}:${min}`;
     }
     return str;
@@ -347,7 +326,6 @@ const InputTable = ({ onTicketCreated }) => {
       if (!currentFocusCell) return;
 
       const startRow = currentFocusCell.rowIndex;
-      // Lấy danh sách các accessor thực sự (bỏ select)
       const realColumns = columns.filter(
         (col) => col.accessor !== "select" && col.accessor !== "addOn"
       );
@@ -358,7 +336,6 @@ const InputTable = ({ onTicketCreated }) => {
       setData((prevData) => {
         let updatedData = [...prevData];
         const requiredRows = startRow + rows.length;
-        // Thêm đủ hàng nếu thiếu
         for (let i = updatedData.length; i < requiredRows; i++) {
           updatedData.push({ ...initialRow });
         }
@@ -369,9 +346,12 @@ const InputTable = ({ onTicketCreated }) => {
             const targetCol = startCol + colOffset;
             const targetKey = realColumns[targetCol]?.accessor;
             if (targetKey && updatedData[targetRow]) {
-              // Nếu là cột ngày thì chuyển đổi định dạng
-              if (targetKey.toLowerCase().includes("ngay") || targetKey.toLowerCase().includes("date")) {
-                updatedData[targetRow][targetKey] = parseToDateTimeLocal(cellValue);
+              if (
+                targetKey.toLowerCase().includes("ngay") ||
+                targetKey.toLowerCase().includes("date")
+              ) {
+                updatedData[targetRow][targetKey] =
+                  parseToDateTimeLocal(cellValue);
               } else {
                 updatedData[targetRow][targetKey] = cellValue;
               }
@@ -384,12 +364,10 @@ const InputTable = ({ onTicketCreated }) => {
     [currentFocusCell, columns]
   );
 
-  // Handle Save from AddOnTable
   const handleSaveAddOn = useCallback((formData) => {
     setAddOnData(formData);
   }, []);
 
-  // Memoized Initial Data for AddOnTable
   const memoizedInitialData = useMemo(() => {
     return addOnData.length > 0 ? addOnData : [{ dichVu: "", soTien: "" }];
   }, [addOnData]);
@@ -423,7 +401,6 @@ const InputTable = ({ onTicketCreated }) => {
   };
 
   const handleHeaderPhoneSelect = (value) => {
-    // Tìm option theo SĐT
     const selectedPhoneOption = phoneOptions.find(
       (option) => option.sdt === value
     );
@@ -462,184 +439,67 @@ const InputTable = ({ onTicketCreated }) => {
   };
 
   return (
-    <div style={{ 
-      backgroundColor: "#f8fafc", 
-      padding: "20px",
-      fontFamily: "'Segoe UI', Tahoma, Geneva, Verdana, sans-serif"
-    }}>
-      {/* Custom CSS for dropdown styling */}
-      <style>{`
-        /* Custom datalist styling */
-        input[list]::-webkit-calendar-picker-indicator {
-          background: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16"><path fill="%233b82f6" d="M3.5 6L8 10.5L12.5 6z"/></svg>') no-repeat;
-          background-size: 16px;
-          width: 20px;
-          height: 20px;
-          cursor: pointer;
-        }
-        
-        /* Enhanced input focus states */
-        .modern-input {
-          transition: all 0.2s ease !important;
-          box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1) !important;
-        }
-        
-        .modern-input:focus {
-          border-color: rgb(59, 130, 246) !important;
-          box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1), 0 1px 3px rgba(0, 0, 0, 0.1) !important;
-          transform: translateY(-1px);
-        }
-        
-        .modern-input:hover {
-          border-color: #6b7280 !important;
-          box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15) !important;
-        }
-        
-        /* Custom dropdown arrow for select elements */
-        .modern-select {
-          background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16"><path fill="%236b7280" d="M3.5 6L8 10.5L12.5 6z"/></svg>');
-          background-repeat: no-repeat;
-          background-position: right 12px center;
-          background-size: 16px;
-          appearance: none;
-          -webkit-appearance: none;
-          -moz-appearance: none;
-          padding-right: 40px !important;
-        }
-        
-        .modern-select:focus {
-          background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16"><path fill="rgb(59, 130, 246)" d="M3.5 6L8 10.5L12.5 6z"/></svg>');
-        }
-        
-        /* Table input styling */
-        .table-input {
-          transition: all 0.2s ease !important;
-          box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05) !important;
-        }
-        
-        .table-input:focus {
-          border-color: rgb(59, 130, 246) !important;
-          box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.1), 0 1px 2px rgba(0, 0, 0, 0.05) !important;
-        }
-        
-        .table-input:hover {
-          border-color: #9ca3af !important;
-          box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1) !important;
-        }
-        
-        /* Datalist option styling enhancement */
-        input[list] {
-          position: relative;
-        }
-        
-        /* Custom styles for better dropdown appearance */
-        .dropdown-container {
-          position: relative;
-        }
-        
-        .dropdown-container input:focus + .dropdown-icon {
-          color: rgb(59, 130, 246);
-        }
-      `}</style>
-
+    <div className="input-form-wrapper">
       {/* Header Section */}
-      <div style={{ 
-        backgroundColor: "white", 
-        borderRadius: "16px", 
-        padding: "32px", 
-        marginBottom: "24px",
-        boxShadow: "0 4px 16px rgba(0, 0, 0, 0.08)",
-        border: "1px solid #e2e8f0"
-      }}>
-        <h2 style={{ 
-          margin: "0 0 24px 0", 
-          color: "#1e293b", 
-          fontSize: "24px", 
-          fontWeight: "700",
-          display: "flex",
-          alignItems: "center",
-          gap: "12px"
-        }}>
-          <span style={{ 
-            backgroundColor: "#3b82f6", 
-            color: "white", 
-            borderRadius: "50%", 
-            width: "40px", 
-            height: "40px", 
-            display: "flex", 
-            alignItems: "center", 
-            justifyContent: "center",
-            fontSize: "18px"
-          }}>✈️</span>
-          Bảng Nhập Dữ Liệu
-        </h2>
-        
-        {/* Action Buttons */}
-        <div style={{ 
-          display: "flex", 
-          gap: "16px", 
-          marginBottom: "32px", 
-          flexWrap: "wrap" 
-        }}>
-          <Button
-            variant="contained"
-            onClick={() => setOpenAGDialog(true)}
-            style={{ 
-              backgroundColor: "rgb(59, 130, 246)",
-              color: "white",
-              padding: "12px 24px",
-              borderRadius: "12px",
-              fontSize: "14px",
-              fontWeight: "600",
-              textTransform: "none",
-              boxShadow: "0 4px 12px rgba(59, 130, 246, 0.25)",
-              border: "none",
-              minWidth: "180px",
-              transition: "all 0.2s ease"
-            }}
-          >
-            📊 Nhập bảng AG
+      {/* Action Buttons */}
+      <div className="action-buttons">
+        {/* Group hover button */}
+        <div className="group-button">
+          <Button variant="contained" className="btn-primary btn-md minw-220">
+            Nhập dữ liệu
           </Button>
-          <Button
-            variant="contained"
-            onClick={() => setOpenSoTheDialog(true)}
-            style={{ 
-              backgroundColor: "rgb(59, 130, 246)",
-              color: "white",
-              padding: "12px 24px",
-              borderRadius: "12px",
-              fontSize: "14px",
-              fontWeight: "600",
-              textTransform: "none",
-              boxShadow: "0 4px 12px rgba(59, 130, 246, 0.25)",
-              border: "none",
-              minWidth: "220px",
-              transition: "all 0.2s ease"
-            }}
-          >
-            💳 Nhập số thẻ thanh toán
-          </Button>
+
+          <div className="group-menu-dropdown">
+            <Button
+              variant="contained"
+              onClick={() => setOpenAGDialog(true)}
+              className="btn-primary btn-sm btn-block"
+            >
+              Nhập bảng AG
+            </Button>
+            <Button
+              variant="contained"
+              onClick={() => setOpenSoTheDialog(true)}
+              className="btn-primary btn-sm btn-block"
+            >
+              Nhập số thẻ thanh toán
+            </Button>
+          </div>
         </div>
 
+        <div className="group-button">
+          <Button variant="contained" className="btn-primary btn-md minw-220">
+            Quản lý tài khoản
+          </Button>
+
+          <div className="group-menu-dropdown">
+            <Button
+              variant="contained"
+              onClick={() => setOpenAGDialog(true)}
+              className="btn-primary btn-sm btn-block"
+            >
+              Tài khoản Trip
+            </Button>
+            <Button
+              variant="contained"
+              onClick={() => setOpenSoTheDialog(true)}
+              className="btn-primary btn-sm btn-block"
+            >
+              Tài khoản Angola
+            </Button>
+          </div>
+        </div>
+      </div>
+      <div className="card">
+        <h2 className="section-title">
+          <span className="section-title__icon">✈️</span>
+          Bảng Nhập Dữ Liệu
+        </h2>
+
         {/* Form Fields */}
-        <div
-          style={{
-            display: "grid",
-            gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))",
-            gap: "20px",
-            alignItems: "start"
-          }}
-        >
-          <div style={{ position: "relative" }}>
-            <label style={{ 
-              fontWeight: "600", 
-              marginBottom: "8px", 
-              display: "block",
-              color: "#374151",
-              fontSize: "14px"
-            }}>
-              📅 Ngày xuất
-            </label>
+        <div className="form-grid">
+          <div className="form-field">
+            <label className="form-label">📅 Ngày xuất</label>
             <input
               type="datetime-local"
               value={formHeaderData.ngayXuat}
@@ -647,30 +507,11 @@ const InputTable = ({ onTicketCreated }) => {
                 handleHeaderInputChange("ngayXuat", e.target.value)
               }
               className="modern-input"
-              style={{ 
-                width: "100%", 
-                padding: "12px 16px",
-                border: "2px solid #e2e8f0",
-                borderRadius: "8px",
-                fontSize: "14px",
-                backgroundColor: "white",
-                transition: "border-color 0.2s ease",
-                outline: "none",
-                boxShadow: "0 1px 3px rgba(0, 0, 0, 0.1)"
-              }}
             />
           </div>
-          
-          <div style={{ position: "relative" }}>
-            <label style={{ 
-              fontWeight: "600", 
-              marginBottom: "8px", 
-              display: "block",
-              color: "#374151",
-              fontSize: "14px"
-            }}>
-              📞 Liên hệ (SĐT)
-            </label>
+
+          <div className="form-field">
+            <label className="form-label">📞 Liên hệ (SĐT)</label>
             <div className="dropdown-container">
               <input
                 list="phone-options-header"
@@ -678,17 +519,6 @@ const InputTable = ({ onTicketCreated }) => {
                 value={formHeaderData.sdt}
                 onChange={(e) => handleHeaderPhoneSelect(e.target.value)}
                 className="modern-input"
-                style={{ 
-                  width: "100%", 
-                  padding: "12px 40px 12px 16px",
-                  border: "2px solid #e2e8f0",
-                  borderRadius: "8px",
-                  fontSize: "14px",
-                  backgroundColor: "white",
-                  transition: "border-color 0.2s ease",
-                  outline: "none",
-                  boxShadow: "0 1px 3px rgba(0, 0, 0, 0.1)"
-                }}
               />
             </div>
             <datalist id="phone-options-header">
@@ -697,109 +527,43 @@ const InputTable = ({ onTicketCreated }) => {
               ))}
             </datalist>
           </div>
-          
-          <div style={{ position: "relative" }}>
-            <label style={{ 
-              fontWeight: "600", 
-              marginBottom: "8px", 
-              display: "block",
-              color: "#374151",
-              fontSize: "14px"
-            }}>
-              📧 Mail
-            </label>
+
+          <div className="form-field">
+            <label className="form-label">📧 Mail</label>
             <input
               type="email"
               value={formHeaderData.mail}
               onChange={(e) => handleHeaderInputChange("mail", e.target.value)}
               className="modern-input"
-              style={{ 
-                width: "100%", 
-                padding: "12px 16px",
-                border: "2px solid #e2e8f0",
-                borderRadius: "8px",
-                fontSize: "14px",
-                backgroundColor: "white",
-                transition: "border-color 0.2s ease",
-                outline: "none",
-                boxShadow: "0 1px 3px rgba(0, 0, 0, 0.1)"
-              }}
             />
           </div>
-          
-          <div style={{ position: "relative" }}>
-            <label style={{ 
-              fontWeight: "600", 
-              marginBottom: "8px", 
-              display: "block",
-              color: "#374151",
-              fontSize: "14px"
-            }}>
-              👤 Tên AG
-            </label>
+
+          <div className="form-field">
+            <label className="form-label">👤 Tên AG</label>
             <input
               type="text"
               value={formHeaderData.tenAG}
               onChange={(e) => handleHeaderInputChange("tenAG", e.target.value)}
               className="modern-input"
-              style={{ 
-                width: "100%", 
-                padding: "12px 16px",
-                border: "2px solid #e2e8f0",
-                borderRadius: "8px",
-                fontSize: "14px",
-                backgroundColor: "white",
-                transition: "border-color 0.2s ease",
-                outline: "none",
-                boxShadow: "0 1px 3px rgba(0, 0, 0, 0.1)"
-              }}
             />
           </div>
 
-          <div style={{ position: "relative" }}>
-            <label style={{ 
-              fontWeight: "600", 
-              marginBottom: "8px", 
-              display: "block",
-              color: "#374151",
-              fontSize: "14px"
-            }}>
-              ✅ Vé có hoàn hay không
-            </label>
+          <div className="form-field">
+            <label className="form-label">✅ Vé có hoàn hay không</label>
             <select
               value={formHeaderData.veHoanKhay || "Có"}
               onChange={(e) =>
                 handleHeaderInputChange("veHoanKhay", e.target.value)
               }
               className="modern-input modern-select"
-              style={{ 
-                width: "100%", 
-                padding: "12px 16px",
-                border: "2px solid #e2e8f0",
-                borderRadius: "8px",
-                fontSize: "14px",
-                backgroundColor: "white",
-                transition: "border-color 0.2s ease",
-                outline: "none",
-                cursor: "pointer",
-                boxShadow: "0 1px 3px rgba(0, 0, 0, 0.1)"
-              }}
             >
               <option value="Có">Có hoàn</option>
               <option value="Không">Không hoàn</option>
             </select>
           </div>
 
-          <div style={{ position: "relative" }}>
-            <label style={{ 
-              fontWeight: "600", 
-              marginBottom: "8px", 
-              display: "block",
-              color: "#374151",
-              fontSize: "14px"
-            }}>
-              💳 Số thẻ thanh toán
-            </label>
+          <div className="form-field">
+            <label className="form-label">💳 Số thẻ thanh toán</label>
             <div className="dropdown-container">
               <input
                 list="so-the-header"
@@ -807,17 +571,6 @@ const InputTable = ({ onTicketCreated }) => {
                 value={formHeaderData.soThe || ""}
                 onChange={(e) => handleHeaderSoTheSelect(e.target.value)}
                 className="modern-input"
-                style={{ 
-                  width: "100%", 
-                  padding: "12px 40px 12px 16px",
-                  border: "2px solid #e2e8f0",
-                  borderRadius: "8px",
-                  fontSize: "14px",
-                  backgroundColor: "white",
-                  transition: "border-color 0.2s ease",
-                  outline: "none",
-                  boxShadow: "0 1px 3px rgba(0, 0, 0, 0.1)"
-                }}
               />
             </div>
             <datalist id="so-the-header">
@@ -827,250 +580,103 @@ const InputTable = ({ onTicketCreated }) => {
             </datalist>
           </div>
 
-          <div style={{ position: "relative" }}>
-            <label style={{ 
-              fontWeight: "600", 
-              marginBottom: "8px", 
-              display: "block",
-              color: "#374151",
-              fontSize: "14px"
-            }}>
-              🎯 Add On
-            </label>
+          <div className="form-field">
+            <label className="form-label">🎯 Add On</label>
             <Button
               variant="contained"
               onClick={handleClickAddOnOpen}
-              style={{ 
-                width: "100%",
-                padding: "12px 16px",
-                backgroundColor: "rgba(59, 130, 246, 0.9)",
-                color: "white",
-                borderRadius: "8px",
-                fontSize: "14px",
-                fontWeight: "600",
-                textTransform: "none",
-                boxShadow: "0 2px 8px rgba(59, 130, 246, 0.25)",
-                border: "none",
-                transition: "all 0.2s ease"
-              }}
+              className="btn-primary btn-md btn-block"
             >
               ➕ Nhập Add on
             </Button>
           </div>
 
-          <div style={{ position: "relative" }}>
-            <label style={{ 
-              fontWeight: "600", 
-              marginBottom: "8px", 
-              display: "block",
-              color: "#374151",
-              fontSize: "14px"
-            }}>
-              📝 Lưu ý
-            </label>
+          <div className="form-field">
+            <label className="form-label">📝 Lưu ý</label>
             <input
               type="text"
               value={formHeaderData.luuY || ""}
               onChange={(e) => handleHeaderInputChange("luuY", e.target.value)}
               className="modern-input"
-              style={{ 
-                width: "100%", 
-                padding: "12px 16px",
-                border: "2px solid #e2e8f0",
-                borderRadius: "8px",
-                fontSize: "14px",
-                backgroundColor: "white",
-                transition: "border-color 0.2s ease",
-                outline: "none",
-                boxShadow: "0 1px 3px rgba(0, 0, 0, 0.1)"
-              }}
             />
           </div>
 
-          <div style={{ position: "relative" }}>
-            <label style={{ 
-              fontWeight: "600", 
-              marginBottom: "8px", 
-              display: "block",
-              color: "#374151",
-              fontSize: "14px"
-            }}>
-              💰 Thu AG
-            </label>
+          <div className="form-field">
+            <label className="form-label">💰 Thu AG</label>
             <input
               type="text"
               value={formHeaderData.thuAG || ""}
               onChange={(e) => handleHeaderInputChange("thuAG", e.target.value)}
               className="modern-input"
-              style={{ 
-                width: "100%", 
-                padding: "12px 16px",
-                border: "2px solid #e2e8f0",
-                borderRadius: "8px",
-                fontSize: "14px",
-                backgroundColor: "white",
-                transition: "border-color 0.2s ease",
-                outline: "none",
-                boxShadow: "0 1px 3px rgba(0, 0, 0, 0.1)"
-              }}
             />
           </div>
 
-          <div style={{ position: "relative" }}>
-            <label style={{ 
-              fontWeight: "600", 
-              marginBottom: "8px", 
-              display: "block",
-              color: "#374151",
-              fontSize: "14px"
-            }}>
-              💵 Giá xuất
-            </label>
+          <div className="form-field">
+            <label className="form-label">💵 Giá xuất</label>
             <input
               type="text"
               value={formHeaderData.giaXuat || ""}
-              onChange={(e) => handleHeaderInputChange("giaXuat", e.target.value)}
+              onChange={(e) =>
+                handleHeaderInputChange("giaXuat", e.target.value)
+              }
               className="modern-input"
-              style={{ 
-                width: "100%", 
-                padding: "12px 16px",
-                border: "2px solid #e2e8f0",
-                borderRadius: "8px",
-                fontSize: "14px",
-                backgroundColor: "white",
-                transition: "border-color 0.2s ease",
-                outline: "none",
-                boxShadow: "0 1px 3px rgba(0, 0, 0, 0.1)"
-              }}
             />
           </div>
         </div>
-      </div>
-
-      {/* Table Section */}
-      <div style={{ 
-        backgroundColor: "white", 
-        borderRadius: "16px", 
-        padding: "32px", 
-        marginBottom: "24px",
-        boxShadow: "0 4px 16px rgba(0, 0, 0, 0.08)",
-        border: "1px solid #e2e8f0"
-      }}>
-        <h3 style={{ 
-          margin: "0 0 24px 0", 
-          color: "#1e293b", 
-          fontSize: "20px", 
-          fontWeight: "700",
-          display: "flex",
-          alignItems: "center",
-          gap: "12px"
-        }}>
-          <span style={{ 
-            backgroundColor: "#10b981", 
-            color: "white", 
-            borderRadius: "50%", 
-            width: "32px", 
-            height: "32px", 
-            display: "flex", 
-            alignItems: "center", 
-            justifyContent: "center",
-            fontSize: "16px"
-          }}>📋</span>
+        <h3 className="section-subtitle">
+          <span className="section-subtitle__icon">📋</span>
           Chi tiết vé
         </h3>
 
-        <div
-          className="table-wrapper"
-          onPaste={handlePaste}
-          tabIndex={0}
-          style={{ 
-            outline: "none",
-            borderRadius: "12px",
-            overflow: "hidden",
-            border: "2px solid #e2e8f0"
-          }}
-        >
-          <table className="table-container" style={{
-            width: "100%",
-            borderCollapse: "collapse",
-            backgroundColor: "white"
-          }}>
+        <div className="table-wrapper" onPaste={handlePaste} tabIndex={0}>
+          <table className="table-container">
             <thead>
-              <tr style={{ backgroundColor: "#f8fafc" }}>
-                {columns.map((column, colIdx) => (
+              <tr>
+                {columns.map((column, colIdx) =>
                   colIdx === 0 ? (
-                    <th key={column.accessor} style={{
-                      width: 32,
-                      minWidth: 28,
-                      maxWidth: 36,
-                      padding: "6px 0",
-                      borderBottom: "2px solid #e2e8f0",
-                      borderRight: "1px solid #e2e8f0",
-                      fontSize: "14px",
-                      fontWeight: "700",
-                      color: "#374151",
-                      textAlign: "center",
-                      backgroundColor: "#f8fafc",
-                      borderTopLeftRadius: 12,
-                      borderBottomLeftRadius: 12
-                    }}>
-                      <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: 24 }}>
+                    <th key={column.accessor} className="th-select">
+                      <div className="cell-center">
                         <input
                           type="checkbox"
-                          checked={data.length > 0 && selectedRows.length === data.length}
-                          indeterminate={selectedRows.length > 0 && selectedRows.length < data.length}
-                          onChange={e => {
+                          checked={
+                            data.length > 0 &&
+                            selectedRows.length === data.length
+                          }
+                          indeterminate={
+                            selectedRows.length > 0 &&
+                            selectedRows.length < data.length
+                          }
+                          onChange={(e) => {
                             if (e.target.checked) {
                               setSelectedRows(data.map((_, idx) => idx));
                             } else {
                               setSelectedRows([]);
                             }
                           }}
-                          style={{
-                            cursor: "pointer",
-                            width: 15,
-                            height: 15,
-                            accentColor: "#3b82f6",
-                            borderRadius: 3,
-                            margin: 0
-                          }}
+                          className="checkbox"
                         />
                       </div>
                     </th>
                   ) : (
-                    <th key={column.accessor} style={{
-                      padding: "16px 12px",
-                      borderBottom: "2px solid #e2e8f0",
-                      borderRight: "1px solid #e2e8f0",
-                      fontSize: "14px",
-                      fontWeight: "700",
-                      color: "#374151",
-                      textAlign: "left",
-                      backgroundColor: "#f8fafc"
-                    }}>{column.Header}</th>
+                    <th key={column.accessor} className="th-default">
+                      {column.Header}
+                    </th>
                   )
-                ))}
+                )}
               </tr>
             </thead>
             <tbody>
               {data.map((row, rowIndex) => (
-                <tr key={rowIndex} style={{
-                  backgroundColor: rowIndex % 2 === 0 ? "white" : "#f8fafc",
-                  transition: "background-color 0.2s ease"
-                }}>
+                <tr key={rowIndex}>
                   {columns.map((column) => (
-                    <td key={column.accessor} style={{
-                      padding: column.accessor === "select" ? "6px 0" : "12px",
-                      borderBottom: "1px solid #e2e8f0",
-                      borderRight: "1px solid #e2e8f0",
-                      fontSize: "14px",
-                      width: column.accessor === "select" ? 32 : undefined,
-                      minWidth: column.accessor === "select" ? 28 : undefined,
-                      maxWidth: column.accessor === "select" ? 36 : undefined,
-                      textAlign: column.accessor === "select" ? "center" : undefined
-                    }}>
+                    <td
+                      key={column.accessor}
+                      className={
+                        column.accessor === "select" ? "td-select" : "td-cell"
+                      }
+                    >
                       {column.accessor === "select" ? (
-                        <div style={{ display: "flex", justifyContent: "center", alignItems: "center", height: 24 }}>
+                        <div className="cell-center">
                           <input
                             type="checkbox"
                             checked={selectedRows.includes(rowIndex)}
@@ -1083,18 +689,11 @@ const InputTable = ({ onTicketCreated }) => {
                                 columnId: column.accessor,
                               })
                             }
-                            style={{
-                              width: 15,
-                              height: 15,
-                              cursor: "pointer",
-                              accentColor: "#3b82f6",
-                              borderRadius: 3,
-                              margin: 0
-                            }}
+                            className="checkbox"
                           />
                         </div>
                       ) : column.accessor === "sdt" ? (
-                        <div className="dropdown-container" style={{ position: "relative" }}>
+                        <div className="dropdown-container">
                           <input
                             list={`phone-options-${rowIndex}`}
                             value={row.sdt}
@@ -1110,17 +709,6 @@ const InputTable = ({ onTicketCreated }) => {
                               })
                             }
                             className="table-input"
-                            style={{
-                              width: "100%",
-                              padding: "8px 32px 8px 12px",
-                              border: "1px solid #d1d5db",
-                              borderRadius: "6px",
-                              fontSize: "14px",
-                              outline: "none",
-                              transition: "border-color 0.2s ease",
-                              backgroundColor: "white",
-                              boxShadow: "0 1px 2px rgba(0, 0, 0, 0.05)"
-                            }}
                           />
                           <datalist id={`phone-options-${rowIndex}`}>
                             {phoneOptions.map((option, idx) => (
@@ -1129,7 +717,7 @@ const InputTable = ({ onTicketCreated }) => {
                           </datalist>
                         </div>
                       ) : column.accessor === "soThe" ? (
-                        <div className="dropdown-container" style={{ position: "relative" }}>
+                        <div className="dropdown-container">
                           <input
                             list={`so-the-${rowIndex}`}
                             value={row.soThe}
@@ -1145,17 +733,6 @@ const InputTable = ({ onTicketCreated }) => {
                               })
                             }
                             className="table-input"
-                            style={{
-                              width: "100%",
-                              padding: "8px 32px 8px 12px",
-                              border: "1px solid #d1d5db",
-                              borderRadius: "6px",
-                              fontSize: "14px",
-                              outline: "none",
-                              transition: "border-color 0.2s ease",
-                              backgroundColor: "white",
-                              boxShadow: "0 1px 2px rgba(0, 0, 0, 0.05)"
-                            }}
                           />
                           <datalist id={`so-the-${rowIndex}`}>
                             {cardOptions.map((option, idx) => (
@@ -1176,17 +753,6 @@ const InputTable = ({ onTicketCreated }) => {
                             })
                           }
                           className="table-input modern-select"
-                          style={{
-                            width: "100%",
-                            padding: "8px 12px",
-                            border: "1px solid #d1d5db",
-                            borderRadius: "6px",
-                            fontSize: "14px",
-                            outline: "none",
-                            backgroundColor: "white",
-                            cursor: "pointer",
-                            boxShadow: "0 1px 2px rgba(0, 0, 0, 0.05)"
-                          }}
                         >
                           <option value="Nam">👨 Nam</option>
                           <option value="Nữ">👩 Nữ</option>
@@ -1195,7 +761,11 @@ const InputTable = ({ onTicketCreated }) => {
                         <select
                           value={row.veHoanKhay || "Có"}
                           onChange={(e) =>
-                            handleCellEdit(rowIndex, "veHoanKhay", e.target.value)
+                            handleCellEdit(
+                              rowIndex,
+                              "veHoanKhay",
+                              e.target.value
+                            )
                           }
                           onFocus={() =>
                             setCurrentFocusCell({
@@ -1204,17 +774,6 @@ const InputTable = ({ onTicketCreated }) => {
                             })
                           }
                           className="table-input modern-select"
-                          style={{
-                            width: "100%",
-                            padding: "8px 12px",
-                            border: "1px solid #d1d5db",
-                            borderRadius: "6px",
-                            fontSize: "14px",
-                            outline: "none",
-                            backgroundColor: "white",
-                            cursor: "pointer",
-                            boxShadow: "0 1px 2px rgba(0, 0, 0, 0.05)"
-                          }}
                         >
                           <option value="Có">✅ Có</option>
                           <option value="Không">❌ Không</option>
@@ -1243,35 +802,12 @@ const InputTable = ({ onTicketCreated }) => {
                             })
                           }
                           className="table-input"
-                          style={{
-                            width: "100%",
-                            padding: "8px 12px",
-                            border: "1px solid #d1d5db",
-                            borderRadius: "6px",
-                            fontSize: "14px",
-                            outline: "none",
-                            transition: "border-color 0.2s ease",
-                            backgroundColor: "white",
-                            boxShadow: "0 1px 2px rgba(0, 0, 0, 0.05)"
-                          }}
                         />
                       ) : column.accessor === "addOn" ? (
                         <Button
                           variant="contained"
                           onClick={() => handleClickAddOnOpen(rowIndex)}
-                          style={{
-                            backgroundColor: "rgba(59, 130, 246, 0.9)",
-                            color: "white",
-                            padding: "6px 12px",
-                            borderRadius: "6px",
-                            fontSize: "12px",
-                            fontWeight: "600",
-                            textTransform: "none",
-                            boxShadow: "0 2px 4px rgba(59, 130, 246, 0.25)",
-                            border: "none",
-                            minWidth: "80px",
-                            transition: "all 0.2s ease"
-                          }}
+                          className="btn-primary btn-sm"
                         >
                           ➕ Nhập
                         </Button>
@@ -1279,7 +815,8 @@ const InputTable = ({ onTicketCreated }) => {
                         <input
                           type="datetime-local"
                           value={
-                            row.ngayXuat || new Date().toISOString().slice(0, -1)
+                            row.ngayXuat ||
+                            new Date().toISOString().slice(0, -1)
                           }
                           onChange={(e) =>
                             handleCellEdit(rowIndex, "ngayXuat", e.target.value)
@@ -1291,17 +828,6 @@ const InputTable = ({ onTicketCreated }) => {
                             })
                           }
                           className="table-input"
-                          style={{
-                            width: "100%",
-                            padding: "8px 12px",
-                            border: "1px solid #d1d5db",
-                            borderRadius: "6px",
-                            fontSize: "14px",
-                            outline: "none",
-                            transition: "border-color 0.2s ease",
-                            backgroundColor: "white",
-                            boxShadow: "0 1px 2px rgba(0, 0, 0, 0.05)"
-                          }}
                         />
                       ) : (
                         <input
@@ -1321,17 +847,6 @@ const InputTable = ({ onTicketCreated }) => {
                             })
                           }
                           className="table-input"
-                          style={{
-                            width: "100%",
-                            padding: "8px 12px",
-                            border: "1px solid #d1d5db",
-                            borderRadius: "6px",
-                            fontSize: "14px",
-                            outline: "none",
-                            transition: "border-color 0.2s ease",
-                            backgroundColor: "white",
-                            boxShadow: "0 1px 2px rgba(0, 0, 0, 0.05)"
-                          }}
                         />
                       )}
                     </td>
@@ -1343,72 +858,33 @@ const InputTable = ({ onTicketCreated }) => {
         </div>
 
         {/* Action Buttons */}
-        <div style={{ 
-          marginTop: "24px", 
-          display: "flex", 
-          gap: "12px", 
-          flexWrap: "wrap",
-          justifyContent: "center"
-        }}>
+        <div className="actions">
           <Button
             onClick={handleAddRow}
             variant="contained"
-            style={{ 
-              backgroundColor: "rgb(59, 130, 246)",
-              color: "white",
-              padding: "12px 24px",
-              borderRadius: "10px",
-              fontSize: "14px",
-              fontWeight: "600",
-              textTransform: "none",
-              boxShadow: "0 4px 12px rgba(59, 130, 246, 0.25)",
-              border: "none",
-              minWidth: "140px"
-            }}
+            className="btn-primary btn-md minw-140"
           >
             Thêm Hàng
           </Button>
           <Button
             onClick={handleOpenDeleteDialog}
             variant="contained"
-            style={{ 
-              backgroundColor: "rgb(59, 130, 246)",
-              color: "white",
-              padding: "12px 24px",
-              borderRadius: "10px",
-              fontSize: "14px",
-              fontWeight: "600",
-              textTransform: "none",
-              boxShadow: "0 4px 12px rgba(59, 130, 246, 0.25)",
-              border: "none",
-              minWidth: "180px",
-              opacity: selectedRows.length === 0 ? 0.5 : 1,
-              cursor: selectedRows.length === 0 ? "not-allowed" : "pointer"
-            }}
+            className="btn-primary btn-md minw-180"
             disabled={selectedRows.length === 0}
           >
             Xóa Hàng Đã Chọn
           </Button>
-          <Button 
-            onClick={handleAddTicket} 
-            variant="contained" 
-            style={{ 
-              backgroundColor: "rgb(59, 130, 246)",
-              color: "white",
-              padding: "16px 32px",
-              borderRadius: "10px",
-              fontSize: "16px",
-              fontWeight: "700",
-              textTransform: "none",
-              boxShadow: "0 6px 16px rgba(59, 130, 246, 0.3)",
-              border: "none",
-              minWidth: "160px"
-            }}
+          <Button
+            onClick={handleAddTicket}
+            variant="contained"
+            className="btn-primary btn-lg minw-160"
           >
             Xuất Vé
           </Button>
         </div>
       </div>
+
+      {/* Table Section */}
 
       {/* Hidden Components */}
       <>
@@ -1422,7 +898,7 @@ const InputTable = ({ onTicketCreated }) => {
           onClose={handleDialogSoTheClose}
           data={data}
         />
-        
+
         <AddOnTable
           open={openAddOnDialog}
           onClose={handleDialogAddOnClose}
@@ -1432,72 +908,45 @@ const InputTable = ({ onTicketCreated }) => {
           rowIndex={0}
           mode="edit"
         />
-        
+
         <Dialog
           open={openDeleteDialog}
           onClose={handleCloseDeleteDialog}
           aria-labelledby="delete-confirmation-dialog-title"
           aria-describedby="delete-confirmation-dialog-description"
           PaperProps={{
-            style: {
-              borderRadius: "16px",
-              padding: "8px"
-            }
+            className: "dialog-paper",
           }}
         >
-          <DialogTitle id="delete-confirmation-dialog-title" style={{
-            fontSize: "18px",
-            fontWeight: "700",
-            color: "#1e293b",
-            paddingBottom: "8px"
-          }}>
+          <DialogTitle
+            id="delete-confirmation-dialog-title"
+            className="dialog-title"
+          >
             🗑️ Xác nhận xóa
           </DialogTitle>
           <DialogContent>
-            <DialogContentText id="delete-confirmation-dialog-description" style={{
-              fontSize: "14px",
-              color: "#64748b",
-              lineHeight: "1.5"
-            }}>
+            <DialogContentText
+              id="delete-confirmation-dialog-description"
+              className="dialog-description"
+            >
               Bạn có chắc chắn muốn xóa {selectedRows.length} hàng đã chọn? Hành
               động này không thể hoàn tác.
             </DialogContentText>
           </DialogContent>
-          <DialogActions style={{ padding: "16px 24px 24px" }}>
-            <Button 
-              onClick={handleCloseDeleteDialog}
-              style={{
-                color: "#6b7280",
-                backgroundColor: "transparent",
-                padding: "8px 16px",
-                borderRadius: "8px",
-                fontSize: "14px",
-                fontWeight: "600",
-                textTransform: "none"
-              }}
-            >
+          <DialogActions className="dialog-actions">
+            <Button onClick={handleCloseDeleteDialog} className="btn-secondary">
               Hủy
             </Button>
-            <Button 
-              onClick={handleConfirmDelete} 
+            <Button
+              onClick={handleConfirmDelete}
               autoFocus
-              style={{
-                backgroundColor: "rgba(59, 130, 246, 0.8)",
-                color: "white",
-                padding: "8px 16px",
-                borderRadius: "8px",
-                fontSize: "14px",
-                fontWeight: "600",
-                textTransform: "none",
-                boxShadow: "0 2px 8px rgba(59, 130, 246, 0.25)"
-              }}
+              className="btn-primary btn-sm"
             >
               Xóa
             </Button>
           </DialogActions>
         </Dialog>
-        
-        {/* Snackbar for notifications */}
+
         <Snackbar
           open={snackbar.open}
           autoHideDuration={6000}
@@ -1507,12 +956,7 @@ const InputTable = ({ onTicketCreated }) => {
           <Alert
             onClose={closeSnackbarHandler}
             severity={snackbar.severity}
-            sx={{ 
-              width: "100%",
-              borderRadius: "12px",
-              fontSize: "14px",
-              fontWeight: "500"
-            }}
+            className="snackbar-alert"
           >
             {snackbar.message}
           </Alert>

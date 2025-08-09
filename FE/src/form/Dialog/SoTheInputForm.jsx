@@ -9,8 +9,8 @@ import Slide from "@mui/material/Slide";
 import Button from "@mui/material/Button";
 import Snackbar from "@mui/material/Snackbar";
 import MuiAlert from "@mui/material/Alert";
-import { refreshAccessToken } from "../constant";
-import "../style/table.css";
+import { refreshAccessToken } from "../../constant";
+import "../../style/table.css";
 import {
   DialogActions,
   DialogContent,
@@ -354,7 +354,7 @@ export default function FullScreenSoTheDialog({ open, onClose }) {
           bottom: 0,
           margin: 0,
           minWidth: "100%",
-          height: "80vh",
+          // height: "80vh",
           borderRadius: "10px 10px 0 0",
           boxShadow: 3,
         },
@@ -380,17 +380,25 @@ export default function FullScreenSoTheDialog({ open, onClose }) {
           <Typography sx={{ ml: 2, flex: 1 }} variant="h6" component="div">
             Nhập bảng số thẻ thanh toán
           </Typography>
+          {/* Removed Save/Import buttons here to match AgInputForm layout */}
+        </Toolbar>
+      </AppBar>
+
+      {/* Table for Input */}
+      <div style={{ padding: "20px" }} onPaste={handlePaste}>
+        {/* Top-right actions, same style as AgInputForm */}
+        <div style={{ display: "flex", justifyContent: "flex-end", alignItems: "center" }}>
           <Button
             autoFocus
             color="inherit"
             onClick={handleSave}
             style={{
-              backgroundColor: "#4caf50",
+              backgroundColor: "rgb(76, 175, 80)",
               color: "#fff",
               marginRight: "30px",
             }}
           >
-            Save
+            Lưu
           </Button>
 
           <Button
@@ -398,90 +406,137 @@ export default function FullScreenSoTheDialog({ open, onClose }) {
             color="inherit"
             onClick={() => importDataFromApi()}
             style={{
-              backgroundColor: "#4caf50",
+              backgroundColor: "rgb(76, 175, 80)",
               color: "#fff",
               marginRight: "30px",
             }}
           >
             Import dữ liệu
           </Button>
-        </Toolbar>
-      </AppBar>
+        </div>
 
-      {/* Table for Input */}
-      <div style={{ padding: "20px" }} onPaste={handlePaste}>
-        <Typography variant="h6">Thêm mới số thẻ thanh toán</Typography>
-      <table style={{ width: "100%", borderCollapse: "collapse" }}>
-        <thead>
-          <tr>
-            <th
-              style={{
-                border: "1px solid #ddd",
-                padding: "8px",
-                textAlign: "center",
-              }}
-            >
-              <input
-                type="checkbox"
-                checked={formData.length > 0 && selectedRows.length === formData.length}
-                indeterminate={selectedRows.length > 0 && selectedRows.length < formData.length}
-                onChange={e => {
-                  if (e.target.checked) {
-                    setSelectedRows(formData.map((_, idx) => idx));
-                  } else {
-                    setSelectedRows([]);
-                  }
-                }}
-                style={{ cursor: "pointer" }}
-              />
-            </th>
-            <th style={{ border: "1px solid #ddd", padding: "8px" }}>
-              Số thẻ thanh toán
-            </th>
-          </tr>
-        </thead>
-          <tbody>
-            {formData.map((row, rowIndex) => (
-              <tr key={rowIndex}>
-                <td
+        {/* Styled table container like AgInputForm */}
+        <div
+          style={{
+            width: "100%",
+            overflowX: "auto",
+            borderRadius: 12,
+            boxShadow: "0 2px 8px rgba(0,0,0,0.07)",
+            border: "1px solid #e2e8f0",
+            margin: "16px 0",
+            maxHeight: 340,
+            overflowY: "auto",
+          }}
+        >
+          <table
+            style={{
+              minWidth: 600,
+              width: "100%",
+              borderCollapse: "separate",
+              borderSpacing: 0,
+              background: "white",
+            }}
+          >
+            {/* Header INPUT TABLE: sticky per-th, first col also sticky left */}
+            <thead>
+              <tr>
+                <th
                   style={{
-                    border: "1px solid #ddd",
-                    padding: "8px",
+                    position: "sticky",
+                    top: 0,
+                    left: 0,
+                    zIndex: 5,
+                    borderBottom: "2px solid #e2e8f0",
+                    padding: "12px 8px",
                     textAlign: "center",
+                    background: "#f8fafc",
                   }}
                 >
                   <input
                     type="checkbox"
-                    checked={selectedRows.includes(rowIndex)}
-                    onChange={() => handleCheckboxChange(rowIndex)}
-                  />
-                </td>
-                <td style={{ border: "1px solid #ddd", padding: "8px" }}>
-                  <input
-                    type="text"
-                    value={row.soThe}
-                    onChange={(e) =>
-                      handleCellChange(rowIndex, "soThe", e.target.value)
-                    }
-                    onFocus={() => setCurrentFocusRow(rowIndex)}
-                    style={{
-                      width: "100%",
-                      border: "none",
-                      outline: "none",
+                    checked={formData.length > 0 && selectedRows.length === formData.length}
+                    indeterminate={selectedRows.length > 0 && selectedRows.length < formData.length}
+                    onChange={e => {
+                      if (e.target.checked) {
+                        setSelectedRows(formData.map((_, idx) => idx));
+                      } else {
+                        setSelectedRows([]);
+                      }
                     }}
-                    placeholder="Nhập số thẻ thanh toán"
+                    style={{ cursor: "pointer" }}
                   />
-                </td>
+                </th>
+                <th
+                  style={{
+                    position: "sticky",
+                    top: 0,
+                    zIndex: 4,
+                    borderBottom: "2px solid #e2e8f0",
+                    padding: "12px 8px",
+                    background: "#f8fafc",
+                  }}
+                >
+                  Số thẻ thanh toán
+                </th>
               </tr>
-            ))}
-          </tbody>
-        </table>
-        <div style={{ marginTop: "20px" }}>
+            </thead>
+            <tbody>
+              {formData.map((row, rowIndex) => (
+                <tr
+                  key={rowIndex}
+                  style={{
+                    background: rowIndex % 2 === 0 ? "#fff" : "#f8fafc",
+                  }}
+                >
+                  <td
+                    style={{
+                      borderBottom: "1px solid #e2e8f0",
+                      padding: "10px 8px",
+                      textAlign: "center",
+                      position: "sticky",
+                      left: 0,
+                      background: rowIndex % 2 === 0 ? "#fff" : "#f8fafc",
+                      zIndex: 2,
+                    }}
+                  >
+                    <input
+                      type="checkbox"
+                      checked={selectedRows.includes(rowIndex)}
+                      onChange={() => handleCheckboxChange(rowIndex)}
+                    />
+                  </td>
+                  <td style={{ borderBottom: "1px solid #e2e8f0", padding: "10px 8px" }}>
+                    <input
+                      type="text"
+                      value={row.soThe}
+                      onChange={(e) => handleCellChange(rowIndex, "soThe", e.target.value)}
+                      onFocus={() => setCurrentFocusRow(rowIndex)}
+                      style={{
+                        width: "100%",
+                        border: "1px solid #e2e8f0",
+                        outline: "none",
+                        padding: "6px 8px",
+                        borderRadius: 6,
+                        background: "#f9fafb",
+                        fontSize: 15,
+                        transition: "border-color 0.2s",
+                      }}
+                      placeholder="Nhập số thẻ thanh toán"
+                    />
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+
+        {/* Actions under input table (same look & feel) */}
+        <div style={{ display: "flex", gap: 12, marginTop: 16, flexWrap: "wrap" }}>
           <Button
             onClick={handleAddRow}
             variant="contained"
             color="primary"
-            style={{ marginRight: "10px" }}
+            style={{ minWidth: 120, borderRadius: 8, fontWeight: 600 }}
           >
             Thêm Hàng
           </Button>
@@ -489,6 +544,13 @@ export default function FullScreenSoTheDialog({ open, onClose }) {
             onClick={handleOpenDeleteDialogForNormal}
             variant="contained"
             color="secondary"
+            style={{
+              minWidth: 160,
+              borderRadius: 8,
+              fontWeight: 600,
+              opacity: selectedRows.length === 0 ? 0.5 : 1,
+              cursor: selectedRows.length === 0 ? "not-allowed" : "pointer",
+            }}
             disabled={selectedRows.length === 0}
           >
             Xóa Hàng Đã Chọn
@@ -499,63 +561,116 @@ export default function FullScreenSoTheDialog({ open, onClose }) {
       {/* Table for API Data */}
       <div style={{ padding: "20px" }}>
         <Typography variant="h6">Dữ liệu từ API</Typography>
-        <table style={{ width: "100%", borderCollapse: "collapse" }}>
-          <thead>
-            <tr>
-              <th
-                style={{
-                  border: "1px solid #ddd",
-                  padding: "8px",
-                  textAlign: "center",
-                }}
-              >
-                <input
-                  type="checkbox"
-                  checked={apiData.length > 0 && selectedApiRows.length === apiData.length}
-                  indeterminate={selectedApiRows.length > 0 && selectedApiRows.length < apiData.length}
-                  onChange={e => {
-                    if (e.target.checked) {
-                      setSelectedApiRows(apiData.map(row => row.id));
-                    } else {
-                      setSelectedApiRows([]);
-                    }
-                  }}
-                  style={{ cursor: "pointer" }}
-                />
-              </th>
-              <th style={{ border: "1px solid #ddd", padding: "8px" }}>
-                Số thẻ thanh toán
-              </th>
-            </tr>
-          </thead>
-          <tbody>
-            {apiData.map((row) => (
-              <tr key={row.id}>
-                <td
+        <div
+          style={{
+            width: "100%",
+            overflowX: "auto",
+            borderRadius: 12,
+            boxShadow: "0 2px 8px rgba(0,0,0,0.07)",
+            border: "1px solid #e2e8f0",
+            margin: "16px 0",
+            maxHeight: 340,
+            overflowY: "auto",
+          }}
+        >
+          <table
+            style={{
+              minWidth: 600,
+              width: "100%",
+              borderCollapse: "separate",
+              borderSpacing: 0,
+              background: "white",
+            }}
+          >
+            {/* Header API TABLE: sticky like AG */}
+            <thead>
+              <tr>
+                <th
                   style={{
-                    border: "1px solid #ddd",
-                    padding: "8px",
+                    position: "sticky",
+                    top: 0,
+                    left: 0,
+                    zIndex: 5,
+                    borderBottom: "2px solid #e2e8f0",
+                    padding: "12px 8px",
                     textAlign: "center",
+                    background: "#f8fafc",
                   }}
                 >
                   <input
                     type="checkbox"
-                    checked={selectedApiRows.includes(row.id)}
-                    onChange={() => handleApiCheckboxChange(row.id)}
+                    checked={apiData.length > 0 && selectedApiRows.length === apiData.length}
+                    indeterminate={selectedApiRows.length > 0 && selectedApiRows.length < apiData.length}
+                    onChange={e => {
+                      if (e.target.checked) {
+                        setSelectedApiRows(apiData.map(row => row.id));
+                      } else {
+                        setSelectedApiRows([]);
+                      }
+                    }}
+                    style={{ cursor: "pointer" }}
                   />
-                </td>
-                <td style={{ border: "1px solid #ddd", padding: "8px" }}>
-                  {row.soThe}
-                </td>
+                </th>
+                <th
+                  style={{
+                    position: "sticky",
+                    top: 0,
+                    zIndex: 4,
+                    borderBottom: "2px solid #e2e8f0",
+                    padding: "12px 8px",
+                    background: "#f8fafc",
+                  }}
+                >
+                  Số thẻ thanh toán
+                </th>
               </tr>
-            ))}
-          </tbody>
-        </table>
-        <div style={{ marginTop: "20px" }}>
+            </thead>
+            <tbody>
+              {apiData.map((row, rowIndex) => (
+                <tr
+                  key={row.id}
+                  style={{
+                    background: rowIndex % 2 === 0 ? "#fff" : "#f8fafc",
+                  }}
+                >
+                  <td
+                    style={{
+                      borderBottom: "1px solid #e2e8f0",
+                      padding: "10px 8px",
+                      textAlign: "center",
+                      position: "sticky",
+                      left: 0,
+                      background: rowIndex % 2 === 0 ? "#fff" : "#f8fafc",
+                      zIndex: 2,
+                    }}
+                  >
+                    <input
+                      type="checkbox"
+                      checked={selectedApiRows.includes(row.id)}
+                      onChange={() => handleApiCheckboxChange(row.id)}
+                    />
+                  </td>
+                  <td style={{ borderBottom: "1px solid #e2e8f0", padding: "10px 8px" }}>
+                    {row.soThe}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+
+        <div style={{ display: "flex", gap: 12, marginTop: 16, flexWrap: "wrap" }}>
           <Button
             onClick={handleOpenDeleteDialogForAPI}
             variant="contained"
             color="secondary"
+            style={{
+              minWidth: 160,
+              borderRadius: 8,
+              fontWeight: 600,
+              opacity: selectedApiRows.length === 0 ? 0.5 : 1,
+              cursor: selectedApiRows.length === 0 ? "not-allowed" : "pointer",
+            }}
             disabled={selectedApiRows.length === 0}
           >
             Xóa Hàng Đã Chọn

@@ -48,9 +48,9 @@ const AddOnTable = React.memo(function AddOnTable({
   // Khi initialData thay đổi, format lại số tiền cho tất cả các dòng
   useEffect(() => {
     setFormData(
-      initialData.map(row => ({
+      initialData.map((row) => ({
         ...row,
-        soTien: formatMoney(row.soTien || "")
+        soTien: formatMoney(row.soTien || ""),
       }))
     );
   }, [initialData]);
@@ -73,7 +73,10 @@ const AddOnTable = React.memo(function AddOnTable({
       const rows = clipboardData.split("\n").map((row) => row.split("\t"));
 
       if (currentFocusRow === null) {
-        openSnackbarHandler("Please select a row to paste data into.", "warning");
+        openSnackbarHandler(
+          "Please select a row to paste data into.",
+          "warning"
+        );
         return;
       }
 
@@ -86,8 +89,10 @@ const AddOnTable = React.memo(function AddOnTable({
         // Only update or add row if at least one field is present
         if (dichVu || soTien) {
           if (updatedFormData[targetRow]) {
-            updatedFormData[targetRow].dichVu = dichVu || updatedFormData[targetRow].dichVu;
-            updatedFormData[targetRow].soTien = soTien || updatedFormData[targetRow].soTien;
+            updatedFormData[targetRow].dichVu =
+              dichVu || updatedFormData[targetRow].dichVu;
+            updatedFormData[targetRow].soTien =
+              soTien || updatedFormData[targetRow].soTien;
           } else {
             updatedFormData.push({
               dichVu: dichVu || "",
@@ -102,8 +107,6 @@ const AddOnTable = React.memo(function AddOnTable({
     },
     [formData, mode, currentFocusRow, openSnackbarHandler]
   );
-
-
 
   const handleCellChange = useCallback(
     (rowIdx, field, value) => {
@@ -161,14 +164,17 @@ const AddOnTable = React.memo(function AddOnTable({
       (row) => !row.dichVu.trim() || !row.soTien.trim()
     );
     if (hasEmptyFields) {
-      openSnackbarHandler("Vui lòng nhập đầy đủ Dịch vụ và Số tiền cho mỗi hàng.", "warning");
+      openSnackbarHandler(
+        "Vui lòng nhập đầy đủ Dịch vụ và Số tiền cho mỗi hàng.",
+        "warning"
+      );
       return;
     }
 
     // Convert soTien to number string (remove dot)
-    const sendData = cleanedFormData.map(row => ({
+    const sendData = cleanedFormData.map((row) => ({
       ...row,
-      soTien: unformatMoney(row.soTien)
+      soTien: unformatMoney(row.soTien),
     }));
 
     onSave(sendData);
@@ -193,7 +199,14 @@ const AddOnTable = React.memo(function AddOnTable({
           },
         }}
       >
-        <AppBar sx={{ position: "relative", borderRadius: '10px 10px 0 0', background: '#1976d2' }} elevation={2}>
+        <AppBar
+          sx={{
+            position: "relative",
+            borderRadius: "10px 10px 0 0",
+            background: "#1976d2",
+          }}
+          elevation={2}
+        >
           <Toolbar>
             <IconButton
               edge="start"
@@ -204,11 +217,26 @@ const AddOnTable = React.memo(function AddOnTable({
             >
               <CloseIcon />
             </IconButton>
-            <Typography sx={{ ml: 2, flex: 1, fontWeight: 600, letterSpacing: 1 }} variant="h6" component="div">
+            <Typography
+              sx={{ ml: 2, flex: 1, fontWeight: 600, letterSpacing: 1 }}
+              variant="h6"
+              component="div"
+            >
               {mode === "view" ? "Xem bảng Add On" : "Nhập bảng Add On"}
             </Typography>
             {mode !== "view" && (
-              <Button autoFocus color="primary" variant="contained" onClick={handleSaveAddOn} sx={{ fontWeight: 600, boxShadow: 1 }}>
+              <Button
+                autoFocus
+                variant="contained"
+                onClick={handleSaveAddOn}
+                sx={{
+                  fontWeight: 600,
+                  boxShadow: 1,
+                  backgroundColor: "rgb(76, 175, 80)",
+                  color: "#fff",
+                  "&:hover": { backgroundColor: "rgb(76, 175, 80)" },
+                }}
+              >
                 Lưu
               </Button>
             )}
@@ -216,12 +244,39 @@ const AddOnTable = React.memo(function AddOnTable({
         </AppBar>
 
         {/* Table for Input */}
-        <div style={{ padding: "32px 32px 16px 32px", background: '#f7fafd', minHeight: '100%' }} onPaste={handlePaste}>
-          <Typography variant="h6" sx={{ fontWeight: 600, mb: 2, color: '#1976d2' }}>Thêm Add-On</Typography>
-          <div style={{ overflowX: 'auto', borderRadius: 12, boxShadow: '0 2px 8px #0001', background: '#fff' }}>
-            <table style={{ width: "100%", borderCollapse: "separate", borderSpacing: 0, borderRadius: 12, overflow: 'hidden' }}>
+        <div
+          style={{
+            padding: "32px 32px 16px 32px",
+            background: "#f7fafd",
+            minHeight: "100%",
+          }}
+          onPaste={handlePaste}
+        >
+          <Typography
+            variant="h6"
+            sx={{ fontWeight: 600, mb: 2, color: "#1976d2" }}
+          >
+            Thêm Add-On
+          </Typography>
+          <div
+            style={{
+              overflowX: "auto",
+              borderRadius: 12,
+              boxShadow: "0 2px 8px #0001",
+              background: "#fff",
+            }}
+          >
+            <table
+              style={{
+                width: "100%",
+                borderCollapse: "separate",
+                borderSpacing: 0,
+                borderRadius: 12,
+                overflow: "hidden",
+              }}
+            >
               <thead>
-                <tr style={{ background: '#e3f0fb' }}>
+                <tr style={{ background: "#e3f0fb" }}>
                   {mode !== "view" && (
                     <th
                       style={{
@@ -229,24 +284,68 @@ const AddOnTable = React.memo(function AddOnTable({
                         padding: "12px 8px",
                         textAlign: "center",
                         fontWeight: 600,
-                        color: '#1976d2',
+                        color: "#1976d2",
                         minWidth: 60,
-                        borderTopLeftRadius: 12
+                        borderTopLeftRadius: 12,
                       }}
                     >
                       Chọn
                     </th>
                   )}
-                  <th style={{ border: "none", padding: "12px 8px", fontWeight: 600, color: '#1976d2', minWidth: 60 }}>Stt</th>
-                  <th style={{ border: "none", padding: "12px 8px", fontWeight: 600, color: '#1976d2', minWidth: 200 }}>Dịch vụ</th>
-                  <th style={{ border: "none", padding: "12px 8px", fontWeight: 600, color: '#1976d2', minWidth: 120, borderTopRightRadius: 12 }}>Số tiền</th>
+                  <th
+                    style={{
+                      border: "none",
+                      padding: "12px 8px",
+                      fontWeight: 600,
+                      color: "#1976d2",
+                      minWidth: 60,
+                    }}
+                  >
+                    Stt
+                  </th>
+                  <th
+                    style={{
+                      border: "none",
+                      padding: "12px 8px",
+                      fontWeight: 600,
+                      color: "#1976d2",
+                      minWidth: 200,
+                    }}
+                  >
+                    Dịch vụ
+                  </th>
+                  <th
+                    style={{
+                      border: "none",
+                      padding: "12px 8px",
+                      fontWeight: 600,
+                      color: "#1976d2",
+                      minWidth: 120,
+                      borderTopRightRadius: 12,
+                    }}
+                  >
+                    Số tiền
+                  </th>
                 </tr>
               </thead>
               <tbody>
                 {formData.map((row, rowIdx) => (
-                  <tr key={rowIdx} style={{ background: rowIdx % 2 === 0 ? '#f7fafd' : '#fff', transition: 'background 0.2s', cursor: mode !== 'view' ? 'pointer' : 'default' }}
-                    onMouseEnter={e => { if (mode !== 'view') e.currentTarget.style.background = '#e3f0fb'; }}
-                    onMouseLeave={e => { if (mode !== 'view') e.currentTarget.style.background = rowIdx % 2 === 0 ? '#f7fafd' : '#fff'; }}
+                  <tr
+                    key={rowIdx}
+                    style={{
+                      background: rowIdx % 2 === 0 ? "#f7fafd" : "#fff",
+                      transition: "background 0.2s",
+                      cursor: mode !== "view" ? "pointer" : "default",
+                    }}
+                    onMouseEnter={(e) => {
+                      if (mode !== "view")
+                        e.currentTarget.style.background = "#e3f0fb";
+                    }}
+                    onMouseLeave={(e) => {
+                      if (mode !== "view")
+                        e.currentTarget.style.background =
+                          rowIdx % 2 === 0 ? "#f7fafd" : "#fff";
+                    }}
                   >
                     {mode !== "view" && (
                       <td
@@ -261,27 +360,33 @@ const AddOnTable = React.memo(function AddOnTable({
                           checked={selectedRows.includes(rowIdx)}
                           onChange={() => handleCheckboxChange(rowIdx)}
                           aria-label={`Chọn add on hàng ${rowIdx + 1}`}
-                          style={{ width: 18, height: 18, accentColor: '#1976d2' }}
+                          style={{
+                            width: 18,
+                            height: 18,
+                            accentColor: "#1976d2",
+                          }}
                         />
                       </td>
                     )}
                     <td
                       style={{
-                        border: mode === 'view' ? 'none' : undefined,
-                        borderRight: mode === 'view' ? '1px solid #e0e0e0' : undefined,
+                        border: mode === "view" ? "none" : undefined,
+                        borderRight:
+                          mode === "view" ? "1px solid #e0e0e0" : undefined,
                         padding: "8px",
-                        textAlign: 'center',
-                        fontWeight: 500
+                        textAlign: "center",
+                        fontWeight: 500,
                       }}
                     >
                       {rowIdx + 1}
                     </td>
                     <td
                       style={{
-                        border: mode === 'view' ? 'none' : undefined,
-                        borderRight: mode === 'view' ? '1px solid #e0e0e0' : undefined,
+                        border: mode === "view" ? "none" : undefined,
+                        borderRight:
+                          mode === "view" ? "1px solid #e0e0e0" : undefined,
                         padding: "8px",
-                        textAlign: mode === 'view' ? 'center' : undefined
+                        textAlign: mode === "view" ? "center" : undefined,
                       }}
                     >
                       {mode === "view" ? (
@@ -291,7 +396,9 @@ const AddOnTable = React.memo(function AddOnTable({
                           type="text"
                           value={row.dichVu}
                           onFocus={() => setCurrentFocusRow(rowIdx)}
-                          onChange={(e) => handleCellChange(rowIdx, "dichVu", e.target.value)}
+                          onChange={(e) =>
+                            handleCellChange(rowIdx, "dichVu", e.target.value)
+                          }
                           placeholder="Nhập dịch vụ..."
                           style={{
                             width: "100%",
@@ -299,8 +406,8 @@ const AddOnTable = React.memo(function AddOnTable({
                             outline: "none",
                             padding: "6px 8px",
                             borderRadius: 6,
-                            background: '#fafdff',
-                            fontSize: 15
+                            background: "#fafdff",
+                            fontSize: 15,
                           }}
                           aria-label={`Dịch vụ hàng ${rowIdx + 1}`}
                         />
@@ -308,10 +415,11 @@ const AddOnTable = React.memo(function AddOnTable({
                     </td>
                     <td
                       style={{
-                        border: mode === 'view' ? 'none' : undefined,
+                        border: mode === "view" ? "none" : undefined,
                         padding: "8px",
-                        textAlign: mode === 'view' ? 'center' : undefined,
-                        fontVariantNumeric: mode === 'view' ? 'tabular-nums' : undefined
+                        textAlign: mode === "view" ? "center" : undefined,
+                        fontVariantNumeric:
+                          mode === "view" ? "tabular-nums" : undefined,
                       }}
                     >
                       {mode === "view" ? (
@@ -322,7 +430,9 @@ const AddOnTable = React.memo(function AddOnTable({
                           inputMode="numeric"
                           value={row.soTien}
                           onFocus={() => setCurrentFocusRow(rowIdx)}
-                          onChange={(e) => handleCellChange(rowIdx, "soTien", e.target.value)}
+                          onChange={(e) =>
+                            handleCellChange(rowIdx, "soTien", e.target.value)
+                          }
                           placeholder="Nhập số tiền..."
                           style={{
                             width: "100%",
@@ -330,8 +440,8 @@ const AddOnTable = React.memo(function AddOnTable({
                             outline: "none",
                             padding: "6px 8px",
                             borderRadius: 6,
-                            background: '#fafdff',
-                            fontSize: 15
+                            background: "#fafdff",
+                            fontSize: 15,
                           }}
                           aria-label={`Số tiền hàng ${rowIdx + 1}`}
                         />
@@ -343,7 +453,14 @@ const AddOnTable = React.memo(function AddOnTable({
             </table>
           </div>
           {mode !== "view" && (
-            <div style={{ marginTop: "24px", display: 'flex', justifyContent: 'flex-end', gap: 16 }}>
+            <div
+              style={{
+                marginTop: "24px",
+                display: "flex",
+                justifyContent: "flex-end",
+                gap: 16,
+              }}
+            >
               <Button
                 onClick={handleAddRow}
                 variant="contained"

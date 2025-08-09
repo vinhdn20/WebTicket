@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState, useCallback, useMemo } from "react";
 import Dialog from "@mui/material/Dialog";
 import AppBar from "@mui/material/AppBar";
@@ -8,7 +7,7 @@ import IconButton from "@mui/material/IconButton";
 import CloseIcon from "@mui/icons-material/Close";
 import Slide from "@mui/material/Slide";
 import Button from "@mui/material/Button";
-import { refreshAccessToken } from "../constant";
+import { refreshAccessToken } from "../../constant";
 import * as XLSX from "xlsx";
 import { saveAs } from "file-saver";
 import {
@@ -39,7 +38,7 @@ const generateMatrixValues = (rows, cols, startValue = 11) => {
 
 export default function FullScreenAGDialog({ open, onClose }) {
   const API_URL = process.env.REACT_APP_API_URL;
-  
+
   const [formData, setFormData] = useState(() => {
     const rows = 1; // Số hàng ban đầu
     const cols = 3; // Số cột (tenAG, sdt, mail)
@@ -146,10 +145,11 @@ export default function FullScreenAGDialog({ open, onClose }) {
   const filteredApiData = useMemo(() => {
     if (!searchText.trim()) return apiData;
     const lower = searchText.toLowerCase();
-    return apiData.filter(row =>
-      (row.tenAG && row.tenAG.toLowerCase().includes(lower)) ||
-      (row.sdt && row.sdt.toLowerCase().includes(lower)) ||
-      (row.mail && row.mail.toLowerCase().includes(lower))
+    return apiData.filter(
+      (row) =>
+        (row.tenAG && row.tenAG.toLowerCase().includes(lower)) ||
+        (row.sdt && row.sdt.toLowerCase().includes(lower)) ||
+        (row.mail && row.mail.toLowerCase().includes(lower))
     );
   }, [apiData, searchText]);
 
@@ -183,12 +183,12 @@ export default function FullScreenAGDialog({ open, onClose }) {
         // Định nghĩa các trường tương ứng với số cột dán vào
         const fieldNames = [
           "tenAG", // Chặng
-          "sdt",   // Ngày giờ bay
-          "mail",  // Hãng bay
-          "col4",  // Số hiệu chuyến bay
-          "col5",  // Tham chiếu HHK
-          "col6",  // Mã đặt chỗ
-          "col7"   // Tên khách hàng
+          "sdt", // Ngày giờ bay
+          "mail", // Hãng bay
+          "col4", // Số hiệu chuyến bay
+          "col5", // Tham chiếu HHK
+          "col6", // Mã đặt chỗ
+          "col7", // Tên khách hàng
         ];
         let updatedFormData = [...prevFormData];
         const requiredRows = currentFocusRow + rows.length;
@@ -211,7 +211,8 @@ export default function FullScreenAGDialog({ open, onClose }) {
           const targetRow = currentFocusRow + rowOffset;
           if (updatedFormData[targetRow]) {
             fieldNames.forEach((field, idx) => {
-              if (rowValues[idx] !== undefined) updatedFormData[targetRow][field] = rowValues[idx];
+              if (rowValues[idx] !== undefined)
+                updatedFormData[targetRow][field] = rowValues[idx];
             });
           }
         });
@@ -421,14 +422,14 @@ export default function FullScreenAGDialog({ open, onClose }) {
 
   // Import file lên API AGCustomer/import
   const importDataFromApi = () => {
-    const input = document.createElement('input');
-    input.type = 'file';
-    input.accept = '.xlsx,.xls,.csv';
+    const input = document.createElement("input");
+    input.type = "file";
+    input.accept = ".xlsx,.xls,.csv";
     input.onchange = async (e) => {
       const file = e.target.files[0];
       if (!file) return;
       const formDataUpload = new FormData();
-      formDataUpload.append('file', file);
+      formDataUpload.append("file", file);
       try {
         const accessToken = localStorage.getItem("accessToken");
         const response = await fetch(`${API_URL}/AGCustomer/import`, {
@@ -443,7 +444,9 @@ export default function FullScreenAGDialog({ open, onClose }) {
         }
         const result = await response.json();
         if (Array.isArray(result)) {
-          setFormData(result.map(({ tenAG, sdt, mail }) => ({ tenAG, sdt, mail })));
+          setFormData(
+            result.map(({ tenAG, sdt, mail }) => ({ tenAG, sdt, mail }))
+          );
           openSnackbar("Import dữ liệu thành công!", "success");
           onClose(null);
           fetchApiData();
@@ -467,7 +470,7 @@ export default function FullScreenAGDialog({ open, onClose }) {
           bottom: 0,
           margin: 0,
           minWidth: "100%",
-          height: "80vh",
+          // height: "90vh",
           borderRadius: "10px 10px 0 0",
           boxShadow: 3,
         },
@@ -493,72 +496,83 @@ export default function FullScreenAGDialog({ open, onClose }) {
           <Typography sx={{ ml: 2, flex: 1 }} variant="h6" component="div">
             Nhập bảng AG
           </Typography>
-          <Button
-            autoFocus
-            color="inherit"
-            onClick={handleSave}
-            style={{
-              backgroundColor: "#4caf50",
-              color: "#fff",
-              marginRight: "30px",
-            }}
-          >
-            Save
-          </Button>
-
-          <Button
-            autoFocus
-            color="inherit"
-            onClick={() => importDataFromApi()}
-            style={{
-              backgroundColor: "#4caf50",
-              color: "#fff",
-              marginRight: "30px",
-            }}
-          >
-            Import dữ liệu
-          </Button>
         </Toolbar>
       </AppBar>
 
       {/* Table for Input */}
       <div style={{ padding: "20px" }} onPaste={handlePaste}>
-        <Typography variant="h6">Thêm mới AG</Typography>
-        <div style={{
-          width: "100%",
-          overflowX: "auto",
-          borderRadius: 12,
-          boxShadow: "0 2px 8px rgba(0,0,0,0.07)",
-          border: "1px solid #e2e8f0",
-          margin: "16px 0",
-          maxHeight: 340,
-          overflowY: "auto",
-        }}>
-          <table style={{
-            minWidth: 600,
+        <div style={{display: "flex", justifyContent: "flex-end", alignItems: "center"}}>
+            <Button
+              autoFocus
+              color="inherit"
+              onClick={handleSave}
+              style={{
+                backgroundColor: "#4caf50",
+                color: "#fff",
+                marginRight: "30px",
+              }}
+            >
+              Save
+            </Button>
+
+            <Button
+              autoFocus
+              color="inherit"
+              onClick={() => importDataFromApi()}
+              style={{
+                backgroundColor: "#4caf50",
+                color: "#fff",
+                marginRight: "30px",
+              }}
+            >
+              Import dữ liệu
+            </Button>
+        </div>
+
+        <div
+          style={{
             width: "100%",
-            borderCollapse: "separate",
-            borderSpacing: 0,
-            background: "white"
-          }}>
-            <thead style={{ position: "sticky", top: 0, zIndex: 2, background: "#f8fafc" }}>
+            overflowX: "auto",
+            borderRadius: 12,
+            boxShadow: "0 2px 8px rgba(0,0,0,0.07)",
+            border: "1px solid #e2e8f0",
+            margin: "16px 0",
+            maxHeight: 340,
+            overflowY: "auto",
+          }}
+        >
+          <table
+            style={{
+              minWidth: 600,
+              width: "100%",
+              borderCollapse: "separate",
+              borderSpacing: 0,
+              background: "white",
+            }}
+          >
+            {/* Header INPUT TABLE: move sticky to th */}
+            <thead>
               <tr>
                 <th
                   style={{
+                    position: "sticky",
+                    top: 0,
+                    left: 0,
+                    zIndex: 5, // higher than body sticky cells
                     borderBottom: "2px solid #e2e8f0",
                     padding: "12px 8px",
                     textAlign: "center",
                     background: "#f8fafc",
-                    position: "sticky",
-                    left: 0,
-                    zIndex: 3,
                   }}
                 >
                   <input
                     type="checkbox"
-                    checked={formData.length > 0 && selectedRows.length === formData.length}
-                    indeterminate={selectedRows.length > 0 && selectedRows.length < formData.length}
-                    onChange={e => {
+                    checked={
+                      formData.length > 0 &&
+                      selectedRows.length === formData.length
+                    }
+                    // indeterminate prop on native input is not standard attr; keep logic if needed
+                    onChange={(e) => {
                       if (e.target.checked) {
                         setSelectedRows(formData.map((_, idx) => idx));
                       } else {
@@ -568,20 +582,52 @@ export default function FullScreenAGDialog({ open, onClose }) {
                     style={{ cursor: "pointer" }}
                   />
                 </th>
-                <th style={{ borderBottom: "2px solid #e2e8f0", padding: "12px 8px", background: "#f8fafc" }}>
+                <th
+                  style={{
+                    position: "sticky",
+                    top: 0,
+                    zIndex: 4,
+                    borderBottom: "2px solid #e2e8f0",
+                    padding: "12px 8px",
+                    background: "#f8fafc",
+                  }}
+                >
                   Tên AG
                 </th>
-                <th style={{ borderBottom: "2px solid #e2e8f0", padding: "12px 8px", background: "#f8fafc" }}>
+                <th
+                  style={{
+                    position: "sticky",
+                    top: 0,
+                    zIndex: 4,
+                    borderBottom: "2px solid #e2e8f0",
+                    padding: "12px 8px",
+                    background: "#f8fafc",
+                  }}
+                >
                   Số điện thoại
                 </th>
-                <th style={{ borderBottom: "2px solid #e2e8f0", padding: "12px 8px", background: "#f8fafc" }}>
+                <th
+                  style={{
+                    position: "sticky",
+                    top: 0,
+                    zIndex: 4,
+                    borderBottom: "2px solid #e2e8f0",
+                    padding: "12px 8px",
+                    background: "#f8fafc",
+                  }}
+                >
                   Email
                 </th>
               </tr>
             </thead>
             <tbody>
               {formData.map((row, rowIndex) => (
-                <tr key={rowIndex} style={{ background: rowIndex % 2 === 0 ? "#fff" : "#f8fafc" }}>
+                <tr
+                  key={rowIndex}
+                  style={{
+                    background: rowIndex % 2 === 0 ? "#fff" : "#f8fafc",
+                  }}
+                >
                   <td
                     style={{
                       borderBottom: "1px solid #e2e8f0",
@@ -599,7 +645,12 @@ export default function FullScreenAGDialog({ open, onClose }) {
                       onChange={() => handleCheckboxChange(rowIndex)}
                     />
                   </td>
-                  <td style={{ borderBottom: "1px solid #e2e8f0", padding: "10px 8px" }}>
+                  <td
+                    style={{
+                      borderBottom: "1px solid #e2e8f0",
+                      padding: "10px 8px",
+                    }}
+                  >
                     <input
                       type="text"
                       value={row.tenAG}
@@ -620,7 +671,12 @@ export default function FullScreenAGDialog({ open, onClose }) {
                       placeholder="Nhập tên AG"
                     />
                   </td>
-                  <td style={{ borderBottom: "1px solid #e2e8f0", padding: "10px 8px" }}>
+                  <td
+                    style={{
+                      borderBottom: "1px solid #e2e8f0",
+                      padding: "10px 8px",
+                    }}
+                  >
                     <input
                       type="text"
                       value={row.sdt}
@@ -641,7 +697,12 @@ export default function FullScreenAGDialog({ open, onClose }) {
                       placeholder="Nhập số điện thoại"
                     />
                   </td>
-                  <td style={{ borderBottom: "1px solid #e2e8f0", padding: "10px 8px" }}>
+                  <td
+                    style={{
+                      borderBottom: "1px solid #e2e8f0",
+                      padding: "10px 8px",
+                    }}
+                  >
                     <input
                       type="email"
                       value={row.mail}
@@ -667,7 +728,9 @@ export default function FullScreenAGDialog({ open, onClose }) {
             </tbody>
           </table>
         </div>
-        <div style={{ display: "flex", gap: 12, marginTop: 16, flexWrap: "wrap" }}>
+        <div
+          style={{ display: "flex", gap: 12, marginTop: 16, flexWrap: "wrap" }}
+        >
           <Button
             onClick={handleAddRow}
             variant="contained"
@@ -680,7 +743,13 @@ export default function FullScreenAGDialog({ open, onClose }) {
             onClick={handleOpenDeleteDialogForNormal}
             variant="contained"
             color="secondary"
-            style={{ minWidth: 160, borderRadius: 8, fontWeight: 600, opacity: selectedRows.length === 0 ? 0.5 : 1, cursor: selectedRows.length === 0 ? "not-allowed" : "pointer" }}
+            style={{
+              minWidth: 160,
+              borderRadius: 8,
+              fontWeight: 600,
+              opacity: selectedRows.length === 0 ? 0.5 : 1,
+              cursor: selectedRows.length === 0 ? "not-allowed" : "pointer",
+            }}
             disabled={selectedRows.length === 0}
           >
             Xóa Hàng Đã Chọn
@@ -690,12 +759,21 @@ export default function FullScreenAGDialog({ open, onClose }) {
 
       {/* Table for API Data */}
       <div style={{ padding: "20px" }}>
-        <Typography variant="h6">Dữ liệu từ API</Typography>
-        <div style={{ margin: "12px 0 20px 0", display: "flex", gap: 12, flexWrap: "wrap" }}>
+        <h2 className="section-title">
+          Bảng dữ liệu AG
+        </h2>
+        <div
+          style={{
+            margin: "12px 0 20px 0",
+            display: "flex",
+            gap: 12,
+            flexWrap: "wrap",
+          }}
+        >
           <input
             type="text"
             value={searchText}
-            onChange={e => setSearchText(e.target.value)}
+            onChange={(e) => setSearchText(e.target.value)}
             placeholder="Tìm theo tên AG, số điện thoại hoặc email..."
             style={{
               width: 320,
@@ -707,47 +785,76 @@ export default function FullScreenAGDialog({ open, onClose }) {
               background: "#f9fafb",
               outline: "none",
               boxShadow: "0 1px 2px rgba(0,0,0,0.04)",
-              transition: "border-color 0.2s"
+              transition: "border-color 0.2s",
             }}
           />
         </div>
-        <div style={{
-          width: "100%",
-          overflowX: "auto",
-          borderRadius: 12,
-          boxShadow: "0 2px 8px rgba(0,0,0,0.07)",
-          border: "1px solid #e2e8f0",
-          margin: "16px 0",
-          maxHeight: 340,
-          overflowY: "auto",
-        }}>
-          <table style={{
-            minWidth: 600,
+        <div
+          style={{ display: "flex", gap: 12, marginTop: 16, flexWrap: "wrap" }}
+        >
+          <Button
+            onClick={handleOpenDeleteDialogForAPI}
+            variant="contained"
+            color="secondary"
+            style={{
+              minWidth: 160,
+              borderRadius: 8,
+              fontWeight: 600,
+              opacity: selectedApiRows.length === 0 ? 0.5 : 1,
+              cursor: selectedApiRows.length === 0 ? "not-allowed" : "pointer",
+            }}
+            disabled={selectedApiRows.length === 0}
+          >
+            Xóa Hàng Đã Chọn
+          </Button>
+        </div>
+        <div
+          style={{
             width: "100%",
-            borderCollapse: "separate",
-            borderSpacing: 0,
-            background: "white"
-          }}>
-            <thead style={{ position: "sticky", top: 0, zIndex: 2, background: "#f8fafc" }}>
+            overflowX: "auto",
+            borderRadius: 12,
+            boxShadow: "0 2px 8px rgba(0,0,0,0.07)",
+            border: "1px solid #e2e8f0",
+            margin: "16px 0",
+            maxHeight: 340,
+            overflowY: "auto",
+          }}
+        >
+          <table
+            style={{
+              minWidth: 600,
+              width: "100%",
+              borderCollapse: "separate",
+              borderSpacing: 0,
+              background: "white",
+            }}
+          >
+            {/* Header API TABLE: move sticky to th */}
+            <thead>
               <tr>
                 <th
                   style={{
+                    position: "sticky",
+                    top: 0,
+                    left: 0,
+                    zIndex: 5,
                     borderBottom: "2px solid #e2e8f0",
                     padding: "12px 8px",
                     textAlign: "center",
                     background: "#f8fafc",
-                    position: "sticky",
-                    left: 0,
-                    zIndex: 3,
                   }}
                 >
                   <input
                     type="checkbox"
-                    checked={filteredApiData.length > 0 && selectedApiRows.length === filteredApiData.length}
-                    indeterminate={selectedApiRows.length > 0 && selectedApiRows.length < filteredApiData.length}
-                    onChange={e => {
+                    checked={
+                      filteredApiData.length > 0 &&
+                      selectedApiRows.length === filteredApiData.length
+                    }
+                    onChange={(e) => {
                       if (e.target.checked) {
-                        setSelectedApiRows(filteredApiData.map(row => row.id));
+                        setSelectedApiRows(
+                          filteredApiData.map((row) => row.id)
+                        );
                       } else {
                         setSelectedApiRows([]);
                       }
@@ -755,20 +862,52 @@ export default function FullScreenAGDialog({ open, onClose }) {
                     style={{ cursor: "pointer" }}
                   />
                 </th>
-                <th style={{ borderBottom: "2px solid #e2e8f0", padding: "12px 8px", background: "#f8fafc" }}>
+                <th
+                  style={{
+                    position: "sticky",
+                    top: 0,
+                    zIndex: 4,
+                    borderBottom: "2px solid #e2e8f0",
+                    padding: "12px 20px",
+                    background: "#f8fafc",
+                  }}
+                >
                   Tên AG
                 </th>
-                <th style={{ borderBottom: "2px solid #e2e8f0", padding: "12px 8px", background: "#f8fafc" }}>
+                <th
+                  style={{
+                    position: "sticky",
+                    top: 0,
+                    zIndex: 4,
+                    borderBottom: "2px solid #e2e8f0",
+                    padding: "12px 8px",
+                    background: "#f8fafc",
+                  }}
+                >
                   Số điện thoại
                 </th>
-                <th style={{ borderBottom: "2px solid #e2e8f0", padding: "12px 8px", background: "#f8fafc" }}>
+                <th
+                  style={{
+                    position: "sticky",
+                    top: 0,
+                    zIndex: 4,
+                    borderBottom: "2px solid #e2e8f0",
+                    padding: "12px 8px",
+                    background: "#f8fafc",
+                  }}
+                >
                   Email
                 </th>
               </tr>
             </thead>
             <tbody>
               {filteredApiData.map((row, rowIndex) => (
-                <tr key={row.id} style={{ background: rowIndex % 2 === 0 ? "#fff" : "#f8fafc" }}>
+                <tr
+                  key={row.id}
+                  style={{
+                    background: rowIndex % 2 === 0 ? "#fff" : "#f8fafc",
+                  }}
+                >
                   <td
                     style={{
                       borderBottom: "1px solid #e2e8f0",
@@ -786,30 +925,34 @@ export default function FullScreenAGDialog({ open, onClose }) {
                       onChange={() => handleApiCheckboxChange(row.id)}
                     />
                   </td>
-                  <td style={{ borderBottom: "1px solid #e2e8f0", padding: "10px 8px" }}>
+                  <td
+                    style={{
+                      borderBottom: "1px solid #e2e8f0",
+                      padding: "10px 8px",
+                    }}
+                  >
                     {row.tenAG}
                   </td>
-                  <td style={{ borderBottom: "1px solid #e2e8f0", padding: "10px 8px" }}>
+                  <td
+                    style={{
+                      borderBottom: "1px solid #e2e8f0",
+                      padding: "10px 8px",
+                    }}
+                  >
                     {row.sdt}
                   </td>
-                  <td style={{ borderBottom: "1px solid #e2e8f0", padding: "10px 8px" }}>
+                  <td
+                    style={{
+                      borderBottom: "1px solid #e2e8f0",
+                      padding: "10px 8px",
+                    }}
+                  >
                     {row.mail}
                   </td>
                 </tr>
               ))}
             </tbody>
           </table>
-        </div>
-        <div style={{ display: "flex", gap: 12, marginTop: 16, flexWrap: "wrap" }}>
-          <Button
-            onClick={handleOpenDeleteDialogForAPI}
-            variant="contained"
-            color="secondary"
-            style={{ minWidth: 160, borderRadius: 8, fontWeight: 600, opacity: selectedApiRows.length === 0 ? 0.5 : 1, cursor: selectedApiRows.length === 0 ? "not-allowed" : "pointer" }}
-            disabled={selectedApiRows.length === 0}
-          >
-            Xóa Hàng Đã Chọn
-          </Button>
         </div>
       </div>
       <Dialog
