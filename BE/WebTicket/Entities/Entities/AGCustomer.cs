@@ -4,7 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace Repositories.Entities
+namespace Entities
 {
     public class AGCustomer : BaseEntity
     {

@@ -1,9 +1,9 @@
-﻿using Common;
+using Common;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.IdentityModel.Tokens;
 using Newtonsoft.Json;
-using Repositories.Entities;
+using Entities;
 using Repositories.Interfaces;
 using Services.Models;
 using Services.Services.Interfaces;
@@ -24,9 +24,19 @@ namespace Services.Services.Implement
         }
         public async Task<(string token, string refreshToken)> LoginAsync(LoginModel loginModel)
         {
-            //string hashPass = loginModel.Password.HashForPassword();
-            var account = await _repository.GetAsync<Users>(x => x.Email.Equals(loginModel.Email) && x.Password.Equals(loginModel.Password));
+            // First get user by email
+            var account = await _repository.GetAsync<Users>(x => x.Email.Equals(loginModel.Email) && x.IsActive);
+            if (account is null)
+            {
+                return ("","");
+            }
 
+            // Then verify password using BCrypt.Verify
+            bool isPasswordValid = BCrypt.Net.BCrypt.Verify(loginModel.Password, account.Password);
+            if (!isPasswordValid)
+            {
+                return ("","");
+            }
             var token = GenerateToken(account);
             var refreshToken = GenerateRefreshToken();
 

@@ -1,5 +1,5 @@
 ﻿using Microsoft.AspNetCore.Mvc;
-using Repositories.Entities;
+using Entities;
 using Repositories.Interfaces;
 using WebTicket.Common;
 

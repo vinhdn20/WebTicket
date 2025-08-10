@@ -1,8 +1,10 @@
+using Common;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Repositories.Interfaces;
 using Services.Services.Interfaces;
 using System.Text;
+using WebTicket.Common;
 
 namespace WebTicket.Controllers
 {
@@ -16,7 +18,7 @@ namespace WebTicket.Controllers
         }
 
         [HttpPost("import")]
-        [Authorize]
+        [RequirePermission(PermissionHelper.CommonPermissions.AGManage)]
         public async Task<IActionResult> ImportExcel(IFormFile file)
         {
             try

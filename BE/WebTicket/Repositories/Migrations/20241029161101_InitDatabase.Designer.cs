@@ -28,7 +28,7 @@ namespace Repositories.Migrations
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
 
-            modelBuilder.Entity("Repositories.Entities.AGCustomer", b =>
+            modelBuilder.Entity("Entities.AGCustomer", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
@@ -63,7 +63,7 @@ namespace Repositories.Migrations
                     b.ToTable("AgCustomers");
                 });
 
-            modelBuilder.Entity("Repositories.Entities.Card", b =>
+            modelBuilder.Entity("Entities.Card", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
@@ -94,7 +94,7 @@ namespace Repositories.Migrations
                     b.ToTable("Cards");
                 });
 
-            modelBuilder.Entity("Repositories.Entities.Customer", b =>
+            modelBuilder.Entity("Entities.Customer", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
@@ -125,7 +125,7 @@ namespace Repositories.Migrations
                     b.ToTable("Customers");
                 });
 
-            modelBuilder.Entity("Repositories.Entities.ThongTinVe", b =>
+            modelBuilder.Entity("Entities.ThongTinVe", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
@@ -186,7 +186,7 @@ namespace Repositories.Migrations
                     b.ToTable("ThongTinVes");
                 });
 
-            modelBuilder.Entity("Repositories.Entities.UserTokens", b =>
+            modelBuilder.Entity("Entities.UserTokens", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
@@ -224,7 +224,7 @@ namespace Repositories.Migrations
                     b.ToTable("UserTokens");
                 });
 
-            modelBuilder.Entity("Repositories.Entities.Users", b =>
+            modelBuilder.Entity("Entities.Users", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
@@ -255,9 +255,9 @@ namespace Repositories.Migrations
                     b.ToTable("Users");
                 });
 
-            modelBuilder.Entity("Repositories.Entities.UserTokens", b =>
+            modelBuilder.Entity("Entities.UserTokens", b =>
                 {
-                    b.HasOne("Repositories.Entities.Users", "Users")
+                    b.HasOne("Entities.Users", "Users")
                         .WithMany()
                         .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.Cascade)

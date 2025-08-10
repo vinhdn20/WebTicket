@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
@@ -103,9 +104,7 @@ if (app.Environment.IsDevelopment())
 using (var serviceScope = app.Services.CreateScope())
 {
     var context = serviceScope.ServiceProvider.GetRequiredService<WebTicketDbContext>();
-    context.Database.Migrate();
-    //var dataSeeder = serviceScope.ServiceProvider.GetRequiredService<DataSeeder>();
-    //await dataSeeder.SeedAsync();
+    await DbInitializer.InitializeAsync(context);
 }
 
 app.UseHttpsRedirection();

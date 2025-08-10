@@ -13,9 +13,8 @@ namespace Common
     {
         public static string HashForPassword(this string password)
         {
-            byte[] salt = RandomNumberGenerator.GetBytes(128 / 8); // divide by 8 to convert bits to bytes
+            byte[] salt = RandomNumberGenerator.GetBytes(128 / 8);
 
-            // derive a 256-bit subkey (use HMACSHA256 with 100,000 iterations)
             string hashed = Convert.ToBase64String(KeyDerivation.Pbkdf2(
                 password: password!,
                 salt: salt,

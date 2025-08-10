@@ -1,4 +1,4 @@
-﻿using Repositories.Entities;
+﻿using Entities;
 
 namespace WebTicket.Models
 {

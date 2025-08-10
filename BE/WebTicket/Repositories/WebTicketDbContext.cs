@@ -1,5 +1,5 @@
 ﻿using Microsoft.EntityFrameworkCore;
-using Repositories.Entities;
+using Entities;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -29,5 +29,10 @@ namespace Repositories
         public DbSet<Users> Users { get; set; }
         public DbSet<UserTokens> UserTokens { get; set; }
         public DbSet<VeDetail> VeDetails { get; set; }
-    }
+        public DbSet<Role> Roles { get; set; }
+		public DbSet<Permission> Permissions { get; set; }
+		public DbSet<RolePermission> RolePermissions { get; set; }
+		public DbSet<UserPermission> UserPermissions { get; set; }
+		public DbSet<PlatformAccount> PlatformAccounts { get; set; }
+	}
 }

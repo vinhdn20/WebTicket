@@ -4,10 +4,11 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace Repositories.Entities
+namespace Entities
 {
-    public class Customer : BaseEntity
+    public class Card : BaseEntity
     {
-        public string TenKhachHang { get; set; }
+        public string SoThe { get; set; }
+
     }
 }

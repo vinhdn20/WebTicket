@@ -1,4 +1,4 @@
-﻿// Import required modules
+// Import required modules
 using Common;
 using Mapster;
 using Microsoft.AspNetCore.Authorization;
@@ -6,12 +6,13 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Filters;
 using Microsoft.EntityFrameworkCore;
 using Repositories;
-using Repositories.Entities;
+using Entities;
 using Repositories.Interfaces;
 using Repositories.Models;
 using Services.Services.Interfaces;
 using WebTicket.Controllers;
 using WebTicket.Models;
+using WebTicket.Common;
 
 namespace Ve.Controllers
 {
@@ -122,7 +123,7 @@ namespace Ve.Controllers
         }
 
         [HttpPost("ag")]
-        [Authorize]
+        [RequirePermission(PermissionHelper.CommonPermissions.AGManage)]
         public async Task<IActionResult> AddAg(List<AGCustomer> customer)
         {
             try
@@ -138,7 +139,7 @@ namespace Ve.Controllers
         }
 
         [HttpDelete("ag")]
-        [Authorize]
+        [RequirePermission(PermissionHelper.CommonPermissions.AGManage)]
         public async Task<IActionResult> DeleteAg(List<Guid> customer)
         {
             try
@@ -199,7 +200,7 @@ namespace Ve.Controllers
         }
 
         [HttpPost("card")]
-        [Authorize]
+        [RequirePermission(PermissionHelper.CommonPermissions.MSTManage)]
         public async Task<IActionResult> AddAg(List<Card> card)
         {
             try
@@ -230,7 +231,7 @@ namespace Ve.Controllers
         //}
 
         [HttpDelete("card")]
-        [Authorize]
+        [RequirePermission(PermissionHelper.CommonPermissions.MSTManage)]
         public async Task<IActionResult> GetCardInfo(List<Guid> cardIds)
         {
             try
@@ -238,6 +239,124 @@ namespace Ve.Controllers
                 var result = await _repository.GetAllWithAsync<Card>(x => cardIds.Contains(x.Id));
                 await _repository.DeleteRangeAsync(result, true);
                 return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                return BadRequest("Server error: " + ex.Message);
+            }
+        }
+
+        [HttpPost("trip")]
+        [RequirePermission(PermissionHelper.CommonPermissions.TripAccountManage)]
+        public async Task<IActionResult> AddTrip(List<PlatformAccount> accounts)
+        {
+            try
+            {
+                accounts.ForEach(x => 
+                {
+                    x.Id = Guid.NewGuid();
+                    x.Type = AccountType.Trip;
+                });
+                var result = await _repository.AddRangeAsync(accounts, true);
+                return Ok(accounts);
+            }
+            catch (Exception ex)
+            {
+                return BadRequest("Server error: " + ex.Message);
+            }
+        }
+
+        [HttpDelete("trip")]
+        [RequirePermission(PermissionHelper.CommonPermissions.TripAccountManage)]
+        public async Task<IActionResult> DeleteTrip(List<Guid> accountIds)
+        {
+            try
+            {
+                var accounts = await _repository.GetAllWithNoTrackingAsync<PlatformAccount>(x => accountIds.Contains(x.Id) && x.Type == AccountType.Trip).ToListAsync();
+                var result = await _repository.DeleteRangeAsync(accounts, true);
+                return Ok(accountIds);
+            }
+            catch (Exception ex)
+            {
+                return BadRequest("Server error: " + ex.Message);
+            }
+        }
+
+        [HttpGet("trip")]
+        [Authorize]
+        public async Task<IActionResult> GetTripInfo(string? email)
+        {
+            try
+            {
+                if (string.IsNullOrEmpty(email))
+                {
+                    var result = await _repository.GetAllWithAsync<PlatformAccount>(x => x.Type == AccountType.Trip);
+                    return Ok(result);
+                }
+                else
+                {
+                    var result = await _repository.GetAllWithAsync<PlatformAccount>(x => x.Type == AccountType.Trip && x.Email.Contains(email));
+                    return Ok(result);
+                }
+            }
+            catch (Exception ex)
+            {
+                return BadRequest("Server error: " + ex.Message);
+            }
+        }
+
+        [HttpPost("agoda")]
+        [RequirePermission(PermissionHelper.CommonPermissions.AgodaAccountManage)]
+        public async Task<IActionResult> AddAgoda(List<PlatformAccount> accounts)
+        {
+            try
+            {
+                accounts.ForEach(x => 
+                {
+                    x.Id = Guid.NewGuid();
+                    x.Type = AccountType.Agoda;
+                });
+                var result = await _repository.AddRangeAsync(accounts, true);
+                return Ok(accounts);
+            }
+            catch (Exception ex)
+            {
+                return BadRequest("Server error: " + ex.Message);
+            }
+        }
+
+        [HttpDelete("agoda")]
+        [RequirePermission(PermissionHelper.CommonPermissions.AgodaAccountManage)]
+        public async Task<IActionResult> DeleteAgoda(List<Guid> accountIds)
+        {
+            try
+            {
+                var accounts = await _repository.GetAllWithNoTrackingAsync<PlatformAccount>(x => accountIds.Contains(x.Id) && x.Type == AccountType.Agoda).ToListAsync();
+                var result = await _repository.DeleteRangeAsync(accounts, true);
+                return Ok(accountIds);
+            }
+            catch (Exception ex)
+            {
+                return BadRequest("Server error: " + ex.Message);
+            }
+        }
+
+        [HttpGet("agoda")]
+        [Authorize]
+        public async Task<IActionResult> GetAgodaInfo(string? email)
+        {
+            try
+            {
+                if (string.IsNullOrEmpty(email))
+                {
+                    var result = await _repository.GetAllWithAsync<PlatformAccount>(x => x.Type == AccountType.Agoda);
+                    return Ok(result);
+                }
+                else
+                {
+                    var result = await _repository.GetAllWithAsync<PlatformAccount>(x => x.Type == AccountType.Agoda && x.Email.Contains(email));
+                    return Ok(result);
+                }
             }
             catch (Exception ex)
             {

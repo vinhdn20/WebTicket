@@ -1,4 +1,4 @@
-﻿using Repositories.Entities;
+﻿using Entities;
 using Repositories.Interfaces;
 using Repositories.Models;
 using Services.Services.Interfaces;

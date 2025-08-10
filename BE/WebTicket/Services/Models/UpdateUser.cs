@@ -7,12 +7,17 @@ using System.Threading.Tasks;
 
 namespace Services.Models
 {
-    public class AddUser
+    public class UpdateUser
     {
-        [EmailAddress]
-        public string Email { get; set; }
-        public string Password { get; set; }
-        //public Guid RoleId { get; set; }
+        [Required]
+        public Guid UserId { get; set; }
+        
+        public string? Email { get; set; }
+        
+        public string? Password { get; set; }
+        
+        public bool? IsActive { get; set; }
+        
         public List<string>? PermissionNames { get; set; }
     }
 }
