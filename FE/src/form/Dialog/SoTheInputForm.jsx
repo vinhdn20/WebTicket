@@ -354,7 +354,7 @@ export default function FullScreenSoTheDialog({ open, onClose }) {
           bottom: 0,
           margin: 0,
           minWidth: "100%",
-          // height: "80vh",
+          height: "100%",
           borderRadius: "10px 10px 0 0",
           boxShadow: 3,
         },

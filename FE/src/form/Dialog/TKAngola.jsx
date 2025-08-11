@@ -470,7 +470,7 @@ export default function FullScreenAGDialog({ open, onClose }) {
           bottom: 0,
           margin: 0,
           minWidth: "100%",
-          height: "100%",
+          // height: "90vh",
           borderRadius: "10px 10px 0 0",
           boxShadow: 3,
         },

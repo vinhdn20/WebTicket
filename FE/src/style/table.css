@@ -134,6 +134,7 @@ input[type="text"],
 input[type="email"],
 input[type="number"],
 input[type="datetime-local"],
+input[type="password"],
 select,
 textarea {
   margin-bottom: 10px;

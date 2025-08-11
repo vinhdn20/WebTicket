@@ -457,7 +457,7 @@ const AddOnTable = React.memo(function AddOnTable({
               style={{
                 marginTop: "24px",
                 display: "flex",
-                justifyContent: "flex-end",
+                justifyContent: "flex-start",
                 gap: 16,
               }}
             >

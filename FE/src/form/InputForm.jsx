@@ -1,5 +1,5 @@
 // src/form/InputTable.jsx
-import React, { useCallback, useMemo, useState, useEffect } from "react";
+import React, { useCallback, useMemo, useState, useEffect, useRef } from "react";
 import "../style/table.css";
 import Button from "@mui/material/Button";
 import {
@@ -10,12 +10,15 @@ import {
   DialogContent,
   DialogContentText,
   DialogActions,
+  Backdrop,
+  CircularProgress, // <-- add
 } from "@mui/material";
 import FullScreenAGDialog from "./Dialog/AgInputForm";
 import FullScreenSoTheDialog from "./Dialog/SoTheInputForm";
-import AddOnTable from "./addOnTable";
+import AddOnTable from "./Dialog/addOnTable";
 import apiService from "../services/apiSevrvice";
 import { fetchWithAuth } from "../services/authService";
+import TKTripForm from "./Dialog/TKTripForm"; // <-- add
 
 const getCurrentDateTimeLocal = () => {
   const now = new Date();
@@ -44,7 +47,7 @@ const initialRow = {
   soThe: "",
   taiKhoan: "",
   luuY: "",
-  veHoanKhay: "Có",
+  veHoanKhay: false,
 };
 
 const InputTable = ({ onTicketCreated }) => {
@@ -54,6 +57,8 @@ const InputTable = ({ onTicketCreated }) => {
   const [phoneOptions, setPhoneOptions] = useState([]);
   const [cardOptions, setCardOptions] = useState([]);
   const [openAGDialog, setOpenAGDialog] = useState(false);
+  const [openTKDialog, setOpenTKDialog] = useState(false);
+  const [tkType, setTKType] = useState(null);
   const [openSoTheDialog, setOpenSoTheDialog] = useState(false);
   const [openAddOnDialog, setOpenAddOnDialog] = useState(false);
   const [openDeleteDialog, setOpenDeleteDialog] = useState(false);
@@ -69,6 +74,30 @@ const InputTable = ({ onTicketCreated }) => {
     mail: "",
     tenAG: "",
   });
+  const [loading, setLoading] = useState(false); // <-- add
+  const didFetchRef = useRef(false); // guard to fetch once on mount
+
+  // Reset toàn bộ state về mặc định sau khi xuất vé thành công
+  const resetFormState = useCallback(() => {
+    setFormHeaderData({
+      ngayXuat: getCurrentDateTimeLocal(),
+      sdt: "",
+      mail: "",
+      tenAG: "",
+      soThe: "",
+      giaXuat: "",
+      thuAG: "",
+      luuY: "",
+      veHoanKhay: false,
+    });
+    setData([{ ...initialRow }]);
+    setAddOnData([{ dichVu: "", soTien: "" }]);
+    setSelectedRows([]);
+    setCurrentFocusCell(null);
+    setOpenAddOnDialog(false);
+    setOpenDeleteDialog(false);
+    // Không đụng tới danh sách phoneOptions/cardOptions
+  }, []);
 
   const openSnackbarHandler = useCallback((message, severity = "success") => {
     setSnackbar({ open: true, message, severity });
@@ -109,6 +138,8 @@ const InputTable = ({ onTicketCreated }) => {
   }, [openSnackbarHandler]);
 
   useEffect(() => {
+    if (didFetchRef.current) return;
+    didFetchRef.current = true;
     fetchData();
   }, [fetchData]);
 
@@ -162,7 +193,7 @@ const InputTable = ({ onTicketCreated }) => {
         addOn: JSON.stringify(addOnData),
         thuAG: parseNumberDot(formHeaderData.thuAG || ""),
         luuY: formHeaderData.luuY || "",
-        veHoanKhay: formHeaderData.veHoanKhay === "Có" ? true : false,
+        veHoanKhay: formHeaderData.veHoanKhay === "True" ? true : false,
         cardId,
         veDetails,
       };
@@ -170,6 +201,7 @@ const InputTable = ({ onTicketCreated }) => {
       console.log("Payload gửi đi:", payload);
 
       try {
+        setLoading(true); // <-- add
         await fetchWithAuth(
           "/Ve/xuatVe",
           {
@@ -179,15 +211,18 @@ const InputTable = ({ onTicketCreated }) => {
           },
           openSnackbarHandler("Vé đã tạo thành công!", "success")
         );
-        onTicketCreated();
+        onTicketCreated?.();
         openSnackbarHandler("Vé đã tạo thành công!", "success");
-        setData([initialRow]);
-        setAddOnData([{ dichVu: "", soTien: "" }]);
+
+        // Clear toàn bộ state cũ
+        resetFormState();
       } catch (error) {
         openSnackbarHandler(
           "Có lỗi xảy ra khi tạo vé. Vui lòng thử lại.",
           "error"
         );
+      } finally {
+        setLoading(false); // <-- add
       }
     },
     [
@@ -198,6 +233,7 @@ const InputTable = ({ onTicketCreated }) => {
       formHeaderData,
       cardOptions,
       phoneOptions,
+      resetFormState,
     ]
   );
 
@@ -290,6 +326,10 @@ const InputTable = ({ onTicketCreated }) => {
 
   const handleDialogAddOnClose = useCallback(() => {
     setOpenAddOnDialog(false);
+  }, []);
+
+  const handleDialogTripClose = useCallback(() => {
+    setOpenTKDialog(false);
   }, []);
 
   function parseToDateTimeLocal(str) {
@@ -438,6 +478,11 @@ const InputTable = ({ onTicketCreated }) => {
     );
   };
 
+  const handleTKClick = (type) => {
+    setOpenTKDialog(true);
+    setTKType(type);
+  }
+
   return (
     <div className="input-form-wrapper">
       {/* Header Section */}
@@ -475,14 +520,14 @@ const InputTable = ({ onTicketCreated }) => {
           <div className="group-menu-dropdown">
             <Button
               variant="contained"
-              onClick={() => setOpenAGDialog(true)}
+              onClick={() => handleTKClick(1)}
               className="btn-primary btn-sm btn-block"
             >
               Tài khoản Trip
             </Button>
             <Button
               variant="contained"
-              onClick={() => setOpenSoTheDialog(true)}
+              onClick={() => handleTKClick(2)}
               className="btn-primary btn-sm btn-block"
             >
               Tài khoản Angola
@@ -551,14 +596,14 @@ const InputTable = ({ onTicketCreated }) => {
           <div className="form-field">
             <label className="form-label">✅ Vé có hoàn hay không</label>
             <select
-              value={formHeaderData.veHoanKhay || "Có"}
+              value={formHeaderData.veHoanKhay || true}
               onChange={(e) =>
                 handleHeaderInputChange("veHoanKhay", e.target.value)
               }
               className="modern-input modern-select"
             >
-              <option value="Có">Có hoàn</option>
-              <option value="Không">Không hoàn</option>
+              <option value={true}>Có hoàn</option>
+              <option value={false}>Không hoàn</option>
             </select>
           </div>
 
@@ -759,7 +804,7 @@ const InputTable = ({ onTicketCreated }) => {
                         </select>
                       ) : column.accessor === "veHoanKhay" ? (
                         <select
-                          value={row.veHoanKhay || "Có"}
+                          value={row.veHoanKhay || true}
                           onChange={(e) =>
                             handleCellEdit(
                               rowIndex,
@@ -775,8 +820,8 @@ const InputTable = ({ onTicketCreated }) => {
                           }
                           className="table-input modern-select"
                         >
-                          <option value="Có">✅ Có</option>
-                          <option value="Không">❌ Không</option>
+                          <option value={true}>✅ Có</option>
+                          <option value={false}>❌ Không</option>
                         </select>
                       ) : column.accessor === "ngayGioBayDi" ||
                         column.accessor === "ngayGioBayDen" ? (
@@ -961,7 +1006,21 @@ const InputTable = ({ onTicketCreated }) => {
             {snackbar.message}
           </Alert>
         </Snackbar>
+
+        <TKTripForm
+          open={openTKDialog}
+          onClose={handleDialogTripClose}
+          type={tkType}
+        />
       </>
+
+      {/* Loading overlay */}
+      <Backdrop
+        open={loading}
+        sx={{ color: "#fff", zIndex: (theme) => theme.zIndex.modal + 1 }}
+      >
+        <CircularProgress color="inherit" />
+      </Backdrop>
     </div>
   );
 };

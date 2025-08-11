@@ -20,8 +20,10 @@ import {
   DialogContentText,
   DialogActions,
   Button,
+  Backdrop,           // <-- add
+  CircularProgress,   // <-- add
 } from "@mui/material";
-import AddOnTable from "./addOnTable";
+import AddOnTable from "./Dialog/addOnTable";
 import apiService from "../services/apiSevrvice";
 import { fetchWithAuth } from "../services/authService";
 
@@ -61,6 +63,7 @@ const EditableTable = ({
   setSelectedRows,
   handleDeleteSelectedRows,
   handleSaveEditedRows,
+  onReload, // <-- add
 }) => {
   const [isEditing, setIsEditing] = useState(false);
   const [editedRows, setEditedRows] = useState(new Set());
@@ -77,6 +80,7 @@ const EditableTable = ({
     severity: "success",
   });
   const [openDeleteDialog, setOpenDeleteDialog] = useState(false);
+  const [saving, setSaving] = useState(false); // <-- add
 
   const openSnackbarHandler = useCallback((message, severity = "success") => {
     setSnackbar({ open: true, message, severity });
@@ -275,6 +279,7 @@ const EditableTable = ({
   // Sửa handleCellEdit để luôn format input khi nhập
   const handleCellEdit = useCallback(
     (rowId, columnId, value) => {
+      console.log("Cell edit:", { rowId, columnId, value });
       let newValue = value;
       if (columnId === "thuAG" || columnId === "giaXuat") {
         newValue = formatNumberDot(value);
@@ -374,11 +379,12 @@ const EditableTable = ({
           addOn: row.addOn || "",
           thuAG: parseNumberDot(row.thuAG || ""),
           luuY: row.luuY || "",
-          veHoanKhay: row.veHoanKhay === "Có" ? true : false,
+          veHoanKhay: row.veHoanKhay === "True" ? true : false,
           cardId: selectedCard?.id || row.cardId || "",
           veDetails,
         };
       });
+      setSaving(true);
       fetchWithAuth(
         "/Ve/xuatve",
         {
@@ -391,10 +397,13 @@ const EditableTable = ({
         .then(() => {
           setEditedRows(new Set());
           openSnackbarHandler("Lưu thay đổi thành công!", "success");
+          // Reload table với payload cũ (parent giữ last payload)
+          onReload && onReload(); // <-- add
         })
         .catch(() => {
           openSnackbarHandler("Có lỗi khi lưu thay đổi!", "error");
-        });
+        })
+        .finally(() => setSaving(false));
 
       // Format lại các trường thuAG và giaXuat khi thoát edit mode
       setData((prevData) =>
@@ -418,6 +427,7 @@ const EditableTable = ({
     phoneOptions,
     openSnackbarHandler,
     setData,
+    onReload, // <-- add
   ]);
 
   const isAllSelected = useMemo(
@@ -1051,7 +1061,7 @@ const EditableTable = ({
                                 {isEditing &&
                                 selectedRows.includes(row.original.id) ? (
                                   <select
-                                    value={row.original.veHoanKhay || "Có"}
+                                    value={row.original.veHoanKhay}
                                     onChange={(e) =>
                                       handleCellEdit(
                                         row.original.id,
@@ -1072,10 +1082,10 @@ const EditableTable = ({
                                       margin: 0,
                                     }}
                                   >
-                                    <option value="Có">Có</option>
-                                    <option value="Không">Không</option>
+                                    <option value={true}>Có hoàn</option>
+                                    <option value={false}>Không hoàn</option>
                                   </select>
-                                ) : row.original.veHoanKhay ? (
+                                ) : row.original.veHoanKhay == "True" ? (
                                   "Có hoàn"
                                 ) : (
                                   "Không hoàn"
@@ -1712,7 +1722,7 @@ const EditableTable = ({
                           {isEditing &&
                           selectedRows.includes(row.original.id) ? (
                             <select
-                              value={row.original.veHoanKhay || "Có"}
+                              value={row.original.veHoanKhay}
                               onChange={(e) =>
                                 handleCellEdit(
                                   row.original.id,
@@ -1733,10 +1743,10 @@ const EditableTable = ({
                                 margin: 0,
                               }}
                             >
-                              <option value="Có">Có</option>
-                              <option value="Không">Không</option>
+                              <option value={true}>Có hoàn</option>
+                              <option value={false}>Không hoàn</option>
                             </select>
-                          ) : row.original.veHoanKhay ? (
+                          ) : row.original.veHoanKhay == "True" ? (
                             "Có hoàn"
                           ) : (
                             "Không hoàn"
@@ -1942,6 +1952,14 @@ const EditableTable = ({
           />
         </DialogContent>
       </Dialog>
+
+      {/* Saving overlay */}
+      <Backdrop
+        open={saving}
+        sx={{ color: "#fff", zIndex: (theme) => theme.zIndex.modal + 1 }}
+      >
+        <CircularProgress color="inherit" />
+      </Backdrop>
     </>
   );
 };

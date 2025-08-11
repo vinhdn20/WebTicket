@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback, useMemo } from "react";
+import React, { useEffect, useState, useCallback, useMemo, useRef } from "react";
 import Dialog from "@mui/material/Dialog";
 import AppBar from "@mui/material/AppBar";
 import Toolbar from "@mui/material/Toolbar";
@@ -36,26 +36,31 @@ const generateMatrixValues = (rows, cols, startValue = 11) => {
   return matrix;
 };
 
-export default function FullScreenAGDialog({ open, onClose }) {
+export default function TKTripForm({ open, onClose, type }) {
   const API_URL = process.env.REACT_APP_API_URL;
 
   const [formData, setFormData] = useState(() => {
-    const rows = 1; // Số hàng ban đầu
-    const cols = 3; // Số cột (tenAG, sdt, mail)
+    const rows = 1;
+    const cols = 8; // email, password, name, accountName, medal, status, recoveryPhone, recoveryEmail
     const matrix = generateMatrixValues(rows, cols);
     return Array.from({ length: rows }, (_, rowIndex) => ({
-      tenAG: "",
-      sdt: "",
-      mail: "",
-      matrixValue: matrix[rowIndex], // Gán matrixValue cho mỗi hàng
+      email: "",
+      password: "",
+      name: "",
+      accountName: "",
+      medal: "",
+      status: 1, // default: Hoạt động
+      recoveryPhone: "",
+      recoveryEmail: "",
+      matrixValue: matrix[rowIndex],
     }));
   });
 
   const [apiData, setApiData] = useState([]);
   const [searchText, setSearchText] = useState("");
-  const [selectedRows, setSelectedRows] = useState([]); // Lưu các hàng được chọn
+  const [selectedRows, setSelectedRows] = useState([]);
   const [selectedApiRows, setSelectedApiRows] = useState([]);
-  const [currentFocusRow, setCurrentFocusRow] = useState(null); // Lưu vị trí hàng được focus
+  const [currentFocusRow, setCurrentFocusRow] = useState(null);
   const [snackbar, setSnackbar] = useState({
     open: false,
     message: "",
@@ -63,6 +68,7 @@ export default function FullScreenAGDialog({ open, onClose }) {
   });
   const [openDeleteDialog, setOpenDeleteDialog] = useState(false);
   const [isApi, setIsApi] = useState(false);
+  const hasFetchedRef = useRef(false); // guard to fetch once per open
 
   // Hàm để lấy accessToken
   const getAccessToken = useCallback(() => {
@@ -79,36 +85,35 @@ export default function FullScreenAGDialog({ open, onClose }) {
     setSnackbar((prev) => ({ ...prev, open: false }));
   }, []);
 
-  // Hàm fetch dữ liệu từ API
   const fetchApiData = useCallback(async () => {
     let accessToken = getAccessToken();
     try {
-      const response = await fetch(`${API_URL}/Ve/ag`, {
-        method: "GET",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${accessToken}`,
-        },
-      });
+      const response = await fetch(
+        type === 1 ? `${API_URL}/Ve/trip` : `${API_URL}/Ve/agoda`,
+        {
+          method: "GET",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${accessToken}`,
+          },
+        }
+      );
 
       if (response.status === 401) {
         const newToken = await refreshAccessToken();
         if (newToken) {
           accessToken = newToken;
-          const retryResponse = await fetch(`${API_URL}/Ve/ag`, {
-            method: "GET",
-            headers: {
-              "Content-Type": "application/json",
-              Authorization: `Bearer ${accessToken}`,
-            },
-          });
-
-          if (!retryResponse.ok) {
-            throw new Error(
-              "Failed to fetch data after refreshing token: " +
-                retryResponse.statusText
-            );
-          }
+          const retryResponse = await fetch(
+            type === 1 ? `${API_URL}/Ve/trip` : `${API_URL}/Ve/agoda`,
+            {
+              method: "GET",
+              headers: {
+                "Content-Type": "application/json",
+                Authorization: `Bearer ${accessToken}`,
+              },
+            }
+          );
+          if (!retryResponse.ok) throw new Error("Failed to fetch");
           const retryResult = await retryResponse.json();
           updateApiData(retryResult);
           return;
@@ -117,49 +122,65 @@ export default function FullScreenAGDialog({ open, onClose }) {
           throw new Error("Failed to refresh access token");
         }
       }
-
-      if (!response.ok) {
-        throw new Error("Network response was not ok: " + response.statusText);
-      }
-
+      if (!response.ok) throw new Error("Network response was not ok");
       const result = await response.json();
       updateApiData(result);
     } catch (error) {
       console.error("Error fetching data", error);
-      openSnackbar("Có lỗi xảy ra khi tải dữ liệu từ API.", "error");
+      openSnackbar("Có lỗi xảy ra khi tải dữ liệu tài khoản Trip.", "error");
     }
-  }, [getAccessToken, openSnackbar]);
+  }, [getAccessToken, openSnackbar, API_URL, type]); // include type
 
-  // Hàm cập nhật dữ liệu API
-  const updateApiData = useCallback((apiData) => {
-    const mappedData = apiData.map((item) => ({
+  // Map dữ liệu API -> bảng
+  const updateApiData = useCallback((api) => {
+    const mapped = api.map((item) => ({
       id: item.id,
-      tenAG: item.tenAG || "",
-      sdt: item.sdt || "",
-      mail: item.mail || "",
+      email: item.email || "",
+      password: item.password || "",
+      name: item.name || "",
+      accountName: item.accountName || "",
+      medal: item.medal || "",
+      status: item.status ?? 1,
+      recoveryPhone: item.recoveryPhone || "",
+      recoveryEmail: item.recoveryEmail || "",
+      type: item.type ?? "",
     }));
-    setApiData(mappedData);
+    setApiData(mapped);
   }, []);
 
-  // Lọc dữ liệu API theo searchText
+  // Lọc tìm kiếm theo email, name, accountName
   const filteredApiData = useMemo(() => {
     if (!searchText.trim()) return apiData;
     const lower = searchText.toLowerCase();
     return apiData.filter(
       (row) =>
-        (row.tenAG && row.tenAG.toLowerCase().includes(lower)) ||
-        (row.sdt && row.sdt.toLowerCase().includes(lower)) ||
-        (row.mail && row.mail.toLowerCase().includes(lower))
+        (row.email && row.email.toLowerCase().includes(lower)) ||
+        (row.name && row.name.toLowerCase().includes(lower)) ||
+        (row.accountName && row.accountName.toLowerCase().includes(lower))
     );
   }, [apiData, searchText]);
 
-  // Fetch dữ liệu khi mở dialog
+  // Fetch dữ liệu khi mở dialog - only once per open
   useEffect(() => {
-    if (open) {
+    if (open && !hasFetchedRef.current) {
+      hasFetchedRef.current = true;
       fetchApiData();
-    } else {
+    } else if (!open) {
+      hasFetchedRef.current = false; // reset when dialog closes
       // Reset formData và các state khi đóng dialog
-      setFormData([{ tenAG: "", sdt: "", mail: "", matrixValue: [] }]);
+      setFormData([
+        {
+          email: "",
+          password: "",
+          name: "",
+          accountName: "",
+          medal: "",
+          status: 1,
+          recoveryPhone: "",
+          recoveryEmail: "",
+          matrixValue: [],
+        },
+      ]);
       setSelectedRows([]);
       setSelectedApiRows([]);
     }
@@ -169,8 +190,6 @@ export default function FullScreenAGDialog({ open, onClose }) {
   const handlePaste = useCallback(
     (e) => {
       e.preventDefault();
-
-      // Lấy dữ liệu từ clipboard
       const clipboardData = e.clipboardData.getData("text");
       const rows = clipboardData
         .split("\n")
@@ -179,44 +198,47 @@ export default function FullScreenAGDialog({ open, onClose }) {
 
       if (currentFocusRow === null) return; // Kiểm tra nếu chưa có hàng focus
 
-      setFormData((prevFormData) => {
-        // Định nghĩa các trường tương ứng với số cột dán vào
+      setFormData((prev) => {
         const fieldNames = [
-          "tenAG", // Chặng
-          "sdt", // Ngày giờ bay
-          "mail", // Hãng bay
-          "col4", // Số hiệu chuyến bay
-          "col5", // Tham chiếu HHK
-          "col6", // Mã đặt chỗ
-          "col7", // Tên khách hàng
+          "email",
+          "password",
+          "name",
+          "accountName",
+          "medal",
+          "recoveryPhone",
+          "recoveryEmail",
         ];
-        let updatedFormData = [...prevFormData];
+        const updated = [...prev];
         const requiredRows = currentFocusRow + rows.length;
-        if (requiredRows > updatedFormData.length) {
-          // Thêm đủ số hàng mới nếu cần
+        if (requiredRows > updated.length) {
           const cols = fieldNames.length;
           const matrix = generateMatrixValues(requiredRows, cols, 11);
-          for (let i = updatedFormData.length; i < requiredRows; i++) {
-            // Tạo object đủ trường
-            const newRow = {};
-            fieldNames.forEach((field, idx) => {
-              newRow[field] = "";
-            });
-            newRow.matrixValue = matrix[i];
-            updatedFormData.push(newRow);
+          for (let i = updated.length; i < requiredRows; i++) {
+            const newRow = {
+              email: "",
+              password: "",
+              name: "",
+              accountName: "",
+              medal: "",
+              status: 1,
+              recoveryPhone: "",
+              recoveryEmail: "",
+              matrixValue: matrix[i],
+            };
+            updated.push(newRow);
           }
         }
-
         rows.forEach((rowValues, rowOffset) => {
           const targetRow = currentFocusRow + rowOffset;
-          if (updatedFormData[targetRow]) {
+          if (updated[targetRow]) {
             fieldNames.forEach((field, idx) => {
-              if (rowValues[idx] !== undefined)
-                updatedFormData[targetRow][field] = rowValues[idx];
+              if (rowValues[idx] !== undefined) {
+                updated[targetRow][field] = rowValues[idx];
+              }
             });
           }
         });
-        return updatedFormData;
+        return updated;
       });
     },
     [currentFocusRow]
@@ -231,19 +253,23 @@ export default function FullScreenAGDialog({ open, onClose }) {
     );
   }, []);
 
-  // Thêm hàng mới vào formData
   const handleAddRow = useCallback(() => {
     const currentRows = formData.length;
-    const cols = 3; // Số cột (tenAG, sdt, mail)
+    const cols = 8; // Thêm cột status
     const matrix = generateMatrixValues(currentRows + 1, cols, 11);
 
     setFormData((prev) => [
       ...prev,
       {
-        tenAG: "",
-        sdt: "",
-        mail: "",
-        matrixValue: matrix[currentRows], // Gán matrixValue mới
+        email: "",
+        password: "",
+        name: "",
+        accountName: "",
+        medal: "",
+        status: 1, // default: Hoạt động
+        recoveryPhone: "",
+        recoveryEmail: "",
+        matrixValue: matrix[currentRows],
       },
     ]);
   }, [formData.length]);
@@ -276,42 +302,37 @@ export default function FullScreenAGDialog({ open, onClose }) {
       openSnackbar("Không có hàng nào được chọn để xóa.", "warning");
       return;
     }
-
     let accessToken = getAccessToken();
     const payload = selectedApiRows;
-
     try {
-      const response = await fetch(`${API_URL}/Ve/ag`, {
-        method: "DELETE",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${accessToken}`,
-        },
-        body: JSON.stringify(payload),
-      });
-
+      const response = await fetch(
+        type === 1 ? `${API_URL}/Ve/trip` : `${API_URL}/Ve/agoda`,
+        {
+          method: "DELETE",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${accessToken}`,
+          },
+          body: JSON.stringify(payload),
+        }
+      );
       if (response.status === 401) {
         const newToken = await refreshAccessToken();
         if (newToken) {
           accessToken = newToken;
-          // Retry the original request with the new token
-          const retryResponse = await fetch(`${API_URL}/Ve/ag`, {
-            method: "DELETE",
-            headers: {
-              "Content-Type": "application/json",
-              Authorization: `Bearer ${accessToken}`,
-            },
-            body: JSON.stringify(payload),
-          });
-
-          if (!retryResponse.ok) {
-            throw new Error(
-              "Failed to delete rows after refreshing token: " +
-                retryResponse.statusText
-            );
-          }
-
-          openSnackbar("Các hàng đã chọn được xóa thành công!", "success");
+          const retryResponse = await fetch(
+            type === 1 ? `${API_URL}/Ve/trip` : `${API_URL}/Ve/agoda`,
+            {
+              method: "DELETE",
+              headers: {
+                "Content-Type": "application/json",
+                Authorization: `Bearer ${accessToken}`,
+              },
+              body: JSON.stringify(payload),
+            }
+          );
+          if (!retryResponse.ok) throw new Error("Failed to delete");
+          openSnackbar("Đã xóa các tài khoản Trip đã chọn!", "success");
           setSelectedApiRows([]);
           fetchApiData();
           return;
@@ -320,65 +341,67 @@ export default function FullScreenAGDialog({ open, onClose }) {
           throw new Error("Failed to refresh access token");
         }
       }
-
-      if (!response.ok) {
-        throw new Error("Failed to delete rows: " + response.statusText);
-      }
-
-      openSnackbar("Các hàng đã chọn được xóa thành công!", "success");
+      if (!response.ok) throw new Error("Failed to delete rows");
+      openSnackbar("Đã xóa các tài khoản Trip đã chọn!", "success");
       setSelectedApiRows([]);
       fetchApiData();
     } catch (error) {
       console.error("Error deleting data", error);
-      openSnackbar("Có lỗi xảy ra khi xóa các hàng đã chọn.", "error");
+      openSnackbar("Có lỗi xảy ra khi xóa tài khoản Trip.", "error");
     }
   }, [selectedApiRows, getAccessToken, fetchApiData, openSnackbar, API_URL]);
 
   const handleSave = useCallback(async () => {
     for (const row of formData) {
-      if (!row.tenAG || !row.sdt || !row.mail) {
+      if (!row.email || !row.password || !row.accountName) {
         openSnackbar(
-          "Vui lòng điền đầy đủ thông tin cho tất cả các hàng.",
+          "Vui lòng nhập email, password và accountName.",
           "warning"
         );
         return;
       }
     }
-
     let accessToken = getAccessToken();
-
+    const payload = formData.map((r) => ({
+      email: r.email,
+      password: r.password,
+      name: r.name,
+      accountName: r.accountName,
+      medal: r.medal,
+      status: r.status ?? 1,
+      recoveryPhone: r.recoveryPhone,
+      recoveryEmail: r.recoveryEmail,
+    }));
     try {
-      const response = await fetch(`${API_URL}/Ve/ag`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${accessToken}`,
-        },
-        body: JSON.stringify(formData),
-      });
+      const response = await fetch(
+        type === 1 ? `${API_URL}/Ve/trip` : `${API_URL}/Ve/agoda`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${accessToken}`,
+          },
+          body: JSON.stringify(payload),
+        }
+      );
 
       if (response.status === 401) {
         const newToken = await refreshAccessToken();
         if (newToken) {
           accessToken = newToken;
-          // Retry the original request with the new token
-          const retryResponse = await fetch(`${API_URL}/Ve/ag`, {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-              Authorization: `Bearer ${accessToken}`,
-            },
-            body: JSON.stringify(formData),
-          });
-
-          if (!retryResponse.ok) {
-            throw new Error(
-              "Failed to save data after refreshing token: " +
-                retryResponse.statusText
-            );
-          }
-
-          openSnackbar("Dữ liệu đã được lưu thành công!", "success");
+          const retryResponse = await fetch(
+            type === 1 ? `${API_URL}/Ve/trip` : `${API_URL}/Ve/agoda`,
+            {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+                Authorization: `Bearer ${accessToken}`,
+              },
+              body: JSON.stringify(payload),
+            }
+          );
+          if (!retryResponse.ok) throw new Error("Failed to save");
+          openSnackbar("Lưu tài khoản Trip thành công!", "success");
           onClose(null);
           fetchApiData();
           return;
@@ -388,16 +411,13 @@ export default function FullScreenAGDialog({ open, onClose }) {
         }
       }
 
-      if (!response.ok) {
-        throw new Error("Network response was not ok: " + response.statusText);
-      }
-
-      openSnackbar("Dữ liệu đã được lưu thành công!", "success");
+      if (!response.ok) throw new Error("Network response was not ok");
+      openSnackbar("Lưu tài khoản Trip thành công!", "success");
       onClose(null);
       fetchApiData();
     } catch (error) {
       console.error("Error saving data", error);
-      openSnackbar("Có lỗi xảy ra khi lưu dữ liệu.", "error");
+      openSnackbar("Có lỗi xảy ra khi lưu tài khoản Trip.", "error");
     }
   }, [formData, getAccessToken, fetchApiData, openSnackbar, onClose, API_URL]);
 
@@ -494,39 +514,45 @@ export default function FullScreenAGDialog({ open, onClose }) {
             <CloseIcon />
           </IconButton>
           <Typography sx={{ ml: 2, flex: 1 }} variant="h6" component="div">
-            Nhập bảng AG
+            {type === 1 ? "Nhập tài khoản Trip" : "Nhập tài khoản Agoda"}
           </Typography>
         </Toolbar>
       </AppBar>
 
       {/* Table for Input */}
       <div style={{ padding: "20px" }} onPaste={handlePaste}>
-        <div style={{display: "flex", justifyContent: "flex-end", alignItems: "center"}}>
-            <Button
-              autoFocus
-              color="inherit"
-              onClick={handleSave}
-              style={{
-                backgroundColor: "#4caf50",
-                color: "#fff",
-                marginRight: "30px",
-              }}
-            >
-              Save
-            </Button>
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "flex-end",
+            alignItems: "center",
+          }}
+        >
+          <Button
+            autoFocus
+            color="inherit"
+            onClick={handleSave}
+            style={{
+              backgroundColor: "#4caf50",
+              color: "#fff",
+              marginRight: "30px",
+            }}
+          >
+            Save
+          </Button>
 
-            <Button
-              autoFocus
-              color="inherit"
-              onClick={() => importDataFromApi()}
-              style={{
-                backgroundColor: "#4caf50",
-                color: "#fff",
-                marginRight: "30px",
-              }}
-            >
-              Import dữ liệu
-            </Button>
+          <Button
+            autoFocus
+            color="inherit"
+            onClick={() => importDataFromApi()}
+            style={{
+              backgroundColor: "#4caf50",
+              color: "#fff",
+              marginRight: "30px",
+            }}
+          >
+            Import dữ liệu
+          </Button>
         </div>
 
         <div
@@ -548,8 +574,21 @@ export default function FullScreenAGDialog({ open, onClose }) {
               borderCollapse: "separate",
               borderSpacing: 0,
               background: "white",
+              tableLayout: "fixed", // đảm bảo theo colgroup
             }}
           >
+            {/* Cố định độ rộng từng cột */}
+            <colgroup>
+              <col style={{ width: 52 }} /> {/* checkbox */}
+              <col style={{ width: "18%" }} /> {/* Email */}
+              <col style={{ width: "16%" }} /> {/* Password */}
+              <col style={{ width: "16%" }} /> {/* Name */}
+              <col style={{ width: "16%" }} /> {/* Account Name */}
+              <col style={{ width: "12%" }} /> {/* Medal */}
+              <col style={{ width: "10%" }} /> {/* Status */}
+              <col style={{ width: "11%" }} /> {/* Recovery Phone */}
+              <col style={{ width: "11%" }} /> {/* Recovery Email */}
+            </colgroup>
             {/* Header INPUT TABLE: move sticky to th */}
             <thead>
               <tr>
@@ -558,11 +597,12 @@ export default function FullScreenAGDialog({ open, onClose }) {
                     position: "sticky",
                     top: 0,
                     left: 0,
-                    zIndex: 5, // higher than body sticky cells
+                    zIndex: 5,
                     borderBottom: "2px solid #e2e8f0",
                     padding: "12px 8px",
                     textAlign: "center",
                     background: "#f8fafc",
+                    whiteSpace: "nowrap",
                   }}
                 >
                   <input
@@ -571,53 +611,39 @@ export default function FullScreenAGDialog({ open, onClose }) {
                       formData.length > 0 &&
                       selectedRows.length === formData.length
                     }
-                    // indeterminate prop on native input is not standard attr; keep logic if needed
                     onChange={(e) => {
-                      if (e.target.checked) {
+                      if (e.target.checked)
                         setSelectedRows(formData.map((_, idx) => idx));
-                      } else {
-                        setSelectedRows([]);
-                      }
+                      else setSelectedRows([]);
                     }}
                     style={{ cursor: "pointer" }}
                   />
                 </th>
-                <th
-                  style={{
-                    position: "sticky",
-                    top: 0,
-                    zIndex: 4,
-                    borderBottom: "2px solid #e2e8f0",
-                    padding: "12px 8px",
-                    background: "#f8fafc",
-                  }}
-                >
-                  Tên AG
-                </th>
-                <th
-                  style={{
-                    position: "sticky",
-                    top: 0,
-                    zIndex: 4,
-                    borderBottom: "2px solid #e2e8f0",
-                    padding: "12px 8px",
-                    background: "#f8fafc",
-                  }}
-                >
-                  Số điện thoại
-                </th>
-                <th
-                  style={{
-                    position: "sticky",
-                    top: 0,
-                    zIndex: 4,
-                    borderBottom: "2px solid #e2e8f0",
-                    padding: "12px 8px",
-                    background: "#f8fafc",
-                  }}
-                >
-                  Email
-                </th>
+                {[
+                  "Email",
+                  "Password",
+                  "Name",
+                  "Account Name",
+                  "Medal",
+                  "Status",
+                  "Recovery Phone",
+                  "Recovery Email",
+                ].map((h) => (
+                  <th
+                    key={h}
+                    style={{
+                      position: "sticky",
+                      top: 0,
+                      zIndex: 4,
+                      borderBottom: "2px solid #e2e8f0",
+                      padding: "12px 8px",
+                      background: "#f8fafc",
+                      whiteSpace: "nowrap",
+                    }}
+                  >
+                    {h}
+                  </th>
+                ))}
               </tr>
             </thead>
             <tbody>
@@ -652,10 +678,10 @@ export default function FullScreenAGDialog({ open, onClose }) {
                     }}
                   >
                     <input
-                      type="text"
-                      value={row.tenAG}
+                      type="email"
+                      value={row.email}
                       onChange={(e) =>
-                        handleCellChange(rowIndex, "tenAG", e.target.value)
+                        handleCellChange(rowIndex, "email", e.target.value)
                       }
                       onFocus={() => setCurrentFocusRow(rowIndex)}
                       style={{
@@ -666,9 +692,8 @@ export default function FullScreenAGDialog({ open, onClose }) {
                         borderRadius: 6,
                         background: "#f9fafb",
                         fontSize: 15,
-                        transition: "border-color 0.2s",
+                        boxSizing: "border-box",
                       }}
-                      placeholder="Nhập tên AG"
                     />
                   </td>
                   <td
@@ -679,9 +704,9 @@ export default function FullScreenAGDialog({ open, onClose }) {
                   >
                     <input
                       type="text"
-                      value={row.sdt}
+                      value={row.password}
                       onChange={(e) =>
-                        handleCellChange(rowIndex, "sdt", e.target.value)
+                        handleCellChange(rowIndex, "password", e.target.value)
                       }
                       onFocus={() => setCurrentFocusRow(rowIndex)}
                       style={{
@@ -692,9 +717,149 @@ export default function FullScreenAGDialog({ open, onClose }) {
                         borderRadius: 6,
                         background: "#f9fafb",
                         fontSize: 15,
-                        transition: "border-color 0.2s",
+                        boxSizing: "border-box",
                       }}
-                      placeholder="Nhập số điện thoại"
+                    />
+                  </td>
+                  <td
+                    style={{
+                      borderBottom: "1px solid #e2e8f0",
+                      padding: "10px 8px",
+                    }}
+                  >
+                    <input
+                      type="text"
+                      value={row.name}
+                      onChange={(e) =>
+                        handleCellChange(rowIndex, "name", e.target.value)
+                      }
+                      onFocus={() => setCurrentFocusRow(rowIndex)}
+                      style={{
+                        width: "100%",
+                        border: "1px solid #e2e8f0",
+                        outline: "none",
+                        padding: "6px 8px",
+                        borderRadius: 6,
+                        background: "#f9fafb",
+                        fontSize: 15,
+                        boxSizing: "border-box",
+                      }}
+                    />
+                  </td>
+                  <td
+                    style={{
+                      borderBottom: "1px solid #e2e8f0",
+                      padding: "10px 8px",
+                    }}
+                  >
+                    <input
+                      type="text"
+                      value={row.accountName}
+                      onChange={(e) =>
+                        handleCellChange(
+                          rowIndex,
+                          "accountName",
+                          e.target.value
+                        )
+                      }
+                      onFocus={() => setCurrentFocusRow(rowIndex)}
+                      style={{
+                        width: "100%",
+                        border: "1px solid #e2e8f0",
+                        outline: "none",
+                        padding: "6px 8px",
+                        borderRadius: 6,
+                        background: "#f9fafb",
+                        fontSize: 15,
+                        boxSizing: "border-box",
+                      }}
+                    />
+                  </td>
+                  <td
+                    style={{
+                      borderBottom: "1px solid #e2e8f0",
+                      padding: "10px 8px",
+                    }}
+                  >
+                    <input
+                      type="text"
+                      value={row.medal}
+                      onChange={(e) =>
+                        handleCellChange(rowIndex, "medal", e.target.value)
+                      }
+                      onFocus={() => setCurrentFocusRow(rowIndex)}
+                      style={{
+                        width: "100%",
+                        border: "1px solid #e2e8f0",
+                        outline: "none",
+                        padding: "6px 8px",
+                        borderRadius: 6,
+                        background: "#f9fafb",
+                        fontSize: 15,
+                        boxSizing: "border-box",
+                      }}
+                    />
+                  </td>
+                  {/* NEW: Status dropdown */}
+                  <td
+                    style={{
+                      borderBottom: "1px solid #e2e8f0",
+                      padding: "10px 8px",
+                    }}
+                  >
+                    <select
+                      value={row.status ?? 1}
+                      onChange={(e) =>
+                        handleCellChange(
+                          rowIndex,
+                          "status",
+                          Number(e.target.value)
+                        )
+                      }
+                      onFocus={() => setCurrentFocusRow(rowIndex)}
+                      style={{
+                        width: "100%",
+                        border: "1px solid #e2e8f0",
+                        outline: "none",
+                        padding: "6px 8px",
+                        borderRadius: 6,
+                        background: "#f9fafb",
+                        fontSize: 15,
+                        boxSizing: "border-box",
+                      }}
+                    >
+                      <option value={1}>Hoạt động</option>
+                      <option value={2}>Không hoạt động</option>
+                      <option value={3}>Lỗi</option>
+                    </select>
+                  </td>
+                  <td
+                    style={{
+                      borderBottom: "1px solid #e2e8f0",
+                      padding: "10px 8px",
+                    }}
+                  >
+                    <input
+                      type="text"
+                      value={row.recoveryPhone}
+                      onChange={(e) =>
+                        handleCellChange(
+                          rowIndex,
+                          "recoveryPhone",
+                          e.target.value
+                        )
+                      }
+                      onFocus={() => setCurrentFocusRow(rowIndex)}
+                      style={{
+                        width: "100%",
+                        border: "1px solid #e2e8f0",
+                        outline: "none",
+                        padding: "6px 8px",
+                        borderRadius: 6,
+                        background: "#f9fafb",
+                        fontSize: 15,
+                        boxSizing: "border-box",
+                      }}
                     />
                   </td>
                   <td
@@ -705,9 +870,13 @@ export default function FullScreenAGDialog({ open, onClose }) {
                   >
                     <input
                       type="email"
-                      value={row.mail}
+                      value={row.recoveryEmail}
                       onChange={(e) =>
-                        handleCellChange(rowIndex, "mail", e.target.value)
+                        handleCellChange(
+                          rowIndex,
+                          "recoveryEmail",
+                          e.target.value
+                        )
                       }
                       onFocus={() => setCurrentFocusRow(rowIndex)}
                       style={{
@@ -718,9 +887,8 @@ export default function FullScreenAGDialog({ open, onClose }) {
                         borderRadius: 6,
                         background: "#f9fafb",
                         fontSize: 15,
-                        transition: "border-color 0.2s",
+                        boxSizing: "border-box",
                       }}
-                      placeholder="Nhập email"
                     />
                   </td>
                 </tr>
@@ -760,7 +928,7 @@ export default function FullScreenAGDialog({ open, onClose }) {
       {/* Table for API Data */}
       <div style={{ padding: "20px" }}>
         <h2 className="section-title">
-          Bảng dữ liệu AG
+          Bảng dữ liệu tài khoản {type === 1 ? "Trip" : "Agoda"}
         </h2>
         <div
           style={{
@@ -774,7 +942,7 @@ export default function FullScreenAGDialog({ open, onClose }) {
             type="text"
             value={searchText}
             onChange={(e) => setSearchText(e.target.value)}
-            placeholder="Tìm theo tên AG, số điện thoại hoặc email..."
+            placeholder="Tìm theo email, name hoặc accountName..."
             style={{
               width: 320,
               maxWidth: "100%",
@@ -822,11 +990,13 @@ export default function FullScreenAGDialog({ open, onClose }) {
         >
           <table
             style={{
-              minWidth: 600,
+              minWidth: 900,
               width: "100%",
               borderCollapse: "separate",
               borderSpacing: 0,
               background: "white",
+              tableLayout: "fixed",
+              textAlign: "center", // center the data table content
             }}
           >
             {/* Header API TABLE: move sticky to th */}
@@ -862,42 +1032,31 @@ export default function FullScreenAGDialog({ open, onClose }) {
                     style={{ cursor: "pointer" }}
                   />
                 </th>
-                <th
-                  style={{
-                    position: "sticky",
-                    top: 0,
-                    zIndex: 4,
-                    borderBottom: "2px solid #e2e8f0",
-                    padding: "12px 20px",
-                    background: "#f8fafc",
-                  }}
-                >
-                  Tên AG
-                </th>
-                <th
-                  style={{
-                    position: "sticky",
-                    top: 0,
-                    zIndex: 4,
-                    borderBottom: "2px solid #e2e8f0",
-                    padding: "12px 8px",
-                    background: "#f8fafc",
-                  }}
-                >
-                  Số điện thoại
-                </th>
-                <th
-                  style={{
-                    position: "sticky",
-                    top: 0,
-                    zIndex: 4,
-                    borderBottom: "2px solid #e2e8f0",
-                    padding: "12px 8px",
-                    background: "#f8fafc",
-                  }}
-                >
-                  Email
-                </th>
+                {[
+                  "Email",
+                  "Password",
+                  "Name",
+                  "Account Name",
+                  "Medal",
+                  "Status",
+                  "Recovery Phone",
+                  "Recovery Email",
+                ].map((h) => (
+                  <th
+                    key={h}
+                    style={{
+                      position: "sticky",
+                      top: 0,
+                      zIndex: 4,
+                      borderBottom: "2px solid #e2e8f0",
+                      padding: "12px 8px",
+                      background: "#f8fafc",
+                      whiteSpace: "nowrap",
+                    }}
+                  >
+                    {h}
+                  </th>
+                ))}
               </tr>
             </thead>
             <tbody>
@@ -931,7 +1090,7 @@ export default function FullScreenAGDialog({ open, onClose }) {
                       padding: "10px 8px",
                     }}
                   >
-                    {row.tenAG}
+                    {row.email}
                   </td>
                   <td
                     style={{
@@ -939,7 +1098,7 @@ export default function FullScreenAGDialog({ open, onClose }) {
                       padding: "10px 8px",
                     }}
                   >
-                    {row.sdt}
+                    {row.password}
                   </td>
                   <td
                     style={{
@@ -947,7 +1106,51 @@ export default function FullScreenAGDialog({ open, onClose }) {
                       padding: "10px 8px",
                     }}
                   >
-                    {row.mail}
+                    {row.name}
+                  </td>
+                  <td
+                    style={{
+                      borderBottom: "1px solid #e2e8f0",
+                      padding: "10px 8px",
+                    }}
+                  >
+                    {row.accountName}
+                  </td>
+                  <td
+                    style={{
+                      borderBottom: "1px solid #e2e8f0",
+                      padding: "10px 8px",
+                    }}
+                  >
+                    {row.medal}
+                  </td>
+                  <td
+                    style={{
+                      borderBottom: "1px solid #e2e8f0",
+                      padding: "10px 8px",
+                    }}
+                  >
+                    {row.status == 1
+                      ? "Hoạt động"
+                      : row.status == 2
+                      ? "Không hoạt động"
+                      : "Lỗi"}
+                  </td>
+                  <td
+                    style={{
+                      borderBottom: "1px solid #e2e8f0",
+                      padding: "10px 8px",
+                    }}
+                  >
+                    {row.recoveryPhone}
+                  </td>
+                  <td
+                    style={{
+                      borderBottom: "1px solid #e2e8f0",
+                      padding: "10px 8px",
+                    }}
+                  >
+                    {row.recoveryEmail}
                   </td>
                 </tr>
               ))}

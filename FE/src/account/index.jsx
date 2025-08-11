@@ -89,11 +89,34 @@ const AccountCreation = () => {
   const navigate = useNavigate();
   const API_URL = process.env.REACT_APP_API_URL;
 
+  const fetchAndStorePermissions = React.useCallback(async () => {
+    try {
+      const accessToken = localStorage.getItem("accessToken");
+      if (!accessToken) return;
+      const resp = await fetch(`${API_URL}/User/my-permissions`, {
+        method: "GET",
+        credentials: "include",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${accessToken}`,
+        },
+      });
+      if (!resp.ok) throw new Error("Failed to fetch permissions");
+      const perms = await resp.json();
+      window.Permissions = perms;
+    } catch (err) {
+      console.warn("Fetch permissions failed:", err);
+      window.Permissions = [];
+    }
+  }, [API_URL]);
+
   useEffect(() => {
     if (isAuthenticated()) {
-      navigate("/home", { replace: true });
+      fetchAndStorePermissions().finally(() =>
+        navigate("/home", { replace: true })
+      );
     }
-  }, [navigate]);
+  }, [navigate, fetchAndStorePermissions]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -111,6 +134,8 @@ const AccountCreation = () => {
         const data = await response.json();
         localStorage.setItem("accessToken", data.accessToken);
         localStorage.setItem("refreshToken", data.refreshToken);
+        await fetchAndStorePermissions();
+
         navigate("/home");
       } else {
         alert("Đăng nhập thất bại. Vui lòng kiểm tra lại email và mật khẩu.");
@@ -123,7 +148,7 @@ const AccountCreation = () => {
   const handleRegister = async (e) => {
     e.preventDefault();
     try {
-      const response = await fetch(`${API_URL}/add`, {
+      const response = await fetch(`${API_URL}/User/add`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email: registerEmail, password: registerPassword }),
