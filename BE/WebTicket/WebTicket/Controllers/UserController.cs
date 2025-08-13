@@ -116,11 +116,21 @@ namespace WebTicket.Controllers
         {
             try
             {
+                if (model.UserId == _httpContext.GetUserId())
+                {
+                    return BadRequest("Không thể cập nhật quyền của chính mình");
+                }
                 // Get existing user with role
                 var existingUser = await _repository.GetAsync<Users>(u => u.Id == model.UserId);
                 if (existingUser == null)
                 {
                     return NotFound("User not found.");
+                }
+
+                var checkDuplicateUser = await _repository.AnyAsync<Users>(u => u.Email.ToLower() == model.Email.ToLower() && u.Id != model.UserId);
+                if (checkDuplicateUser)
+                {
+                    return BadRequest("Tên tài khoản/email đã tồn tại");
                 }
 
                 // Get current user to check admin privileges
@@ -357,8 +367,7 @@ namespace WebTicket.Controllers
             try
             {
                 // Get all active users with their roles
-                var users = await _repository.GetAllWithNoTrackingAsync<Users>(
-                    u => u.IsActive).ToListAsync();
+                var users = await _repository.GetAllWithNoTrackingAsync<Users>().ToListAsync();
 
                 var userListResult = new List<object>();
                 var allRolePermisison = await _repository.GetAllWithNoTrackingAsync<RolePermission>()
