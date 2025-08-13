@@ -8,8 +8,6 @@ import CloseIcon from "@mui/icons-material/Close";
 import Slide from "@mui/material/Slide";
 import Button from "@mui/material/Button";
 import { refreshAccessToken } from "../../constant";
-import * as XLSX from "xlsx";
-import { saveAs } from "file-saver";
 import {
   Snackbar,
   Alert,
@@ -349,7 +347,7 @@ export default function TKTripForm({ open, onClose, type }) {
       console.error("Error deleting data", error);
       openSnackbar("Có lỗi xảy ra khi xóa tài khoản Trip.", "error");
     }
-  }, [selectedApiRows, getAccessToken, fetchApiData, openSnackbar, API_URL]);
+  }, [selectedApiRows, getAccessToken, fetchApiData, openSnackbar, API_URL, type]);
 
   const handleSave = useCallback(async () => {
     for (const row of formData) {

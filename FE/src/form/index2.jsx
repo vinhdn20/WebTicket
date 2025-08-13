@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState, useMemo, useRef } from "react";
+import { useCallback, useEffect, useState, useMemo } from "react";
 import "../style/table.css";
 import InputForm from "./InputForm";
 import DataTable from "./table";
@@ -8,6 +8,7 @@ import { logout, fetchWithAuth } from "../services/authService";
 import { debounce } from "lodash";
 import { Snackbar, Alert, Button } from "@mui/material";
 import ErrorBoundary from "../component/ErrorBoundary";
+import PermissionsManagement from "../component/PermissionsManagement";
 
 const initTable = {
   pageIndex: 1,
@@ -24,22 +25,18 @@ const initTable = {
 };
 
 const TicketTable2 = () => {
-  const API_URL = process.env.REACT_APP_API_URL;
   const [data, setData] = useState([]);
   const [columnFilters, setColumnFilters] = useState(initTable);
   const [pageSize, setPageSize] = useState(initTable.pageSize);
   const [pageIndex, setPageIndex] = useState(initTable.pageIndex);
   const [pageCount, setPageCount] = useState(0);
   const [selectedRows, setSelectedRows] = useState([]);
+  const [showPermissions, setShowPermissions] = useState(false);
   const [snackbar, setSnackbar] = useState({
     open: false,
     message: "",
     severity: "success",
   });
-
-  const getAccessToken = () => {
-    return localStorage.getItem("accessToken");
-  };
 
   const openSnackbar = useCallback((message, severity = "success") => {
     setSnackbar({ open: true, message, severity });
@@ -149,6 +146,69 @@ const TicketTable2 = () => {
     }
   }, [selectedRows, debouncedLoad, openSnackbar]);
 
+  const handlePermissionsClick = () => {
+    setShowPermissions(true);
+  };
+
+  const handleBackToMain = () => {
+    setShowPermissions(false);
+  };
+
+  if (showPermissions) {
+    return (
+      <ErrorBoundary>
+        <div className="container">
+          <div
+            style={{
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+              padding: "16px 20px",
+              backgroundColor: "white",
+              borderRadius: "12px",
+              marginBottom: "20px",
+              boxShadow: "0 2px 8px rgba(0, 0, 0, 0.1)",
+              border: "1px solid #e2e8f0",
+            }}
+          >
+            <Button
+              variant="outlined"
+              onClick={handleBackToMain}
+              style={{
+                padding: "10px 20px",
+                borderRadius: "8px",
+                fontSize: "14px",
+                fontWeight: "600",
+                textTransform: "none",
+              }}
+            >
+              ← Quay lại
+            </Button>
+            <Button
+              variant="contained"
+              onClick={logout}
+              style={{
+                backgroundColor: "rgba(59, 130, 246, 0.8)",
+                color: "white",
+                padding: "10px 20px",
+                borderRadius: "8px",
+                fontSize: "14px",
+                fontWeight: "600",
+                textTransform: "none",
+                boxShadow: "0 2px 8px rgba(59, 130, 246, 0.25)",
+                border: "none",
+                transition: "all 0.2s ease",
+              }}
+            >
+              🚪 Đăng xuất
+            </Button>
+          </div>
+          <PermissionsManagement />
+        </div>
+      </ErrorBoundary>
+    );
+  }
+
   return (
     <ErrorBoundary>
       <div className="container">
@@ -196,7 +256,7 @@ const TicketTable2 = () => {
           <div>
             <Button
               variant="contained"
-              onClick={logout}
+              onClick={handlePermissionsClick}
               style={{
                 backgroundColor: "rgba(59, 130, 246, 0.8)",
                 color: "white",
@@ -211,7 +271,7 @@ const TicketTable2 = () => {
                 marginRight: "12px",
               }}
             >
-              ⚙️ Quản lý tài khoản
+              ⚙️ Quản lý phân quyền
             </Button>
 
             <Button
