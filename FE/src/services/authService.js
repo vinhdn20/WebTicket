@@ -7,6 +7,8 @@ const API_BASE_URL = process.env.REACT_APP_API_URL;
 export const logout = () => {
   localStorage.removeItem("accessToken");
   localStorage.removeItem("refreshToken");
+  localStorage.removeItem("userPermissions");
+  window.Permissions = [];
   window.location.href = "/";
 };
 

@@ -254,25 +254,29 @@ const TicketTable2 = () => {
             Hệ Thống Quản Lý Bán Vé
           </h1>
           <div>
-            <Button
-              variant="contained"
-              onClick={handlePermissionsClick}
-              style={{
-                backgroundColor: "rgba(59, 130, 246, 0.8)",
-                color: "white",
-                padding: "10px 20px",
-                borderRadius: "8px",
-                fontSize: "14px",
-                fontWeight: "600",
-                textTransform: "none",
-                boxShadow: "0 2px 8px rgba(59, 130, 246, 0.25)",
-                border: "none",
-                transition: "all 0.2s ease",
-                marginRight: "12px",
-              }}
-            >
-              ⚙️ Quản lý phân quyền
-            </Button>
+            {window.Permissions.permissions?.find(
+              (i) => i.name === "users.manage"
+            ) && (
+              <Button
+                variant="contained"
+                onClick={handlePermissionsClick}
+                style={{
+                  backgroundColor: "rgba(59, 130, 246, 0.8)",
+                  color: "white",
+                  padding: "10px 20px",
+                  borderRadius: "8px",
+                  fontSize: "14px",
+                  fontWeight: "600",
+                  textTransform: "none",
+                  boxShadow: "0 2px 8px rgba(59, 130, 246, 0.25)",
+                  border: "none",
+                  transition: "all 0.2s ease",
+                  marginRight: "12px",
+                }}
+              >
+                ⚙️ Quản lý phân quyền
+              </Button>
+            )}
 
             <Button
               variant="contained"

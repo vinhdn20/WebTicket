@@ -1,5 +1,11 @@
 // src/form/InputTable.jsx
-import React, { useCallback, useMemo, useState, useEffect, useRef } from "react";
+import React, {
+  useCallback,
+  useMemo,
+  useState,
+  useEffect,
+  useRef,
+} from "react";
 import "../style/table.css";
 import Button from "@mui/material/Button";
 import {
@@ -481,59 +487,79 @@ const InputTable = ({ onTicketCreated }) => {
   const handleTKClick = (type) => {
     setOpenTKDialog(true);
     setTKType(type);
-  }
+  };
 
   return (
     <div className="input-form-wrapper">
-      {/* Header Section */}
-      {/* Action Buttons */}
       <div className="action-buttons">
-        {/* Group hover button */}
-        <div className="group-button">
-          <Button variant="contained" className="btn-primary btn-md minw-220">
-            Nhập dữ liệu
-          </Button>
+        {window.Permissions.permissions?.find(
+          (i) => i.name === "ag.manage" || i.name === "masothe.manage"
+        ) && (
+          <div className="group-button">
+            <Button variant="contained" className="btn-primary btn-md minw-220">
+              Nhập dữ liệu thẻ
+            </Button>
 
-          <div className="group-menu-dropdown">
-            <Button
-              variant="contained"
-              onClick={() => setOpenAGDialog(true)}
-              className="btn-primary btn-sm btn-block"
-            >
-              Nhập bảng AG
-            </Button>
-            <Button
-              variant="contained"
-              onClick={() => setOpenSoTheDialog(true)}
-              className="btn-primary btn-sm btn-block"
-            >
-              Nhập số thẻ thanh toán
-            </Button>
+            <div className="group-menu-dropdown">
+              {window.Permissions.permissions?.find(
+                (i) => i.name === "ag.manage"
+              ) && (
+                <Button
+                  variant="contained"
+                  onClick={() => setOpenAGDialog(true)}
+                  className="btn-primary btn-sm btn-block"
+                >
+                  Nhập bảng AG
+                </Button>
+              )}
+              {window.Permissions.permissions?.find(
+                (i) => i.name === "masothe.manage"
+              ) && (
+                <Button
+                  variant="contained"
+                  onClick={() => setOpenSoTheDialog(true)}
+                  className="btn-primary btn-sm btn-block"
+                >
+                  Nhập số thẻ thanh toán
+                </Button>
+              )}
+            </div>
           </div>
-        </div>
-
-        <div className="group-button">
-          <Button variant="contained" className="btn-primary btn-md minw-220">
-            Quản lý tài khoản
-          </Button>
-
-          <div className="group-menu-dropdown">
-            <Button
-              variant="contained"
-              onClick={() => handleTKClick(1)}
-              className="btn-primary btn-sm btn-block"
-            >
-              Tài khoản Trip
+        )}
+        {window.Permissions.permissions?.find(
+          (i) =>
+            i.name === "agodaaccount.manage" || i.name === "tripaccount.manage"
+        ) && (
+          <div className="group-button">
+            <Button variant="contained" className="btn-primary btn-md minw-220">
+              Quản lý tài khoản
             </Button>
-            <Button
-              variant="contained"
-              onClick={() => handleTKClick(2)}
-              className="btn-primary btn-sm btn-block"
-            >
-              Tài khoản Angola
-            </Button>
+            <div className="group-menu-dropdown">
+              {window.Permissions.permissions?.find(
+                (i) => i.name === "tripaccount.manage"
+              ) && (
+                <Button
+                  variant="contained"
+                  onClick={() => handleTKClick(1)}
+                  className="btn-primary btn-sm btn-block"
+                >
+                  Tài khoản Trip
+                </Button>
+              )}
+              {window.Permissions.permissions?.find(
+                (i) => i.name === "agodaaccount.manage"
+              ) && (
+                <Button
+                  variant="contained"
+                  onClick={() => handleTKClick(2)}
+                  className="btn-primary btn-sm btn-block"
+                >
+                  Tài khoản Angola
+                </Button>
+              )}
+            </div>
           </div>
-        </div>
+        )}
       </div>
       <div className="card">
         <h2 className="section-title">

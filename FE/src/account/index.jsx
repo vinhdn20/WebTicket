@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import "../style/login.css";
 import { useNavigate } from 'react-router-dom';
 import { isAuthenticated } from '../services/authService';
+import { fetchAndStorePermissions } from '../services/permissionService';
 
 const formWrapperStyle = {
   minHeight: "100vh",
@@ -89,34 +90,13 @@ const AccountCreation = () => {
   const navigate = useNavigate();
   const API_URL = process.env.REACT_APP_API_URL;
 
-  const fetchAndStorePermissions = React.useCallback(async () => {
-    try {
-      const accessToken = localStorage.getItem("accessToken");
-      if (!accessToken) return;
-      const resp = await fetch(`${API_URL}/User/my-permissions`, {
-        method: "GET",
-        credentials: "include",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${accessToken}`,
-        },
-      });
-      if (!resp.ok) throw new Error("Failed to fetch permissions");
-      const perms = await resp.json();
-      window.Permissions = perms;
-    } catch (err) {
-      console.warn("Fetch permissions failed:", err);
-      window.Permissions = [];
-    }
-  }, [API_URL]);
-
   useEffect(() => {
     if (isAuthenticated()) {
       fetchAndStorePermissions().finally(() =>
         navigate("/home", { replace: true })
       );
     }
-  }, [navigate, fetchAndStorePermissions]);
+  }, [navigate]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
