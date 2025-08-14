@@ -109,6 +109,8 @@ using (var serviceScope = app.Services.CreateScope())
 
 app.UseHttpsRedirection();
 app.UseCors("AllowedCorsOrigins");
+// app.UseAuthentication();
+app.UseMiddleware<WebTicket.Common.ActiveUserMiddleware>();
 app.UseAuthorization();
 
 app.MapControllers();
