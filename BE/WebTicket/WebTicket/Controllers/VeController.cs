@@ -64,6 +64,7 @@ namespace Ve.Controllers
                 foreach (var putModel in putModels)
                 {
                     var ticketInfo = putModel.Adapt<ThongTinVe>();
+                    ticketInfo.VeDetail = putModel.VeDetails.Adapt<List<VeDetail>>();
                     ticketInfo = InitUpdateInfo(ticketInfo);
                     var updateTicket = ticketInfo.DeepCopy();
                     _context.ThongTinVes.Update(updateTicket);
