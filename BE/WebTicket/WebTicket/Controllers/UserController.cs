@@ -116,10 +116,10 @@ namespace WebTicket.Controllers
         {
             try
             {
-                if (model.UserId == _httpContext.GetUserId())
-                {
-                    return BadRequest("Không thể cập nhật quyền của chính mình");
-                }
+                //if (model.UserId == _httpContext.GetUserId())
+                //{
+                //    return BadRequest("Không thể cập nhật quyền của chính mình");
+                //}
                 // Get existing user with role
                 var existingUser = await _repository.GetAsync<Users>(u => u.Id == model.UserId);
                 if (existingUser == null)
@@ -179,7 +179,7 @@ namespace WebTicket.Controllers
                 await _repository.UpdateAsync(existingUser);
 
                 // Handle permissions update if provided
-                if (model.PermissionNames != null)
+                if (model.PermissionNames != null && model.UserId != _httpContext.GetUserId())
                 {
                     // Remove existing user permissions
                     var existingPermissions = await _repository.GetAllWithNoTrackingAsync<UserPermission>(
