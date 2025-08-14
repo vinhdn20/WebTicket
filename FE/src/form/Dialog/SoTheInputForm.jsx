@@ -183,7 +183,8 @@ export default function FullScreenSoTheDialog({ open, onClose }) {
         rows.forEach((rowValues, rowOffset) => {
           const targetRow = currentFocusRow + rowOffset;
           if (updatedFormData[targetRow]) {
-            if (rowValues[0] !== undefined) updatedFormData[targetRow].soThe = rowValues[0];
+            if (rowValues[0] !== undefined)
+              updatedFormData[targetRow].soThe = rowValues[0];
           }
         });
         return updatedFormData;
@@ -307,17 +308,17 @@ export default function FullScreenSoTheDialog({ open, onClose }) {
     setOpenDeleteDialog(false);
   }, [handleDeleteSelectedApiRows, handleDeleteSelectedRows, isApi]);
 
-   const importDataFromApi = () => {
-    const input = document.createElement('input');
-    input.type = 'file';
-    input.accept = '.xlsx,.xls,.csv';
+  const importDataFromApi = () => {
+    const input = document.createElement("input");
+    input.type = "file";
+    input.accept = ".xlsx,.xls,.csv";
     input.onchange = async (e) => {
       const file = e.target.files[0];
       if (!file) return;
       const formDataUpload = new FormData();
-      formDataUpload.append('file', file);
+      formDataUpload.append("file", file);
       try {
-        const accessToken = localStorage.getItem("accessToken");
+        let accessToken = getAccessToken();
         const response = await fetch(`${API_URL}/Card/import`, {
           method: "POST",
           headers: {
@@ -325,22 +326,56 @@ export default function FullScreenSoTheDialog({ open, onClose }) {
           },
           body: formDataUpload,
         });
+
+        if (response.status === 401) {
+          const newToken = await refreshAccessToken();
+          if (newToken) {
+            accessToken = newToken;
+            const retryResponse = await fetch(`${API_URL}/Card/import`, {
+              method: "POST",
+              headers: {
+                Authorization: `Bearer ${accessToken}`,
+              },
+              body: formDataUpload,
+            });
+
+            if (!retryResponse.ok) {
+              throw new Error(
+                "Không thể import dữ liệu từ API sau khi refresh token."
+              );
+            }
+
+            const retryResult = await retryResponse.json();
+            handleImportSuccess(retryResult);
+            return;
+          } else {
+            window.location.href = "/";
+            throw new Error("Failed to refresh access token");
+          }
+        }
+
         if (!response.ok) {
           throw new Error("Không thể import dữ liệu từ API.");
         }
+
         const result = await response.json();
-        if (result) {
-          setFormData(result.map(({ tenAG, sdt, mail }) => ({ tenAG, sdt, mail })));
-          openSnackbar(result.message, "success");
-          onClose(null);
-          fetchApiData();
-        } else {
-          openSnackbar("Dữ liệu trả về không hợp lệ!", "error");
-        }
+        handleImportSuccess(result);
       } catch (error) {
         openSnackbar(error.message || "Có lỗi khi import dữ liệu!", "error");
       }
     };
+
+    const handleImportSuccess = (result) => {
+      const { message, fileName, processedCount } = result;
+
+      // Tạo thông báo thành công với thông tin chi tiết
+      const successMessage = `Import thành công file "${fileName}"! Đã xử lý ${processedCount} bản ghi.`;
+      openSnackbar(successMessage, "success");
+
+      // Reload lại table dữ liệu từ API
+      fetchApiData();
+    };
+
     input.click();
   };
 
@@ -387,7 +422,13 @@ export default function FullScreenSoTheDialog({ open, onClose }) {
       {/* Table for Input */}
       <div style={{ padding: "20px" }} onPaste={handlePaste}>
         {/* Top-right actions, same style as AgInputForm */}
-        <div style={{ display: "flex", justifyContent: "flex-end", alignItems: "center" }}>
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "flex-end",
+            alignItems: "center",
+          }}
+        >
           <Button
             autoFocus
             color="inherit"
@@ -424,7 +465,7 @@ export default function FullScreenSoTheDialog({ open, onClose }) {
             boxShadow: "0 2px 8px rgba(0,0,0,0.07)",
             border: "1px solid #e2e8f0",
             margin: "16px 0",
-            maxHeight: 340,
+            maxHeight: "60vh",
             overflowY: "auto",
           }}
         >
@@ -454,9 +495,15 @@ export default function FullScreenSoTheDialog({ open, onClose }) {
                 >
                   <input
                     type="checkbox"
-                    checked={formData.length > 0 && selectedRows.length === formData.length}
-                    indeterminate={selectedRows.length > 0 && selectedRows.length < formData.length}
-                    onChange={e => {
+                    checked={
+                      formData.length > 0 &&
+                      selectedRows.length === formData.length
+                    }
+                    indeterminate={
+                      selectedRows.length > 0 &&
+                      selectedRows.length < formData.length
+                    }
+                    onChange={(e) => {
                       if (e.target.checked) {
                         setSelectedRows(formData.map((_, idx) => idx));
                       } else {
@@ -505,11 +552,18 @@ export default function FullScreenSoTheDialog({ open, onClose }) {
                       onChange={() => handleCheckboxChange(rowIndex)}
                     />
                   </td>
-                  <td style={{ borderBottom: "1px solid #e2e8f0", padding: "10px 8px" }}>
+                  <td
+                    style={{
+                      borderBottom: "1px solid #e2e8f0",
+                      padding: "10px 8px",
+                    }}
+                  >
                     <input
                       type="text"
                       value={row.soThe}
-                      onChange={(e) => handleCellChange(rowIndex, "soThe", e.target.value)}
+                      onChange={(e) =>
+                        handleCellChange(rowIndex, "soThe", e.target.value)
+                      }
                       onFocus={() => setCurrentFocusRow(rowIndex)}
                       style={{
                         width: "100%",
@@ -531,7 +585,9 @@ export default function FullScreenSoTheDialog({ open, onClose }) {
         </div>
 
         {/* Actions under input table (same look & feel) */}
-        <div style={{ display: "flex", gap: 12, marginTop: 16, flexWrap: "wrap" }}>
+        <div
+          style={{ display: "flex", gap: 12, marginTop: 16, flexWrap: "wrap" }}
+        >
           <Button
             onClick={handleAddRow}
             variant="contained"
@@ -562,6 +618,25 @@ export default function FullScreenSoTheDialog({ open, onClose }) {
       <div style={{ padding: "20px" }}>
         <Typography variant="h6">Dữ liệu từ API</Typography>
         <div
+          style={{ display: "flex", gap: 12, marginTop: 16, flexWrap: "wrap" }}
+        >
+          <Button
+            onClick={handleOpenDeleteDialogForAPI}
+            variant="contained"
+            color="secondary"
+            style={{
+              minWidth: 160,
+              borderRadius: 8,
+              fontWeight: 600,
+              opacity: selectedApiRows.length === 0 ? 0.5 : 1,
+              cursor: selectedApiRows.length === 0 ? "not-allowed" : "pointer",
+            }}
+            disabled={selectedApiRows.length === 0}
+          >
+            Xóa Hàng Đã Chọn
+          </Button>
+        </div>
+        <div
           style={{
             width: "100%",
             overflowX: "auto",
@@ -569,7 +644,7 @@ export default function FullScreenSoTheDialog({ open, onClose }) {
             boxShadow: "0 2px 8px rgba(0,0,0,0.07)",
             border: "1px solid #e2e8f0",
             margin: "16px 0",
-            maxHeight: 340,
+            maxHeight: "60vh",
             overflowY: "auto",
           }}
         >
@@ -599,11 +674,17 @@ export default function FullScreenSoTheDialog({ open, onClose }) {
                 >
                   <input
                     type="checkbox"
-                    checked={apiData.length > 0 && selectedApiRows.length === apiData.length}
-                    indeterminate={selectedApiRows.length > 0 && selectedApiRows.length < apiData.length}
-                    onChange={e => {
+                    checked={
+                      apiData.length > 0 &&
+                      selectedApiRows.length === apiData.length
+                    }
+                    indeterminate={
+                      selectedApiRows.length > 0 &&
+                      selectedApiRows.length < apiData.length
+                    }
+                    onChange={(e) => {
                       if (e.target.checked) {
-                        setSelectedApiRows(apiData.map(row => row.id));
+                        setSelectedApiRows(apiData.map((row) => row.id));
                       } else {
                         setSelectedApiRows([]);
                       }
@@ -650,31 +731,18 @@ export default function FullScreenSoTheDialog({ open, onClose }) {
                       onChange={() => handleApiCheckboxChange(row.id)}
                     />
                   </td>
-                  <td style={{ borderBottom: "1px solid #e2e8f0", padding: "10px 8px" }}>
+                  <td
+                    style={{
+                      borderBottom: "1px solid #e2e8f0",
+                      padding: "10px 8px",
+                    }}
+                  >
                     {row.soThe}
                   </td>
                 </tr>
               ))}
             </tbody>
           </table>
-        </div>
-
-        <div style={{ display: "flex", gap: 12, marginTop: 16, flexWrap: "wrap" }}>
-          <Button
-            onClick={handleOpenDeleteDialogForAPI}
-            variant="contained"
-            color="secondary"
-            style={{
-              minWidth: 160,
-              borderRadius: 8,
-              fontWeight: 600,
-              opacity: selectedApiRows.length === 0 ? 0.5 : 1,
-              cursor: selectedApiRows.length === 0 ? "not-allowed" : "pointer",
-            }}
-            disabled={selectedApiRows.length === 0}
-          >
-            Xóa Hàng Đã Chọn
-          </Button>
         </div>
       </div>
       <Dialog

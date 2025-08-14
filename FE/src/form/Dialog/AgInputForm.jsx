@@ -420,7 +420,6 @@ export default function FullScreenAGDialog({ open, onClose }) {
     setOpenDeleteDialog(false);
   }, [handleDeleteSelectedApiRows, handleDeleteSelectedRows, isApi]);
 
-  // Import file lên API AGCustomer/import
   const importDataFromApi = () => {
     const input = document.createElement("input");
     input.type = "file";
@@ -431,7 +430,7 @@ export default function FullScreenAGDialog({ open, onClose }) {
       const formDataUpload = new FormData();
       formDataUpload.append("file", file);
       try {
-        const accessToken = localStorage.getItem("accessToken");
+        let accessToken = getAccessToken();
         const response = await fetch(`${API_URL}/AGCustomer/import`, {
           method: "POST",
           headers: {
@@ -439,24 +438,54 @@ export default function FullScreenAGDialog({ open, onClose }) {
           },
           body: formDataUpload,
         });
+
+        if (response.status === 401) {
+          const newToken = await refreshAccessToken();
+          if (newToken) {
+            accessToken = newToken;
+            const retryResponse = await fetch(`${API_URL}/AGCustomer/import`, {
+              method: "POST",
+              headers: {
+                Authorization: `Bearer ${accessToken}`,
+              },
+              body: formDataUpload,
+            });
+
+            if (!retryResponse.ok) {
+              throw new Error(
+                "Không thể import dữ liệu từ API sau khi refresh token."
+              );
+            }
+
+            const retryResult = await retryResponse.json();
+            handleImportSuccess(retryResult);
+            return;
+          } else {
+            window.location.href = "/";
+            throw new Error("Failed to refresh access token");
+          }
+        }
+
         if (!response.ok) {
           throw new Error("Không thể import dữ liệu từ API.");
         }
+
         const result = await response.json();
-        if (Array.isArray(result)) {
-          setFormData(
-            result.map(({ tenAG, sdt, mail }) => ({ tenAG, sdt, mail }))
-          );
-          openSnackbar("Import dữ liệu thành công!", "success");
-          onClose(null);
-          fetchApiData();
-        } else {
-          openSnackbar("Dữ liệu trả về không hợp lệ!", "error");
-        }
+        handleImportSuccess(result);
       } catch (error) {
         openSnackbar(error.message || "Có lỗi khi import dữ liệu!", "error");
       }
     };
+
+    const handleImportSuccess = (result) => {
+      const { message, fileName, processedCount } = result;
+
+      const successMessage = `Import thành công file "${fileName}"! Đã xử lý ${processedCount} bản ghi.`;
+      openSnackbar(successMessage, "success");
+
+      fetchApiData();
+    };
+
     input.click();
   };
 
@@ -501,32 +530,38 @@ export default function FullScreenAGDialog({ open, onClose }) {
 
       {/* Table for Input */}
       <div style={{ padding: "20px" }} onPaste={handlePaste}>
-        <div style={{display: "flex", justifyContent: "flex-end", alignItems: "center"}}>
-            <Button
-              autoFocus
-              color="inherit"
-              onClick={handleSave}
-              style={{
-                backgroundColor: "#4caf50",
-                color: "#fff",
-                marginRight: "30px",
-              }}
-            >
-              Save
-            </Button>
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "flex-end",
+            alignItems: "center",
+          }}
+        >
+          <Button
+            autoFocus
+            color="inherit"
+            onClick={handleSave}
+            style={{
+              backgroundColor: "#4caf50",
+              color: "#fff",
+              marginRight: "30px",
+            }}
+          >
+            Save
+          </Button>
 
-            <Button
-              autoFocus
-              color="inherit"
-              onClick={() => importDataFromApi()}
-              style={{
-                backgroundColor: "#4caf50",
-                color: "#fff",
-                marginRight: "30px",
-              }}
-            >
-              Import dữ liệu
-            </Button>
+          <Button
+            autoFocus
+            color="inherit"
+            onClick={() => importDataFromApi()}
+            style={{
+              backgroundColor: "#4caf50",
+              color: "#fff",
+              marginRight: "30px",
+            }}
+          >
+            Import dữ liệu
+          </Button>
         </div>
 
         <div
@@ -759,9 +794,7 @@ export default function FullScreenAGDialog({ open, onClose }) {
 
       {/* Table for API Data */}
       <div style={{ padding: "20px" }}>
-        <h2 className="section-title">
-          Bảng dữ liệu AG
-        </h2>
+        <h2 className="section-title">Bảng dữ liệu AG</h2>
         <div
           style={{
             margin: "12px 0 20px 0",
@@ -816,7 +849,7 @@ export default function FullScreenAGDialog({ open, onClose }) {
             boxShadow: "0 2px 8px rgba(0,0,0,0.07)",
             border: "1px solid #e2e8f0",
             margin: "16px 0",
-            maxHeight: 340,
+            maxHeight: "60vh",
             overflowY: "auto",
           }}
         >
