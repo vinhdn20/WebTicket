@@ -380,12 +380,11 @@ const EditableTable = ({
           addOn: row.addOn || "",
           thuAG: parseNumberDot(row.thuAG || ""),
           luuY: row.luuY || "",
-          veHoanKhay: row.veHoanKhay === "True" ? true : false,
+          veHoanKhay: row.veHoanKhay,
           cardId: selectedCard?.id || row.cardId || "",
           veDetails,
         };
       });
-      console.log("ve detail", formattedTickets)
       setSaving(true);
       fetchWithAuth(
         "/Ve/xuatve",
@@ -1068,7 +1067,7 @@ const EditableTable = ({
                                       handleCellEdit(
                                         row.original.id,
                                         "veHoanKhay",
-                                        e.target.value
+                                        e.target.value === "true"
                                       )
                                     }
                                     style={{
@@ -1087,7 +1086,7 @@ const EditableTable = ({
                                     <option value={true}>Có hoàn</option>
                                     <option value={false}>Không hoàn</option>
                                   </select>
-                                ) : row.original.veHoanKhay == "True" ? (
+                                ) : row.original.veHoanKhay ? (
                                   "Có hoàn"
                                 ) : (
                                   "Không hoàn"
@@ -1748,7 +1747,7 @@ const EditableTable = ({
                               <option value={true}>Có hoàn</option>
                               <option value={false}>Không hoàn</option>
                             </select>
-                          ) : row.original.veHoanKhay == "True" ? (
+                          ) : row.original.veHoanKhay ? (
                             "Có hoàn"
                           ) : (
                             "Không hoàn"

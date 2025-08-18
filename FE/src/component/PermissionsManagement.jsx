@@ -712,40 +712,56 @@ const PermissionsManagement = () => {
                     textAlign: "center",
                   }}>
                     <div style={{ display: "flex", gap: 8, justifyContent: "center" }}>
-                      <button
-                        onClick={() => handleEditUser(user)}
-                        style={{
-                          backgroundColor: "rgb(59, 130, 246)",
-                          color: "white",
-                          border: "none",
-                          borderRadius: 6,
-                          padding: "6px 8px",
-                          cursor: "pointer",
+                      {((window.Permissions?.roleType === 2 && user.role?.type !== 1) || window.Permissions?.roleType === 1) && (
+                        <button
+                          onClick={() => handleEditUser(user)}
+                          style={{
+                            backgroundColor: "rgb(59, 130, 246)",
+                            color: "white",
+                            border: "none",
+                            borderRadius: 6,
+                            padding: "6px 8px",
+                            cursor: "pointer",
+                            fontSize: "12px",
+                            fontWeight: "500",
+                            transition: "background-color 0.2s",
+                          }}
+                          title="Chỉnh sửa tài khoản"
+                        >
+                          <Edit style={{ fontSize: 16 }} />
+                        </button>
+                      )}
+                      
+                      {user.role?.type !== 1 && (
+                        <button
+                          onClick={() => handleDeleteUser(user.userId)}
+                          style={{
+                            backgroundColor: "#ef4444",
+                            color: "white",
+                            border: "none",
+                            borderRadius: 6,
+                            padding: "6px 8px",
+                            cursor: "pointer",
+                            fontSize: "12px",
+                            fontWeight: "500",
+                            transition: "background-color 0.2s",
+                          }}
+                          title="Xóa tài khoản"
+                        >
+                          <Delete style={{ fontSize: 16 }} />
+                        </button>
+                      )}
+                      
+                      {(window.permission?.roleType === 2 && user.role?.type === 1) && (
+                        <span style={{
                           fontSize: "12px",
-                          fontWeight: "500",
-                          transition: "background-color 0.2s",
-                        }}
-                        title="Chỉnh sửa tài khoản"
-                      >
-                        <Edit style={{ fontSize: 16 }} />
-                      </button>
-                      <button
-                        onClick={() => handleDeleteUser(user.userId)}
-                        style={{
-                          backgroundColor: "#ef4444",
-                          color: "white",
-                          border: "none",
-                          borderRadius: 6,
+                          color: "#6b7280",
+                          fontStyle: "italic",
                           padding: "6px 8px",
-                          cursor: "pointer",
-                          fontSize: "12px",
-                          fontWeight: "500",
-                          transition: "background-color 0.2s",
-                        }}
-                        title="Xóa tài khoản"
-                      >
-                        <Delete style={{ fontSize: 16 }} />
-                      </button>
+                        }}>
+                          Không có thao tác
+                        </span>
+                      )}
                     </div>
                   </td>
                 </tr>
@@ -755,7 +771,6 @@ const PermissionsManagement = () => {
         </div>
       </div>
 
-      {/* Edit User Dialog */}
       <Dialog
         open={editUserOpen}
         onClose={() => setEditUserOpen(false)}

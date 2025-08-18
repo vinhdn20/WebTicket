@@ -190,6 +190,8 @@ const InputTable = ({ onTicketCreated }) => {
         tenKhachHang: row.tenKhachHang || "",
       }));
 
+      console.log(formHeaderData);
+
       const payload = {
         agCustomerId: agCustomerId,
         ngayXuat: formHeaderData.ngayXuat
@@ -199,7 +201,7 @@ const InputTable = ({ onTicketCreated }) => {
         addOn: JSON.stringify(addOnData),
         thuAG: parseNumberDot(formHeaderData.thuAG || ""),
         luuY: formHeaderData.luuY || "",
-        veHoanKhay: formHeaderData.veHoanKhay === "True" ? true : false,
+        veHoanKhay: formHeaderData.veHoanKhay,
         cardId,
         veDetails,
       };
@@ -622,9 +624,9 @@ const InputTable = ({ onTicketCreated }) => {
           <div className="form-field">
             <label className="form-label">✅ Vé có hoàn hay không</label>
             <select
-              value={formHeaderData.veHoanKhay || true}
+              value={formHeaderData.veHoanKhay || false}
               onChange={(e) =>
-                handleHeaderInputChange("veHoanKhay", e.target.value)
+                handleHeaderInputChange("veHoanKhay", e.target.value === "true")
               }
               className="modern-input modern-select"
             >
@@ -830,12 +832,12 @@ const InputTable = ({ onTicketCreated }) => {
                         </select>
                       ) : column.accessor === "veHoanKhay" ? (
                         <select
-                          value={row.veHoanKhay || true}
+                          value={row.veHoanKhay || false}
                           onChange={(e) =>
                             handleCellEdit(
                               rowIndex,
                               "veHoanKhay",
-                              e.target.value
+                              e.target.value === "true"
                             )
                           }
                           onFocus={() =>
