@@ -179,42 +179,38 @@ namespace WebTicket.Controllers
                 await _repository.UpdateAsync(existingUser);
 
                 // Handle permissions update if provided
-                if (model.PermissionNames != null && model.UserId != _httpContext.GetUserId())
-                {
-                    // Remove existing user permissions
-                    var existingPermissions = await _repository.GetAllWithNoTrackingAsync<UserPermission>(
+                var existingPermissions = await _repository.GetAllWithNoTrackingAsync<UserPermission>(
                         up => up.UserId == model.UserId).ToListAsync();
-                    if (existingPermissions.Any())
+                if (existingPermissions.Any())
+                {
+                    await _repository.DeleteRangeAsync(existingPermissions);
+                }
+
+                // Add new permissions if any
+                if (model.PermissionNames.Any())
+                {
+                    var validPermissions = await _repository.GetAllWithNoTrackingAsync<Permission>(
+                        p => model.PermissionNames.Contains(p.Name)).ToListAsync();
+
+                    if (validPermissions.Count != model.PermissionNames.Count)
                     {
-                        await _repository.DeleteRangeAsync(existingPermissions);
+                        var foundNames = validPermissions.Select(p => p.Name).ToList();
+                        var invalidNames = model.PermissionNames.Except(foundNames).ToList();
+                        return BadRequest($"Invalid permission names: {string.Join(", ", invalidNames)}");
                     }
 
-                    // Add new permissions if any
-                    if (model.PermissionNames.Any())
+                    var newUserPermissions = validPermissions.Select(permission =>
                     {
-                        var validPermissions = await _repository.GetAllWithNoTrackingAsync<Permission>(
-                            p => model.PermissionNames.Contains(p.Name)).ToListAsync();
-
-                        if (validPermissions.Count != model.PermissionNames.Count)
+                        var userPermission = new UserPermission
                         {
-                            var foundNames = validPermissions.Select(p => p.Name).ToList();
-                            var invalidNames = model.PermissionNames.Except(foundNames).ToList();
-                            return BadRequest($"Invalid permission names: {string.Join(", ", invalidNames)}");
-                        }
+                            UserId = model.UserId,
+                            PermissionId = permission.Id
+                        };
+                        InitCreationInfo(userPermission);
+                        return userPermission;
+                    }).ToList();
 
-                        var newUserPermissions = validPermissions.Select(permission =>
-                        {
-                            var userPermission = new UserPermission
-                            {
-                                UserId = model.UserId,
-                                PermissionId = permission.Id
-                            };
-                            InitCreationInfo(userPermission);
-                            return userPermission;
-                        }).ToList();
-
-                        await _repository.AddRangeAsync(newUserPermissions);
-                    }
+                    await _repository.AddRangeAsync(newUserPermissions);
                 }
 
                 await _repository.SaveChangesAsync();

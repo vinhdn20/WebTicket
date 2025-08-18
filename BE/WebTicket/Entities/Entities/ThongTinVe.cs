@@ -9,7 +9,7 @@
         public string AddOn { get; set; }
         public string ThuAG { get; set; }
         public string LuuY { get; set; }
-        public string VeHoanKhay { get; set; }
+        public bool VeHoanKhay { get; set; }
         
         public Guid CardId { get; set; }
         public virtual Card Card { get; set; }

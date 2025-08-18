@@ -319,9 +319,8 @@ namespace Repositories.Migrations
                         .IsRequired()
                         .HasColumnType("text");
 
-                    b.Property<string>("VeHoanKhay")
-                        .IsRequired()
-                        .HasColumnType("text");
+                    b.Property<bool>("VeHoanKhay")
+                        .HasColumnType("boolean");
 
                     b.HasKey("Id");
 
