@@ -29,7 +29,7 @@ namespace WebTicket.Models
 
         public Guid CardId { get; set; }
 
-        public List<AddVeDetail> VeDetails { get; set; } = new List<AddVeDetail>();
+        public List<UpdateVeDetail> VeDetails { get; set; } = new List<UpdateVeDetail>();
     }
 
     public class AgCustomerModel
@@ -53,5 +53,17 @@ namespace WebTicket.Models
         public string ThamChieuHang { get; set; }
         public string MaDatCho { get; set; }
         public string TenKhachHang { get; set; }
-    } 
+    }
+
+    public class UpdateVeDetail
+    {
+        public Guid Id { get; set; }
+        public string ChangBay { get; set; }
+        public DateTime NgayGioBay { get; set; }
+        public string HangBay { get; set; }
+        public string SoHieuChuyenBay { get; set; }
+        public string ThamChieuHang { get; set; }
+        public string MaDatCho { get; set; }
+        public string TenKhachHang { get; set; }
+    }
 }

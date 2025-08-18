@@ -368,6 +368,7 @@ const EditableTable = ({
           thamChieuHang: detail.thamChieuHang || "",
           maDatCho: detail.maDatCho || "",
           tenKhachHang: detail.tenKhachHang || "",
+          id: detail.id,
         }));
         return {
           id: row.id,
@@ -384,6 +385,7 @@ const EditableTable = ({
           veDetails,
         };
       });
+      console.log("ve detail", formattedTickets)
       setSaving(true);
       fetchWithAuth(
         "/Ve/xuatve",
