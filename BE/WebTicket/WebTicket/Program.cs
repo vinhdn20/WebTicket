@@ -48,7 +48,14 @@ builder.Services.AddAuthorization();
 builder.Services.AddDbContext<DbContext, WebTicketDbContext>(options =>
     options
     .UseLazyLoadingProxies()
-    .UseNpgsql(builder.Configuration.GetConnectionString("Core")));
+    .UseNpgsql(builder.Configuration.GetConnectionString("Core"), npgsqlOptions =>
+    {
+        npgsqlOptions.CommandTimeout(30);
+        npgsqlOptions.EnableRetryOnFailure(3);
+    })
+    .EnableServiceProviderCaching()
+    .EnableSensitiveDataLogging(false)
+    );
 
 builder.Services.AddScoped<IDBRepository, DBRepository>();
 builder.Services.AddScoped<IUserService, UserService>();
