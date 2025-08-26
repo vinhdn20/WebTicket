@@ -99,7 +99,7 @@ services:
       resources:
         limits:
           cpus: '${POSTGRES_CPU_LIMIT:-0.5}'
-          memory: '${POSTGRES_MEMORY_LIMIT:-512m}'
+          memory: '${POSTGRES_MEMORY_LIMIT:-1g}'
         reservations:
           cpus: '0.1'
           memory: 128m
