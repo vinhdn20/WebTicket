@@ -397,6 +397,19 @@ namespace WebTicket.Controllers
                     // Get role info
                     Role? userRole = await _repository.GetAsync<Role>(r => r.Id == user.RoleId);
 
+                    // Get created by user info
+                    Users? createdByUser = null;
+                    if (user.CreatedById != Guid.Empty)
+                    {
+                        createdByUser = await _repository.GetAsync<Users>(u => u.Id == user.CreatedById);
+                    }
+
+                    // Get modified by user info
+                    Users? modifiedByUser = null;
+                    if (user.ModifiedById != Guid.Empty)
+                    {
+                        modifiedByUser = await _repository.GetAsync<Users>(u => u.Id == user.ModifiedById);
+                    }
 
                     var userResult = new
                     {
@@ -422,8 +435,16 @@ namespace WebTicket.Controllers
                             resourceDisplayName = PermissionHelper.GetResourceDisplayName(p.Resource),
                             actionDisplayName = PermissionHelper.GetActionDisplayName(p.Action)
                         }).ToList(),
-                        createdById = user.CreatedById,
-                        modifiedById = user.ModifiedById,
+                        createdBy = createdByUser != null ? new
+                        {
+                            userId = createdByUser.Id,
+                            email = createdByUser.Email
+                        } : null,
+                        modifiedBy = modifiedByUser != null ? new
+                        {
+                            userId = modifiedByUser.Id,
+                            email = modifiedByUser.Email
+                        } : null,
                         createdTime = user.CreatedTime,
                         modifiedTime = user.ModifiedTime,
                         totalPermissions = uniquePermissions.Count
