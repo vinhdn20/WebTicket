@@ -403,7 +403,6 @@ namespace WebTicket.Controllers
                         userId = user.Id,
                         email = user.Email,
                         isActive = user.IsActive,
-                        createdTime = user.CreatedTime,
                         lastLoginAt = user.LastLoginAt,
                         role = userRole != null ? new
                         {
@@ -423,6 +422,10 @@ namespace WebTicket.Controllers
                             resourceDisplayName = PermissionHelper.GetResourceDisplayName(p.Resource),
                             actionDisplayName = PermissionHelper.GetActionDisplayName(p.Action)
                         }).ToList(),
+                        createdById = user.CreatedById,
+                        modifiedById = user.ModifiedById,
+                        createdTime = user.CreatedTime,
+                        modifiedTime = user.ModifiedTime,
                         totalPermissions = uniquePermissions.Count
                     };
 
@@ -501,6 +504,46 @@ namespace WebTicket.Controllers
             SetRefreshTokenCookie(tokens.refreshToken);
 
             return Ok(new { accessToken = tokens.token });
+        }
+
+        [HttpGet("current")]
+        [Authorize]
+        public async Task<IActionResult> GetCurrentUser()
+        {
+            try
+            {
+                var currentUserId = _httpContext.GetUserId();
+                if (currentUserId == Guid.Empty)
+                {
+                    return Unauthorized("User not found in token.");
+                }
+
+                var user = await _repository.GetAsync<Users>(u => u.Id == currentUserId && u.IsActive);
+                if (user == null)
+                {
+                    return NotFound("User not found or inactive.");
+                }
+
+                var result = new
+                {
+                    userId = user.Id,
+                    email = user.Email,
+                    isActive = user.IsActive,
+                    roleName = user.Role?.Type.GetDescription(),
+                    roleType = user.Role?.Type,
+                    createdById = user.CreatedById,
+                    modifiedById = user.ModifiedById,
+                    createdTime = user.CreatedTime,
+                    modifiedTime = user.ModifiedTime,
+                    lastLoginAt = user.LastLoginAt
+                };
+
+                return Ok(result);
+            }
+            catch (Exception e)
+            {
+                return BadRequest(e.Message);
+            }
         }
 
         [HttpGet("test")]
