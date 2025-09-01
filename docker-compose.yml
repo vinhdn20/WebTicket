@@ -55,7 +55,7 @@ services:
   # PostgreSQL Database
   postgres:
     container_name: webticket-postgres
-    image: postgres:15-alpine
+    image: postgres:15
     environment:
       - POSTGRES_USER=postgres
       - POSTGRES_PASSWORD=admin
