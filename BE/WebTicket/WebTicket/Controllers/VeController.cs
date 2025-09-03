@@ -61,14 +61,71 @@ namespace Ve.Controllers
         {
             try
             {
+                var currentUserId = _httpContext.GetUserId();
+                // Get current user with role information
+                var currentUser = await _repository.GetAllWithAsync<Users>(u => u.Id == currentUserId);
+                if (currentUser == null)
+                {
+                    return Unauthorized("User not found.");
+                }
+                
+                var userWithRole = await _context.Users
+                    .Include(u => u.Role)
+                    .FirstOrDefaultAsync(u => u.Id == currentUserId);
+                
+                if (userWithRole?.Role == null)
+                {
+                    return Unauthorized("User role not found.");
+                }
+                
+                bool isAdmin = userWithRole.Role.Type == RoleType.Admin;
+                
                 foreach (var putModel in putModels)
                 {
-                    var ticketInfo = putModel.Adapt<ThongTinVe>();
-                    ticketInfo.VeDetail = putModel.VeDetails.Adapt<List<VeDetail>>();
-                    ticketInfo = InitUpdateInfo(ticketInfo);
-                    var updateTicket = ticketInfo.DeepCopy();
-                    _context.ThongTinVes.Update(updateTicket);
+                    // Get existing ticket to check ownership and determine allowed updates
+                    var existingTicket = await _context.ThongTinVes
+                        .FirstOrDefaultAsync(t => t.Id == putModel.Id);
+                    
+                    if (existingTicket == null)
+                    {
+                        return BadRequest($"Ticket with ID {putModel.Id} not found.");
+                    }
+                    
+                    // Check permissions based on user role and ownership
+                    bool canUpdateAll = isAdmin || existingTicket.CreatedById == currentUserId;
+                    
+                    if (!canUpdateAll)
+                    {
+                        // Staff can only update their own records OR everyone can update AddOn
+                        // For non-owners, only allow AddOn updates
+                        var ticketInfo = new ThongTinVe
+                        {
+                            Id = putModel.Id,
+                            AddOn = putModel.AddOn, // Only update AddOn field
+                            AGCustomerId = existingTicket.AGCustomerId,
+                            NgayXuat = existingTicket.NgayXuat,
+                            GiaXuat = existingTicket.GiaXuat,
+                            ThuAG = existingTicket.ThuAG,
+                            LuuY = existingTicket.LuuY,
+                            VeHoanKhay = existingTicket.VeHoanKhay,
+                            CardId = existingTicket.CardId,
+                            CreatedById = existingTicket.CreatedById,
+                            CreatedTime = existingTicket.CreatedTime
+                        };
+                        ticketInfo = InitUpdateInfo(ticketInfo);
+                        _context.ThongTinVes.Update(ticketInfo);
+                    }
+                    else
+                    {
+                        // Admin or owner can update all fields
+                        var ticketInfo = putModel.Adapt<ThongTinVe>();
+                        ticketInfo.VeDetail = putModel.VeDetails.Adapt<List<VeDetail>>();
+                        ticketInfo = InitUpdateInfo(ticketInfo);
+                        var updateTicket = ticketInfo.DeepCopy();
+                        _context.ThongTinVes.Update(updateTicket);
+                    }
                 }
+                
                 await _repository.SaveChangesAsync();
                 return Ok(putModels);
             }
