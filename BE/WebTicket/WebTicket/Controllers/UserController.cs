@@ -69,6 +69,7 @@ namespace WebTicket.Controllers
                 var newUser = new Users
                 {
                     Email = model.Email,
+                    Username = model.Username,
                     Password = BCrypt.Net.BCrypt.HashPassword(model.Password),
                     IsActive = true,
                     RoleId = staffRole.Id
@@ -171,7 +172,7 @@ namespace WebTicket.Controllers
                 {
                     existingUser.IsActive = model.IsActive.Value;
                 }
-
+                existingUser.Username = model.Username;
                 // Set modification info
                 InitUpdateInfo(existingUser);
 
@@ -332,6 +333,7 @@ namespace WebTicket.Controllers
                 {
                     userId = currentUserId,
                     userEmail = user.Email,
+                    userName = user.Username,
                     roleName = user.Role?.Type.GetDescription(),
                     roleType = user.Role?.Type,
                     permissions = uniquePermissions.Select(p => new
@@ -415,6 +417,7 @@ namespace WebTicket.Controllers
                     {
                         userId = user.Id,
                         email = user.Email,
+                        userName = user.Username,
                         isActive = user.IsActive,
                         lastLoginAt = user.LastLoginAt,
                         role = userRole != null ? new
@@ -549,6 +552,7 @@ namespace WebTicket.Controllers
                 {
                     userId = user.Id,
                     email = user.Email,
+                    userName = user.Username,
                     isActive = user.IsActive,
                     roleName = user.Role?.Type.GetDescription(),
                     roleType = user.Role?.Type,
