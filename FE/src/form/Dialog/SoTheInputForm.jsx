@@ -46,6 +46,10 @@ export default function FullScreenSoTheDialog({ open, onClose }) {
     const cols = 1;
     const matrix = generateMatrixValues(rows, cols);
     return Array.from({ length: rows }, (_, rowIndex) => ({
+      dongThe: "",
+      soODuoi: "",
+      bank: "",
+      tenTk: "",
       soThe: "",
       matrixValue: matrix[rowIndex],
     }));
@@ -149,6 +153,10 @@ export default function FullScreenSoTheDialog({ open, onClose }) {
     } else {
       setFormData([
         {
+          dongThe: "",
+          soODuoi: "",
+          bank: "",
+          tenTk: "",
           soThe: "",
           matrixValue: [],
         },
@@ -158,35 +166,85 @@ export default function FullScreenSoTheDialog({ open, onClose }) {
     }
   }, [open, fetchApiData]);
 
+  // Helper function to generate soThe from components
+  const generateSoThe = (dongThe, soODuoi, bank, tenTk) => {
+    if (!dongThe && !soODuoi && !bank && !tenTk) return "";
+    return `${dongThe || ""} - ${soODuoi || ""} - ${bank || ""} - ${tenTk || ""}`.replace(/\s*-\s*$/, "").replace(/^\s*-\s*/, "");
+  };
+
   const handlePaste = useCallback(
     (e) => {
       e.preventDefault();
       const clipboardData = e.clipboardData.getData("text");
       const rows = clipboardData
         .split("\n")
-        .map((row) => row.split("\t"))
-        .filter((row) => row.some((cell) => cell.trim() !== ""));
+        .map((row) => row.trim())
+        .filter((row) => row !== "");
+      
       if (currentFocusRow === null) return;
+      
       setFormData((prevFormData) => {
         let updatedFormData = [...prevFormData];
         const requiredRows = currentFocusRow + rows.length;
+        
         if (requiredRows > updatedFormData.length) {
           const cols = 1;
           const matrix = generateMatrixValues(requiredRows, cols, 11);
           for (let i = updatedFormData.length; i < requiredRows; i++) {
             updatedFormData.push({
+              dongThe: "",
+              soODuoi: "",
+              bank: "",
+              tenTk: "",
               soThe: "",
               matrixValue: matrix[i],
             });
           }
         }
-        rows.forEach((rowValues, rowOffset) => {
+        
+        rows.forEach((rowValue, rowOffset) => {
           const targetRow = currentFocusRow + rowOffset;
           if (updatedFormData[targetRow]) {
-            if (rowValues[0] !== undefined)
-              updatedFormData[targetRow].soThe = rowValues[0];
+            // Check if the pasted value contains the payment card format (contains " - ")
+            if (rowValue.includes(" - ")) {
+              // Parse the payment card format: "MTER - 6200 - VTIN - NGO XUAN BAO"
+              const parts = rowValue.split(" - ").map(part => part.trim());
+              
+              if (parts.length >= 4) {
+                updatedFormData[targetRow].dongThe = parts[0] || "";
+                updatedFormData[targetRow].soODuoi = parts[1] || "";
+                updatedFormData[targetRow].bank = parts[2] || "";
+                updatedFormData[targetRow].tenTk = parts[3] || "";
+                updatedFormData[targetRow].soThe = rowValue;
+              } else {
+                // If format is not complete, just put the value in soThe
+                updatedFormData[targetRow].soThe = rowValue;
+              }
+            } else {
+              // If it doesn't contain the format, check if it's tab-separated data
+              const tabParts = rowValue.split("\t");
+              if (tabParts.length > 1) {
+                // Handle tab-separated data
+                if (tabParts[0] !== undefined)
+                  updatedFormData[targetRow].dongThe = tabParts[0];
+                if (tabParts[1] !== undefined)
+                  updatedFormData[targetRow].soODuoi = tabParts[1];
+                if (tabParts[2] !== undefined)
+                  updatedFormData[targetRow].bank = tabParts[2];
+                if (tabParts[3] !== undefined)
+                  updatedFormData[targetRow].tenTk = tabParts[3];
+                
+                // Auto-generate soThe
+                const { dongThe, soODuoi, bank, tenTk } = updatedFormData[targetRow];
+                updatedFormData[targetRow].soThe = generateSoThe(dongThe, soODuoi, bank, tenTk);
+              } else {
+                // Single value, put it in the first available field or soThe
+                updatedFormData[targetRow].soThe = rowValue;
+              }
+            }
           }
         });
+        
         return updatedFormData;
       });
     },
@@ -195,9 +253,22 @@ export default function FullScreenSoTheDialog({ open, onClose }) {
 
   const handleCellChange = useCallback((rowIndex, field, value) => {
     setFormData((prev) =>
-      prev.map((row, idx) =>
-        idx === rowIndex ? { ...row, [field]: value } : row
-      )
+      prev.map((row, idx) => {
+        if (idx === rowIndex) {
+          const updatedRow = { ...row, [field]: value };
+          // Auto-generate soThe when any component field changes
+          if (['dongThe', 'soODuoi', 'bank', 'tenTk'].includes(field)) {
+            updatedRow.soThe = generateSoThe(
+              updatedRow.dongThe,
+              updatedRow.soODuoi,
+              updatedRow.bank,
+              updatedRow.tenTk
+            );
+          }
+          return updatedRow;
+        }
+        return row;
+      })
     );
   }, []);
 
@@ -209,6 +280,10 @@ export default function FullScreenSoTheDialog({ open, onClose }) {
     setFormData((prev) => [
       ...prev,
       {
+        dongThe: "",
+        soODuoi: "",
+        bank: "",
+        tenTk: "",
         soThe: "",
         matrixValue: matrix[currentRows],
       },
@@ -262,9 +337,9 @@ export default function FullScreenSoTheDialog({ open, onClose }) {
 
   const handleSave = useCallback(async () => {
     for (const row of formData) {
-      if (!row.soThe) {
+      if (!row.dongThe || !row.soODuoi || !row.bank || !row.tenTk) {
         openSnackbar(
-          "Vui lòng điền đầy đủ số thẻ thanh toán cho tất cả các hàng.",
+          "Vui lòng điền đầy đủ thông tin thẻ cho tất cả các hàng.",
           "warning"
         );
         return;
@@ -368,11 +443,9 @@ export default function FullScreenSoTheDialog({ open, onClose }) {
     const handleImportSuccess = (result) => {
       const { message, fileName, processedCount } = result;
 
-      // Tạo thông báo thành công với thông tin chi tiết
       const successMessage = `Import thành công file "${fileName}"! Đã xử lý ${processedCount} bản ghi.`;
       openSnackbar(successMessage, "success");
 
-      // Reload lại table dữ liệu từ API
       fetchApiData();
     };
 
@@ -471,7 +544,7 @@ export default function FullScreenSoTheDialog({ open, onClose }) {
         >
           <table
             style={{
-              minWidth: 600,
+              minWidth: 800,
               width: "100%",
               borderCollapse: "separate",
               borderSpacing: 0,
@@ -521,9 +594,62 @@ export default function FullScreenSoTheDialog({ open, onClose }) {
                     borderBottom: "2px solid #e2e8f0",
                     padding: "12px 8px",
                     background: "#f8fafc",
+                    minWidth: "120px",
                   }}
                 >
-                  Số thẻ thanh toán
+                  Dòng thẻ
+                </th>
+                <th
+                  style={{
+                    position: "sticky",
+                    top: 0,
+                    zIndex: 4,
+                    borderBottom: "2px solid #e2e8f0",
+                    padding: "12px 8px",
+                    background: "#f8fafc",
+                    minWidth: "120px",
+                  }}
+                >
+                  4 số đuôi
+                </th>
+                <th
+                  style={{
+                    position: "sticky",
+                    top: 0,
+                    zIndex: 4,
+                    borderBottom: "2px solid #e2e8f0",
+                    padding: "12px 8px",
+                    background: "#f8fafc",
+                    minWidth: "100px",
+                  }}
+                >
+                  Bank
+                </th>
+                <th
+                  style={{
+                    position: "sticky",
+                    top: 0,
+                    zIndex: 4,
+                    borderBottom: "2px solid #e2e8f0",
+                    padding: "12px 8px",
+                    background: "#f8fafc",
+                    minWidth: "200px",
+                  }}
+                >
+                  Tên TK
+                </th>
+                <th
+                  style={{
+                    position: "sticky",
+                    top: 0,
+                    zIndex: 4,
+                    borderBottom: "2px solid #e2e8f0",
+                    padding: "12px 8px",
+                    background: "#f8fafc",
+                    minWidth: "300px",
+                  }}
+                >
+                  Mã thẻ thanh toán
                 </th>
               </tr>
             </thead>
@@ -560,9 +686,9 @@ export default function FullScreenSoTheDialog({ open, onClose }) {
                   >
                     <input
                       type="text"
-                      value={row.soThe}
+                      value={row.dongThe}
                       onChange={(e) =>
-                        handleCellChange(rowIndex, "soThe", e.target.value)
+                        handleCellChange(rowIndex, "dongThe", e.target.value)
                       }
                       onFocus={() => setCurrentFocusRow(rowIndex)}
                       style={{
@@ -575,7 +701,101 @@ export default function FullScreenSoTheDialog({ open, onClose }) {
                         fontSize: 15,
                         transition: "border-color 0.2s",
                       }}
-                      placeholder="Nhập số thẻ thanh toán"
+                    />
+                  </td>
+                  <td
+                    style={{
+                      borderBottom: "1px solid #e2e8f0",
+                      padding: "10px 8px",
+                    }}
+                  >
+                    <input
+                      type="text"
+                      value={row.soODuoi}
+                      onChange={(e) =>
+                        handleCellChange(rowIndex, "soODuoi", e.target.value)
+                      }
+                      onFocus={() => setCurrentFocusRow(rowIndex)}
+                      style={{
+                        width: "100%",
+                        border: "1px solid #e2e8f0",
+                        outline: "none",
+                        padding: "6px 8px",
+                        borderRadius: 6,
+                        background: "#f9fafb",
+                        fontSize: 15,
+                        transition: "border-color 0.2s",
+                      }}
+                    />
+                  </td>
+                  <td
+                    style={{
+                      borderBottom: "1px solid #e2e8f0",
+                      padding: "10px 8px",
+                    }}
+                  >
+                    <input
+                      type="text"
+                      value={row.bank}
+                      onChange={(e) =>
+                        handleCellChange(rowIndex, "bank", e.target.value)
+                      }
+                      onFocus={() => setCurrentFocusRow(rowIndex)}
+                      style={{
+                        width: "100%",
+                        border: "1px solid #e2e8f0",
+                        outline: "none",
+                        padding: "6px 8px",
+                        borderRadius: 6,
+                        background: "#f9fafb",
+                        fontSize: 15,
+                        transition: "border-color 0.2s",
+                      }}
+                    />
+                  </td>
+                  <td
+                    style={{
+                      borderBottom: "1px solid #e2e8f0",
+                      padding: "10px 8px",
+                    }}
+                  >
+                    <input
+                      type="text"
+                      value={row.tenTk}
+                      onChange={(e) =>
+                        handleCellChange(rowIndex, "tenTk", e.target.value)
+                      }
+                      onFocus={() => setCurrentFocusRow(rowIndex)}
+                      style={{
+                        width: "100%",
+                        border: "1px solid #e2e8f0",
+                        outline: "none",
+                        padding: "6px 8px",
+                        borderRadius: 6,
+                        background: "#f9fafb",
+                        fontSize: 15,
+                        transition: "border-color 0.2s",
+                      }}
+                    />
+                  </td>
+                  <td
+                    style={{
+                      borderBottom: "1px solid #e2e8f0",
+                      padding: "10px 8px",
+                    }}
+                  >
+                    <input
+                      type="text"
+                      value={row.soThe}
+                      style={{
+                        width: "100%",
+                        border: "1px solid #e2e8f0",
+                        outline: "none",
+                        padding: "6px 8px",
+                        borderRadius: 6,
+                        fontSize: 15,
+                      }}
+                      placeholder="Tự động tạo từ các trường trên"
                     />
                   </td>
                 </tr>
@@ -702,7 +922,7 @@ export default function FullScreenSoTheDialog({ open, onClose }) {
                     background: "#f8fafc",
                   }}
                 >
-                  Số thẻ thanh toán
+                  Mã thẻ thanh toán
                 </th>
               </tr>
             </thead>

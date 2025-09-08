@@ -102,7 +102,7 @@ const PermissionsManagement = () => {
         method: "GET",
         headers: { "Content-Type": "application/json" },
       }, openSnackbar);
-      
+
       // Handle the new API response structure
       if (result && result.users) {
         setUsers(result.users);
@@ -129,7 +129,7 @@ const PermissionsManagement = () => {
 
     try {
       const selectedPermissionNames = Object.keys(selectedPermissions).filter(name => selectedPermissions[name]);
-      
+
       const createPayload = {
         ...newUser,
         permissionNames: selectedPermissionNames
@@ -197,7 +197,7 @@ const PermissionsManagement = () => {
 
     try {
       const selectedPermissionNames = Object.keys(userPermissions).filter(name => userPermissions[name]);
-      
+
       const updatePayload = {
         userId: editingUser.userId,
         email: editUserData.email,
@@ -284,8 +284,8 @@ const PermissionsManagement = () => {
 
   return (
     <Box sx={{ p: 3 }}>
-      <Typography 
-        variant="h4" 
+      <Typography
+        variant="h4"
         gutterBottom
         className="section-title"
         style={{
@@ -297,7 +297,7 @@ const PermissionsManagement = () => {
       >
         Quản lý tài khoản và phân quyền
       </Typography>
-      
+
       {/* Create User Section */}
       <div style={{ padding: "20px" }}>
         <div
@@ -311,8 +311,8 @@ const PermissionsManagement = () => {
           }}
         >
           <div style={{ padding: "20px" }}>
-            <Typography 
-              variant="h6" 
+            <Typography
+              variant="h6"
               gutterBottom
               style={{
                 margin: "0 0 16px 0",
@@ -323,7 +323,7 @@ const PermissionsManagement = () => {
             >
               Tạo tài khoản mới
             </Typography>
-            
+
             <div style={{ margin: "16px 0" }}>
               <Grid container spacing={2}>
                 <Grid item xs={12} md={6}>
@@ -332,6 +332,25 @@ const PermissionsManagement = () => {
                     value={newUser.email}
                     onChange={(e) => setNewUser(prev => ({ ...prev, email: e.target.value }))}
                     placeholder="Nhập email"
+                    style={{
+                      width: "100%",
+                      padding: "10px 14px",
+                      border: "1.5px solid #e2e8f0",
+                      borderRadius: 8,
+                      fontSize: 15,
+                      background: "#f9fafb",
+                      outline: "none",
+                      boxShadow: "0 1px 2px rgba(0,0,0,0.04)",
+                      transition: "border-color 0.2s",
+                    }}
+                  />
+                </Grid>
+                <Grid item xs={12} md={6}>
+                  <input
+                    type="text"
+                    value={newUser.userName}
+                    onChange={(e) => setNewUser(prev => ({ ...prev, userName: e.target.value }))}
+                    placeholder="Nhập tên tài khoản"
                     style={{
                       width: "100%",
                       padding: "10px 14px",
@@ -357,7 +376,7 @@ const PermissionsManagement = () => {
                         padding: "10px 14px",
                         paddingRight: "45px",
                         border: "1.5px " +
-                        "solid #e2e8f0",
+                          "solid #e2e8f0",
                         borderRadius: 8,
                         fontSize: 15,
                         background: "#f9fafb",
@@ -366,7 +385,7 @@ const PermissionsManagement = () => {
                         transition: "border-color 0.2s",
                       }}
                     />
-                    <IconButton 
+                    <IconButton
                       onClick={() => setShowPassword(!showPassword)}
                       style={{
                         position: "absolute",
@@ -383,8 +402,8 @@ const PermissionsManagement = () => {
               </Grid>
             </div>
 
-            <Typography 
-              variant="h6" 
+            <Typography
+              variant="h6"
               gutterBottom
               style={{
                 margin: "24px 0 12px 0",
@@ -395,7 +414,7 @@ const PermissionsManagement = () => {
             >
               Chọn quyền hạn
             </Typography>
-            
+
             <div
               style={{
                 borderRadius: 8,
@@ -405,10 +424,10 @@ const PermissionsManagement = () => {
                 margin: "12px 0",
               }}
             >
-              <div style={{ 
-                display: "grid", 
-                gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", 
-                gap: "12px" 
+              <div style={{
+                display: "grid",
+                gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))",
+                gap: "12px"
               }}>
                 {permissions.map((permission) => (
                   <label
@@ -493,8 +512,8 @@ const PermissionsManagement = () => {
       {/* Users Table */}
       <div style={{ padding: "20px" }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "16px" }}>
-          <Typography 
-            variant="h6" 
+          <Typography
+            variant="h6"
             gutterBottom
             className="section-title"
             style={{
@@ -518,7 +537,7 @@ const PermissionsManagement = () => {
             Tổng số: {totalUsers} tài khoản
           </div>
         </div>
-        
+
         <div style={{ display: "flex", gap: 12, marginTop: 16, flexWrap: "wrap" }}>
           <Button
             onClick={fetchUsers}
@@ -574,6 +593,19 @@ const PermissionsManagement = () => {
                   color: "#374151",
                 }}>
                   Email
+                </th>
+                <th style={{
+                  position: "sticky",
+                  top: 0,
+                  zIndex: 4,
+                  borderBottom: "2px solid #e2e8f0",
+                  padding: "12px 20px",
+                  background: "#f8fafc",
+                  textAlign: "left",
+                  fontWeight: "600",
+                  color: "#374151",
+                }}>
+                  Tên tài khoản
                 </th>
                 <th style={{
                   position: "sticky",
@@ -662,6 +694,13 @@ const PermissionsManagement = () => {
                     padding: "12px 20px",
                     fontSize: "14px",
                   }}>
+                    {user.userName || 'N/A'}
+                  </td>
+                  <td style={{
+                    borderBottom: "1px solid #e2e8f0",
+                    padding: "12px 20px",
+                    fontSize: "14px",
+                  }}>
                     <span style={{
                       backgroundColor: user.role?.type === 1 ? "#fef3c7" : "#e0f2fe",
                       color: user.role?.type === 1 ? "#92400e" : "#0369a1",
@@ -731,7 +770,7 @@ const PermissionsManagement = () => {
                           <Edit style={{ fontSize: 16 }} />
                         </button>
                       )}
-                      
+
                       {user.role?.type !== 1 && (
                         <button
                           onClick={() => handleDeleteUser(user.userId)}
@@ -751,7 +790,7 @@ const PermissionsManagement = () => {
                           <Delete style={{ fontSize: 16 }} />
                         </button>
                       )}
-                      
+
                       {(window.permission?.roleType === 2 && user.role?.type === 1) && (
                         <span style={{
                           fontSize: "12px",
@@ -795,8 +834,8 @@ const PermissionsManagement = () => {
         </DialogTitle>
         <DialogContent style={{ padding: "20px" }}>
           <div style={{ marginBottom: "24px" }}>
-            <Typography 
-              variant="h6" 
+            <Typography
+              variant="h6"
               style={{
                 margin: "0 0 16px 0",
                 color: "#1e293b",
@@ -806,13 +845,13 @@ const PermissionsManagement = () => {
             >
               Thông tin tài khoản
             </Typography>
-            
+
             <Grid container spacing={2} style={{ marginBottom: "16px" }}>
               <Grid item xs={12} md={6}>
-                <label style={{ 
-                  display: "block", 
-                  marginBottom: "8px", 
-                  fontSize: "14px", 
+                <label style={{
+                  display: "block",
+                  marginBottom: "8px",
+                  fontSize: "14px",
                   fontWeight: "500",
                   color: "#374151"
                 }}>
@@ -837,10 +876,38 @@ const PermissionsManagement = () => {
                 />
               </Grid>
               <Grid item xs={12} md={6}>
-                <label style={{ 
-                  display: "block", 
-                  marginBottom: "8px", 
-                  fontSize: "14px", 
+                <label style={{
+                  display: "block",
+                  marginBottom: "8px",
+                  fontSize: "14px",
+                  fontWeight: "500",
+                  color: "#374151"
+                }}>
+                  Tên người dùng
+                </label>
+                <input
+                  type="text"
+                  value={editUserData.userName}
+                  onChange={(e) => setEditUserData(prev => ({ ...prev, userName: e.target.value }))}
+                  placeholder="Nhập tên người dùng"
+                  style={{
+                    width: "100%",
+                    padding: "10px 14px",
+                    border: "1.5px solid #e2e8f0",
+                    borderRadius: 8,
+                    fontSize: 15,
+                    background: "#f9fafb",
+                    outline: "none",
+                    boxShadow: "0 1px 2px rgba(0,0,0,0.04)",
+                    transition: "border-color 0.2s",
+                  }}
+                />
+              </Grid>
+              <Grid item xs={12} md={6}>
+                <label style={{
+                  display: "block",
+                  marginBottom: "8px",
+                  fontSize: "14px",
                   fontWeight: "500",
                   color: "#374151"
                 }}>
@@ -865,7 +932,7 @@ const PermissionsManagement = () => {
                       transition: "border-color 0.2s",
                     }}
                   />
-                  <IconButton 
+                  <IconButton
                     onClick={() => setShowEditPassword(!showEditPassword)}
                     style={{
                       position: "absolute",
@@ -882,10 +949,10 @@ const PermissionsManagement = () => {
             </Grid>
 
             <div style={{ marginBottom: "16px" }}>
-              <label style={{ 
-                display: "block", 
-                marginBottom: "8px", 
-                fontSize: "14px", 
+              <label style={{
+                display: "block",
+                marginBottom: "8px",
+                fontSize: "14px",
                 fontWeight: "500",
                 color: "#374151"
               }}>
@@ -925,8 +992,8 @@ const PermissionsManagement = () => {
           </div>
 
           <div>
-            <Typography 
-              variant="h6" 
+            <Typography
+              variant="h6"
               style={{
                 margin: "0 0 16px 0",
                 color: "#1e293b",
@@ -936,7 +1003,7 @@ const PermissionsManagement = () => {
             >
               Phân quyền
             </Typography>
-            
+
             <div
               style={{
                 borderRadius: 8,
@@ -945,10 +1012,10 @@ const PermissionsManagement = () => {
                 padding: "16px",
               }}
             >
-              <div style={{ 
-                display: "grid", 
-                gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", 
-                gap: "12px" 
+              <div style={{
+                display: "grid",
+                gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))",
+                gap: "12px"
               }}>
                 {permissions.map((permission) => (
                   <label
@@ -1014,7 +1081,7 @@ const PermissionsManagement = () => {
           padding: "16px 20px",
           gap: "12px",
         }}>
-          <Button 
+          <Button
             onClick={() => setEditUserOpen(false)}
             style={{
               backgroundColor: "#f3f4f6",
@@ -1030,7 +1097,7 @@ const PermissionsManagement = () => {
           >
             Hủy
           </Button>
-          <Button 
+          <Button
             onClick={handleSaveEditUser}
             style={{
               backgroundColor: "#4caf50",

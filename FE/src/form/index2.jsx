@@ -253,7 +253,10 @@ const TicketTable2 = () => {
             </span>
             Hệ Thống Quản Lý Bán Vé
           </h1>
-          <div>
+          <div style={{ display: "flex" }}>
+            <h4 style={{ margin: "20px"}}>
+              {window.Permissions.roleName} : {window.Permissions.userName}
+            </h4>
             {window.Permissions.permissions?.find(
               (i) => i.name === "users.manage"
             ) && (
