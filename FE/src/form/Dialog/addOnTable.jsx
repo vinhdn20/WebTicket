@@ -10,6 +10,7 @@ import CloseIcon from "@mui/icons-material/Close";
 import Slide from "@mui/material/Slide";
 import Button from "@mui/material/Button";
 import { Snackbar, Alert } from "@mui/material";
+import { fetchWithAuth } from "../../services/authService";
 
 const Transition = React.forwardRef(function Transition(props, ref) {
   return <Slide direction="up" ref={ref} {...props} />;
@@ -21,6 +22,7 @@ const AddOnTable = React.memo(function AddOnTable({
   initialData,
   // setData, // Removed if not used
   rowIndex,
+  rowData, // Thêm prop rowData để lấy thông tin row
   // data, // Removed if not used
   onSave,
   mode, // 'view' or 'edit'
@@ -28,6 +30,8 @@ const AddOnTable = React.memo(function AddOnTable({
   const [formData, setFormData] = useState(initialData);
   const [selectedRows, setSelectedRows] = useState([]);
   const [currentFocusRow, setCurrentFocusRow] = useState(null);
+  const [modifiedByUser, setModifiedByUser] = useState(null); // State để lưu thông tin user
+  const [loadingUser, setLoadingUser] = useState(false); // State loading user info
   const [snackbar, setSnackbar] = useState({
     open: false,
     message: "",
@@ -54,6 +58,30 @@ const AddOnTable = React.memo(function AddOnTable({
       }))
     );
   }, [initialData]);
+
+  // Fetch thông tin user khi rowData thay đổi
+  useEffect(() => {
+    const fetchModifiedByUser = async () => {
+      if (rowData?.modifiedById && open) {
+        setLoadingUser(true);
+        try {
+          const response = await fetchWithAuth(`/User/${rowData.modifiedById}`, {
+            method: "GET",
+          });
+          setModifiedByUser(response);
+        } catch (error) {
+          console.error("Error fetching user info:", error);
+          setModifiedByUser(null);
+        } finally {
+          setLoadingUser(false);
+        }
+      } else {
+        setModifiedByUser(null);
+      }
+    };
+
+    fetchModifiedByUser();
+  }, [rowData?.modifiedById, open]);
 
   // Snackbar Handlers
   const openSnackbarHandler = useCallback((message, severity = "success") => {
@@ -258,6 +286,27 @@ const AddOnTable = React.memo(function AddOnTable({
           >
             Thêm Add-On
           </Typography>
+          
+          {/* Hiển thị thông tin người tạo/sửa cuối */}
+          <div style={{ marginBottom: "16px" }}>
+            {loadingUser ? (
+              <Typography variant="body2" sx={{ color: "#666", fontStyle: "italic" }}>
+                Đang tải thông tin người dùng...
+              </Typography>
+            ) : modifiedByUser ? (
+              <Typography variant="body2" sx={{ color: "#666" }}>
+                Được tạo/sửa lần cuối bởi: <strong>{modifiedByUser.userName || modifiedByUser.email}</strong>
+              </Typography>
+            ) : rowData?.modifiedById ? (
+              <Typography variant="body2" sx={{ color: "#666", fontStyle: "italic" }}>
+                Không thể tải thông tin người dùng
+              </Typography>
+            ) : (
+              <Typography variant="body2" sx={{ color: "#666", fontStyle: "italic" }}>
+                Chưa có thông tin người tạo/sửa
+              </Typography>
+            )}
+          </div>
           <div
             style={{
               overflowX: "auto",
@@ -515,6 +564,7 @@ AddOnTable.propTypes = {
   ).isRequired,
   // setData: PropTypes.func.isRequired, // Removed if not used
   rowIndex: PropTypes.number.isRequired,
+  rowData: PropTypes.object, // Thêm prop rowData để lấy thông tin row
   // data: PropTypes.array.isRequired, // Removed if not used
   onSave: PropTypes.func.isRequired,
   mode: PropTypes.oneOf(["view", "edit"]).isRequired,

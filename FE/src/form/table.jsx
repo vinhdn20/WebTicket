@@ -80,7 +80,14 @@ const EditableTable = ({
     severity: "success",
   });
   const [openDeleteDialog, setOpenDeleteDialog] = useState(false);
-  const [saving, setSaving] = useState(false); // <-- add
+  const [saving, setSaving] = useState(false);
+  const userId = window.Permissions.userId;
+
+  // Helper function để kiểm tra quyền chỉnh sửa hàng
+  const canEditRow = useCallback((row) => {
+    if (window.Permissions.roleType == 1) return true;
+    return (!row.createdById || row.createdById === userId);
+  }, [userId]);
 
   const openSnackbarHandler = useCallback((message, severity = "success") => {
     setSnackbar({ open: true, message, severity });
@@ -279,7 +286,6 @@ const EditableTable = ({
   // Sửa handleCellEdit để luôn format input khi nhập
   const handleCellEdit = useCallback(
     (rowId, columnId, value) => {
-      console.log("Cell edit:", { rowId, columnId, value });
       let newValue = value;
       if (columnId === "thuAG" || columnId === "giaXuat") {
         newValue = formatNumberDot(value);
@@ -321,31 +327,39 @@ const EditableTable = ({
   const handleClickAddOnOpen = useCallback(
     (rowId) => {
       setAddOnRow(rowId);
-      const isRowSelected = selectedRows.includes(rowId);
-      setAddOnMode(isEditing && isRowSelected ? "edit" : "view");
+      setAddOnMode("edit"); // Luôn mở ở chế độ edit vì ai cũng có quyền sửa Add On
       setOpenAddOn(true);
     },
-    [isEditing, selectedRows]
+    []
   );
 
   const toggleRowSelection = useCallback(
     (rowId) => {
+      // Kiểm tra nếu hàng bị disable thì không cho phép thay đổi selection
+      const row = data.find(item => item.id === rowId);
+      if (row && !canEditRow(row)) {
+        return; // Không làm gì nếu hàng bị disable
+      }
+      
       setSelectedRows((prev) =>
         prev.includes(rowId)
           ? prev.filter((id) => id !== rowId)
           : [...prev, rowId]
       );
     },
-    [setSelectedRows]
+    [setSelectedRows, data, canEditRow]
   );
 
   const toggleSelectAll = useCallback(() => {
-    if (selectedRows.length === tableData.length && tableData.length > 0) {
+    // Chỉ select những hàng mà user có quyền (không bị disable)
+    const selectableRows = tableData.filter(row => canEditRow(row));
+    
+    if (selectedRows.length === selectableRows.length && selectableRows.length > 0) {
       setSelectedRows([]);
     } else {
-      setSelectedRows(tableData.map((row) => row.id));
+      setSelectedRows(selectableRows.map((row) => row.id));
     }
-  }, [selectedRows, tableData, setSelectedRows]);
+  }, [selectedRows, tableData, setSelectedRows, canEditRow]);
 
   // Sửa toggleEditMode để khi gửi API sẽ parse về số
   const toggleEditMode = useCallback(() => {
@@ -431,30 +445,115 @@ const EditableTable = ({
     onReload, // <-- add
   ]);
 
-  const isAllSelected = useMemo(
-    () => selectedRows.length === tableData.length && tableData.length > 0,
-    [selectedRows, tableData]
-  );
+  const isAllSelected = useMemo(() => {
+    const selectableRows = tableData.filter(row => canEditRow(row));
+    return selectedRows.length === selectableRows.length && selectableRows.length > 0;
+  }, [selectedRows, tableData, canEditRow]);
 
   const handleDialogAddOnClose = useCallback(() => {
     setOpenAddOn(false);
   }, []);
 
+  // Function để save một hàng cụ thể (được gọi từ Add On dialog)
+  const saveSpecificRow = useCallback((rowId, updatedRowData = null) => {
+    // Sử dụng updatedRowData nếu có, nếu không thì tìm từ data hiện tại
+    const row = updatedRowData || data.find((item) => item.id === rowId);
+    if (!row) {
+      openSnackbarHandler("Không tìm thấy hàng để lưu!", "error");
+      return Promise.reject("Row not found");
+    }
+
+    const selectedCard = cardOptions.find(
+      (option) => option.soThe === row.soThe
+    );
+    const selectedAgCustomer = phoneOptions.find(
+      (option) => option.sdt === row.sdt
+    );
+    const veDetails = (row.veDetail || []).map((detail) => ({
+      changBay: detail.changBay || "",
+      ngayGioBay: detail.ngayGioBay
+        ? new Date(detail.ngayGioBay).toISOString()
+        : new Date().toISOString(),
+      hangBay: detail.hangBay || "",
+      soHieuChuyenBay: detail.soHieuChuyenBay || "",
+      thamChieuHang: detail.thamChieuHang || "",
+      maDatCho: detail.maDatCho || "",
+      tenKhachHang: detail.tenKhachHang || "",
+      id: detail.id,
+    }));
+    
+    const formattedTicket = {
+      id: row.id,
+      agCustomerId: selectedAgCustomer?.id || row.agCustomerId || "",
+      ngayXuat: row.ngayXuat
+        ? new Date(row.ngayXuat).toISOString()
+        : new Date().toISOString(),
+      giaXuat: parseNumberDot(row.giaXuat || ""),
+      addOn: row.addOn || "",
+      thuAG: parseNumberDot(row.thuAG || ""),
+      luuY: row.luuY || "",
+      veHoanKhay: row.veHoanKhay,
+      cardId: selectedCard?.id || row.cardId || "",
+      veDetails,
+    };
+
+    setSaving(true);
+    return fetchWithAuth(
+      "/Ve/xuatve",
+      {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify([formattedTicket]), // Array với một phần tử
+      },
+      openSnackbarHandler
+    )
+      .then(() => {
+        // Remove rowId from editedRows since it's now saved
+        setEditedRows((prev) => {
+          const newSet = new Set(prev);
+          newSet.delete(rowId);
+          return newSet;
+        });
+        openSnackbarHandler("Lưu Add On thành công!", "success");
+        // Reload table với payload cũ (parent giữ last payload)
+        onReload && onReload();
+      })
+      .catch((error) => {
+        openSnackbarHandler("Có lỗi khi lưu Add On!", "error");
+        throw error;
+      })
+      .finally(() => setSaving(false));
+  }, [data, cardOptions, phoneOptions, openSnackbarHandler, onReload]);
+
   const handleSave = useCallback(
     (formData, rowId) => {
+      
+      // Tìm row hiện tại và cập nhật với Add On mới
+      const currentRow = data.find(item => item.id === rowId);
+      const updatedRow = {
+        ...currentRow,
+        addOn: JSON.stringify(formData),
+      };
+      // Cập nhật data với Add On mới
       const updatedData = data.map((row) => {
         if (row.id === rowId) {
-          return {
-            ...row,
-            addOn: JSON.stringify(formData),
-          };
+          return updatedRow;
         }
         return row;
       });
       setData(updatedData);
       setEditedRows((prev) => new Set(prev).add(rowId));
+      
+      // Nếu là chế độ edit, call API save ngay lập tức với data mới
+      if (addOnMode === "edit") {
+        // Truyền updatedRow trực tiếp để tránh state update delay
+        saveSpecificRow(rowId, updatedRow).catch((error) => {
+          console.error("Failed to save specific row:", error);
+          // Nếu save API thất bại, có thể rollback data nếu cần
+        });
+      }
     },
-    [data, setData]
+    [data, setData, addOnMode, saveSpecificRow]
   );
 
   const memoizedInitialData = useMemo(() => {
@@ -557,7 +656,6 @@ const EditableTable = ({
     if (!wrapper) return;
     const handleWheelScroll = (e) => {
       if (e.shiftKey) {
-        console.log("Shift + Wheel detected, scrolling horizontally");
         const maxScroll = wrapper.scrollWidth - wrapper.clientWidth;
         if (maxScroll > 0) {
           if (
@@ -847,7 +945,9 @@ const EditableTable = ({
                                   }
                                   className="table-checkbox"
                                   aria-label={`Chọn hàng ${row.original.id}`}
-                                  disabled={isEditing}
+                                  disabled={
+                                    isEditing || !canEditRow(row.original)
+                                  }
                                   style={{ margin: 0, width: 15, height: 15 }}
                                 />
                               </td>
@@ -1039,17 +1139,9 @@ const EditableTable = ({
                                     justifyContent: "center",
                                     textAlign: "center"
                                   }}
-                                  aria-label={
-                                    isEditing &&
-                                    selectedRows.includes(row.original.id)
-                                      ? "Xem và sửa Add On"
-                                      : "Xem Add On"
-                                  }
+                                  aria-label="Xem và sửa Add On"
                                 >
-                                  {isEditing &&
-                                  selectedRows.includes(row.original.id)
-                                    ? "Xem và sửa"
-                                    : "Xem"}
+                                  Xem và sửa
                                 </button>
                               </td>
                               <td
@@ -1461,7 +1553,7 @@ const EditableTable = ({
                             checked={selectedRows.includes(row.original.id)}
                             onChange={() => toggleRowSelection(row.original.id)}
                             aria-label={`Chọn hàng ${row.original.id}`}
-                            disabled={isEditing}
+                            disabled={isEditing || !canEditRow(row.original)}
                           />
                         </td>
                         <td
@@ -1626,93 +1718,28 @@ const EditableTable = ({
                             textAlign: "center",
                           }}
                         >
-                          {isEditing &&
-                          selectedRows.includes(row.original.id) ? (
-                            <button
-                              onClick={() =>
-                                handleClickAddOnOpen(row.original.id)
-                              }
-                              className="button-container"
-                              style={{
-                                width: "100%",
-                                padding: "12px 18px",
-                                backgroundColor: "rgba(59, 130, 246, 0.9)",
-                                color: "white",
-                                border: "none",
-                                borderRadius: "8px",
-                                fontSize: "15px",
-                                fontWeight: "600",
-                                cursor: "pointer",
-                                transition: "all 0.2s ease",
-                                margin: 0,
-                              }}
-                              aria-label={
-                                isEditing &&
-                                selectedRows.includes(row.original.id)
-                                  ? "Xem và sửa Add On"
-                                  : "Xem Add On"
-                              }
-                            >
-                              {isEditing &&
-                              selectedRows.includes(row.original.id)
-                                ? "Xem và sửa"
-                                : "Xem"}
-                            </button>
-                          ) : (
-                            <div
-                              style={{
-                                display: "flex",
-                                alignItems: "center",
-                                justifyContent: "center",
-                                height: "100%",
-                                fontSize: "14px",
-                                fontWeight: "500",
-                                color: "rgba(0, 0, 0, 0.87)",
-                              }}
-                            >
-                              {row.original.addOn
-                                ? JSON.parse(row.original.addOn).map(
-                                    (item, index) => (
-                                      <div
-                                        key={index}
-                                        style={{
-                                          display: "flex",
-                                          alignItems: "center",
-                                          justifyContent: "space-between",
-                                          width: "100%",
-                                        }}
-                                      >
-                                        <span
-                                          style={{
-                                            flex: 1,
-                                            textAlign: "left",
-                                            padding: "4px 8px",
-                                            borderRadius: "4px",
-                                            backgroundColor:
-                                              "rgba(229, 229, 229, 1)",
-                                            marginRight: "4px",
-                                          }}
-                                        >
-                                          {item.dichVu}
-                                        </span>
-                                        <span
-                                          style={{
-                                            width: "80px",
-                                            textAlign: "right",
-                                            padding: "4px 8px",
-                                            borderRadius: "4px",
-                                            backgroundColor:
-                                              "rgba(229, 229, 229, 1)",
-                                          }}
-                                        >
-                                          {formatNumberDot(item.soTien)}
-                                        </span>
-                                      </div>
-                                    )
-                                  )
-                                : "Không có dịch vụ nào"}
-                            </div>
-                          )}
+                          <button
+                            onClick={() =>
+                              handleClickAddOnOpen(row.original.id)
+                            }
+                            className="button-container"
+                            style={{
+                              width: "100%",
+                              padding: "12px 18px",
+                              backgroundColor: "rgba(59, 130, 246, 0.9)",
+                              color: "white",
+                              border: "none",
+                              borderRadius: "8px",
+                              fontSize: "15px",
+                              fontWeight: "600",
+                              cursor: "pointer",
+                              transition: "all 0.2s ease",
+                              margin: 0,
+                            }}
+                            aria-label="Xem và sửa Add On"
+                          >
+                            Xem và sửa
+                          </button>
                         </td>
                         <td
                           style={{
@@ -1949,6 +1976,7 @@ const EditableTable = ({
             setData={setData}
             data={data}
             rowIndex={addOnRow}
+            rowData={data.find(item => item.id === addOnRow)} // Thêm thông tin row để lấy modifiedById
             mode={addOnMode}
           />
         </DialogContent>

@@ -50,6 +50,8 @@ export function processResult(result) {
     id: item.id,
     cardId: item.cardId,
     agCustomerId: item.agCustomerId || item.agId,
+    createdById: item.createdById,
+    modifiedById: item.modifiedById,
     customerId: item.customerId,
     ngayXuat: item.ngayXuat,
     giaXuat: item.giaXuat,
