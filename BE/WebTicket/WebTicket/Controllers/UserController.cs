@@ -49,7 +49,7 @@ namespace WebTicket.Controllers
                 {
                     validPermissions = await _repository.GetAllWithNoTrackingAsync<Permission>(
                         p => model.PermissionNames.Contains(p.Name)).ToListAsync();
-                    
+
                     if (validPermissions.Count != model.PermissionNames.Count)
                     {
                         var foundNames = validPermissions.Select(p => p.Name).ToList();
@@ -84,7 +84,7 @@ namespace WebTicket.Controllers
                 // Add user permissions if provided
                 if (validPermissions != null && validPermissions.Any())
                 {
-                    var userPermissions = validPermissions.Select(permission => 
+                    var userPermissions = validPermissions.Select(permission =>
                     {
                         var userPermission = new UserPermission
                         {
@@ -99,8 +99,8 @@ namespace WebTicket.Controllers
                     await _repository.SaveChangesAsync();
                 }
 
-                return Ok(new { 
-                    message = "User created successfully", 
+                return Ok(new {
+                    message = "User created successfully",
                     userId = newUser.Id,
                     permissionsAdded = model.PermissionNames?.Count ?? 0
                 });
@@ -318,7 +318,7 @@ namespace WebTicket.Controllers
                 // Get direct user permissions
                 var userPermissions = await _repository.GetAllWithNoTrackingAsync<UserPermission>(
                     up => up.UserId == currentUserId).ToListAsync();
-                
+
                 allPermissions.AddRange(userPermissions.Select(up => up.Permission));
 
                 // Remove duplicates and sort
@@ -520,7 +520,7 @@ namespace WebTicket.Controllers
 
             var tokens = await _userService.GetNewByRefreshToken(refreshToken);
 
-            if(string.IsNullOrEmpty(tokens.token) || string.IsNullOrEmpty(tokens.refreshToken))
+            if (string.IsNullOrEmpty(tokens.token) || string.IsNullOrEmpty(tokens.refreshToken))
             {
                 return Unauthorized("Invalid or expired refresh token.");
             }
@@ -563,6 +563,40 @@ namespace WebTicket.Controllers
                     lastLoginAt = user.LastLoginAt
                 };
 
+                return Ok(result);
+            }
+            catch (Exception e)
+            {
+                return BadRequest(e.Message);
+            }
+        }
+
+        [HttpGet("{id}")]
+        [Authorize]
+        public async Task<IActionResult> GetUserById(Guid id)
+        {
+            try
+            {
+                var user = await _repository.GetAsync<Users>(u => u.Id == id);
+                if (user == null)
+                {
+                    return NotFound("User not found.");
+                }
+                var role = await _repository.GetAsync<Role>(r => r.Id == user.RoleId);
+                var result = new
+                {
+                    userId = user.Id,
+                    email = user.Email,
+                    userName = user.Username,
+                    isActive = user.IsActive,
+                    roleName = role?.Type.GetDescription(),
+                    roleType = role?.Type,
+                    createdById = user.CreatedById,
+                    modifiedById = user.ModifiedById,
+                    createdTime = user.CreatedTime,
+                    modifiedTime = user.ModifiedTime,
+                    lastLoginAt = user.LastLoginAt
+                };
                 return Ok(result);
             }
             catch (Exception e)
