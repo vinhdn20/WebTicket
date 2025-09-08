@@ -69,7 +69,7 @@ namespace Ve.Controllers
                     return Unauthorized("User not found.");
                 }
                 
-                var userWithRole = await _context.Users
+                var userWithRole = await _context.Users.AsNoTracking()
                     .Include(u => u.Role)
                     .FirstOrDefaultAsync(u => u.Id == currentUserId);
                 
@@ -83,7 +83,7 @@ namespace Ve.Controllers
                 foreach (var putModel in putModels)
                 {
                     // Get existing ticket to check ownership and determine allowed updates
-                    var existingTicket = await _context.ThongTinVes
+                    var existingTicket = await _context.ThongTinVes.AsNoTracking()
                         .FirstOrDefaultAsync(t => t.Id == putModel.Id);
                     
                     if (existingTicket == null)
