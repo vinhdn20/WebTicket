@@ -24,7 +24,8 @@ import FullScreenSoTheDialog from "./Dialog/SoTheInputForm";
 import AddOnTable from "./Dialog/addOnTable";
 import apiService from "../services/apiSevrvice";
 import { fetchWithAuth } from "../services/authService";
-import TKTripForm from "./Dialog/TKTripForm"; // <-- add
+import TKTripForm from "./Dialog/TKTripForm";
+import TKGmailForm from "./Dialog/TKGmailForm";
 
 const getCurrentDateTimeLocal = () => {
   const now = new Date();
@@ -530,7 +531,9 @@ const InputTable = ({ onTicketCreated }) => {
         )}
         {window.Permissions.permissions?.find(
           (i) =>
-            i.name === "agodaaccount.manage" || i.name === "tripaccount.manage"
+            i.name === "agodaaccount.manage" ||
+            i.name === "tripaccount.manage" ||
+            i.name === "gmailaccount.manage"
         ) && (
           <div className="group-button">
             <Button variant="contained" className="btn-primary btn-md minw-220">
@@ -556,7 +559,18 @@ const InputTable = ({ onTicketCreated }) => {
                   onClick={() => handleTKClick(2)}
                   className="btn-primary btn-sm btn-block"
                 >
-                  Tài khoản Angola
+                  Tài khoản Agoda
+                </Button>
+              )}
+              {window.Permissions.permissions?.find(
+                (i) => i.name === "gmailaccount.manage"
+              ) && (
+                <Button
+                  variant="contained"
+                  onClick={() => handleTKClick(3)}
+                  className="btn-primary btn-sm btn-block"
+                >
+                  Gmail
                 </Button>
               )}
             </div>
@@ -1035,11 +1049,18 @@ const InputTable = ({ onTicketCreated }) => {
           </Alert>
         </Snackbar>
 
-        <TKTripForm
-          open={openTKDialog}
-          onClose={handleDialogTripClose}
-          type={tkType}
-        />
+        {tkType === 3 ? (
+          <TKGmailForm
+            open={openTKDialog}
+            onClose={handleDialogTripClose}
+          />
+        ) : (
+          <TKTripForm
+            open={openTKDialog}
+            onClose={handleDialogTripClose}
+            type={tkType}
+          />
+        )}
       </>
 
       {/* Loading overlay */}

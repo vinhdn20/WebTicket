@@ -1,0 +1,909 @@
+import React, { useEffect, useState, useCallback, useMemo, useRef } from "react";
+import Dialog from "@mui/material/Dialog";
+import AppBar from "@mui/material/AppBar";
+import Toolbar from "@mui/material/Toolbar";
+import Typography from "@mui/material/Typography";
+import IconButton from "@mui/material/IconButton";
+import CloseIcon from "@mui/icons-material/Close";
+import Slide from "@mui/material/Slide";
+import Button from "@mui/material/Button";
+import { refreshAccessToken } from "../../constant";
+import {
+  Snackbar,
+  Alert,
+  DialogTitle,
+  DialogContent,
+  DialogContentText,
+  DialogActions,
+} from "@mui/material";
+
+const Transition = React.forwardRef(function Transition(props, ref) {
+  return <Slide direction="up" ref={ref} {...props} />;
+});
+
+const generateMatrixValues = (rows, cols, startValue = 11) => {
+  const matrix = [];
+  let value = startValue;
+  for (let i = 0; i < rows; i++) {
+    const row = [];
+    for (let j = 0; j < cols; j++) {
+      row.push(value++);
+    }
+    matrix.push(row);
+  }
+  return matrix;
+};
+
+export default function TKGmailForm({ open, onClose }) {
+  const API_URL = process.env.REACT_APP_API_URL;
+
+  const [formData, setFormData] = useState(() => {
+    const rows = 1;
+    const cols = 4; // email, password, recoveryPhone, recoveryEmail
+    const matrix = generateMatrixValues(rows, cols);
+    return Array.from({ length: rows }, (_, rowIndex) => ({
+      email: "",
+      password: "",
+      recoveryPhone: "",
+      recoveryEmail: "",
+      matrixValue: matrix[rowIndex],
+    }));
+  });
+
+  const [apiData, setApiData] = useState([]);
+  const [searchText, setSearchText] = useState("");
+  const [selectedRows, setSelectedRows] = useState([]);
+  const [selectedApiRows, setSelectedApiRows] = useState([]);
+  const [currentFocusRow, setCurrentFocusRow] = useState(null);
+  const [snackbar, setSnackbar] = useState({
+    open: false,
+    message: "",
+    severity: "success",
+  });
+  const [openDeleteDialog, setOpenDeleteDialog] = useState(false);
+  const [isApi, setIsApi] = useState(false);
+  const hasFetchedRef = useRef(false);
+
+  const getAccessToken = useCallback(() => {
+    return localStorage.getItem("accessToken");
+  }, []);
+
+  const openSnackbar = useCallback((message, severity = "success") => {
+    setSnackbar({ open: true, message, severity });
+  }, []);
+
+  const closeSnackbar = useCallback(() => {
+    setSnackbar((prev) => ({ ...prev, open: false }));
+  }, []);
+
+  const fetchApiData = useCallback(async () => {
+    let accessToken = getAccessToken();
+    try {
+      const response = await fetch(`${API_URL}/Ve/gmail`, {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${accessToken}`,
+        },
+      });
+
+      if (response.status === 401) {
+        const newToken = await refreshAccessToken();
+        if (newToken) {
+          accessToken = newToken;
+          const retryResponse = await fetch(`${API_URL}/Ve/gmail`, {
+            method: "GET",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${accessToken}`,
+            },
+          });
+          if (!retryResponse.ok) throw new Error("Failed to fetch");
+          const retryResult = await retryResponse.json();
+          updateApiData(retryResult);
+          return;
+        } else {
+          window.location.href = "/";
+          throw new Error("Failed to refresh access token");
+        }
+      }
+      if (!response.ok) throw new Error("Network response was not ok");
+      const result = await response.json();
+      updateApiData(result);
+    } catch (error) {
+      console.error("Error fetching data", error);
+      openSnackbar("Có lỗi xảy ra khi tải dữ liệu Gmail.", "error");
+    }
+  }, [getAccessToken, openSnackbar, API_URL]);
+
+  const updateApiData = useCallback((api) => {
+    const mapped = api.map((item) => ({
+      id: item.id,
+      email: item.email || "",
+      password: item.password || "",
+      recoveryPhone: item.recoveryPhone || "",
+      recoveryEmail: item.recoveryEmail || "",
+    }));
+    setApiData(mapped);
+  }, []);
+
+  const filteredApiData = useMemo(() => {
+    if (!searchText.trim()) return apiData;
+    const lower = searchText.toLowerCase();
+    return apiData.filter(
+      (row) =>
+        (row.email && row.email.toLowerCase().includes(lower)) ||
+        (row.recoveryEmail && row.recoveryEmail.toLowerCase().includes(lower))
+    );
+  }, [apiData, searchText]);
+
+  useEffect(() => {
+    if (open && !hasFetchedRef.current) {
+      hasFetchedRef.current = true;
+      fetchApiData();
+    } else if (!open) {
+      hasFetchedRef.current = false;
+      setFormData([
+        {
+          email: "",
+          password: "",
+          recoveryPhone: "",
+          recoveryEmail: "",
+          matrixValue: [],
+        },
+      ]);
+      setSelectedRows([]);
+      setSelectedApiRows([]);
+    }
+  }, [open, fetchApiData]);
+
+  const handlePaste = useCallback(
+    (e) => {
+      e.preventDefault();
+      const clipboardData = e.clipboardData.getData("text");
+      const rows = clipboardData
+        .split("\n")
+        .map((row) => row.split("\t"))
+        .filter((row) => row.some((cell) => cell.trim() !== ""));
+
+      if (currentFocusRow === null) return;
+
+      setFormData((prev) => {
+        const fieldNames = ["email", "password", "recoveryPhone", "recoveryEmail"];
+        const updated = [...prev];
+        const requiredRows = currentFocusRow + rows.length;
+        if (requiredRows > updated.length) {
+          const cols = fieldNames.length;
+          const matrix = generateMatrixValues(requiredRows, cols, 11);
+          for (let i = updated.length; i < requiredRows; i++) {
+            const newRow = {
+              email: "",
+              password: "",
+              recoveryPhone: "",
+              recoveryEmail: "",
+              matrixValue: matrix[i],
+            };
+            updated.push(newRow);
+          }
+        }
+        rows.forEach((rowValues, rowOffset) => {
+          const targetRow = currentFocusRow + rowOffset;
+          if (updated[targetRow]) {
+            fieldNames.forEach((field, idx) => {
+              if (rowValues[idx] !== undefined) {
+                updated[targetRow][field] = rowValues[idx];
+              }
+            });
+          }
+        });
+        return updated;
+      });
+    },
+    [currentFocusRow]
+  );
+
+  const handleCellChange = useCallback((rowIndex, field, value) => {
+    setFormData((prev) =>
+      prev.map((row, idx) =>
+        idx === rowIndex ? { ...row, [field]: value } : row
+      )
+    );
+  }, []);
+
+  const handleAddRow = useCallback(() => {
+    const currentRows = formData.length;
+    const cols = 4;
+    const matrix = generateMatrixValues(currentRows + 1, cols, 11);
+
+    setFormData((prev) => [
+      ...prev,
+      {
+        email: "",
+        password: "",
+        recoveryPhone: "",
+        recoveryEmail: "",
+        matrixValue: matrix[currentRows],
+      },
+    ]);
+  }, [formData.length]);
+
+  const handleCheckboxChange = useCallback((rowIndex) => {
+    setSelectedRows((prev) =>
+      prev.includes(rowIndex)
+        ? prev.filter((index) => index !== rowIndex)
+        : [...prev, rowIndex]
+    );
+  }, []);
+
+  const handleDeleteSelectedRows = useCallback(() => {
+    setFormData((prev) => prev.filter((_, idx) => !selectedRows.includes(idx)));
+    setSelectedRows([]);
+  }, [selectedRows]);
+
+  const handleApiCheckboxChange = useCallback((id) => {
+    setSelectedApiRows((prev) =>
+      prev.includes(id) ? prev.filter((itemId) => itemId !== id) : [...prev, id]
+    );
+  }, []);
+
+  const handleDeleteSelectedApiRows = useCallback(async () => {
+    if (selectedApiRows.length === 0) {
+      openSnackbar("Không có hàng nào được chọn để xóa.", "warning");
+      return;
+    }
+    let accessToken = getAccessToken();
+    const payload = selectedApiRows;
+    try {
+      const response = await fetch(`${API_URL}/Ve/gmail`, {
+        method: "DELETE",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${accessToken}`,
+        },
+        body: JSON.stringify(payload),
+      });
+      if (response.status === 401) {
+        const newToken = await refreshAccessToken();
+        if (newToken) {
+          accessToken = newToken;
+          const retryResponse = await fetch(`${API_URL}/Ve/gmail`, {
+            method: "DELETE",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${accessToken}`,
+            },
+            body: JSON.stringify(payload),
+          });
+          if (!retryResponse.ok) throw new Error("Failed to delete");
+          openSnackbar("Đã xóa các tài khoản Gmail đã chọn!", "success");
+          setSelectedApiRows([]);
+          fetchApiData();
+          return;
+        } else {
+          window.location.href = "/";
+          throw new Error("Failed to refresh access token");
+        }
+      }
+      if (!response.ok) throw new Error("Failed to delete rows");
+      openSnackbar("Đã xóa các tài khoản Gmail đã chọn!", "success");
+      setSelectedApiRows([]);
+      fetchApiData();
+    } catch (error) {
+      console.error("Error deleting data", error);
+      openSnackbar("Có lỗi xảy ra khi xóa tài khoản Gmail.", "error");
+    }
+  }, [selectedApiRows, getAccessToken, fetchApiData, openSnackbar, API_URL]);
+
+  const handleSave = useCallback(async () => {
+    for (const row of formData) {
+      if (!row.email || !row.password) {
+        openSnackbar("Vui lòng nhập email và password.", "warning");
+        return;
+      }
+    }
+    let accessToken = getAccessToken();
+    const payload = formData.map((r) => ({
+      email: r.email,
+      password: r.password,
+      recoveryPhone: r.recoveryPhone,
+      recoveryEmail: r.recoveryEmail,
+    }));
+    try {
+      const response = await fetch(`${API_URL}/Ve/gmail`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${accessToken}`,
+        },
+        body: JSON.stringify(payload),
+      });
+
+      if (response.status === 401) {
+        const newToken = await refreshAccessToken();
+        if (newToken) {
+          accessToken = newToken;
+          const retryResponse = await fetch(`${API_URL}/Ve/gmail`, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${accessToken}`,
+            },
+            body: JSON.stringify(payload),
+          });
+          if (!retryResponse.ok) throw new Error("Failed to save");
+          openSnackbar("Lưu tài khoản Gmail thành công!", "success");
+          onClose(null);
+          fetchApiData();
+          return;
+        } else {
+          window.location.href = "/";
+          throw new Error("Failed to refresh access token");
+        }
+      }
+
+      if (!response.ok) throw new Error("Network response was not ok");
+      openSnackbar("Lưu tài khoản Gmail thành công!", "success");
+      onClose(null);
+      fetchApiData();
+    } catch (error) {
+      console.error("Error saving data", error);
+      openSnackbar("Có lỗi xảy ra khi lưu tài khoản Gmail.", "error");
+    }
+  }, [formData, getAccessToken, fetchApiData, openSnackbar, onClose, API_URL]);
+
+  const handleOpenDeleteDialogForNormal = useCallback(() => {
+    setIsApi(false);
+    setOpenDeleteDialog(true);
+  }, []);
+
+  const handleOpenDeleteDialogForAPI = useCallback(() => {
+    setIsApi(true);
+    setOpenDeleteDialog(true);
+  }, []);
+
+  const handleCloseDeleteDialog = useCallback(() => {
+    setOpenDeleteDialog(false);
+  }, []);
+
+  const handleConfirmDelete = useCallback(() => {
+    isApi ? handleDeleteSelectedApiRows() : handleDeleteSelectedRows();
+    setOpenDeleteDialog(false);
+  }, [handleDeleteSelectedApiRows, handleDeleteSelectedRows, isApi]);
+
+  return (
+    <Dialog
+      open={open}
+      TransitionComponent={Transition}
+      PaperProps={{
+        sx: {
+          position: "absolute",
+          bottom: 0,
+          margin: 0,
+          minWidth: "100%",
+          height: "100%",
+          borderRadius: "10px 10px 0 0",
+          boxShadow: 3,
+        },
+      }}
+    >
+      <AppBar sx={{ position: "relative" }}>
+        <Toolbar
+          sx={{
+            display: "flex",
+            alignItems: "center",
+            alignContent: "space-between",
+            width: "100%",
+          }}
+        >
+          <IconButton
+            edge="start"
+            color="inherit"
+            onClick={() => onClose(null)}
+            aria-label="close"
+          >
+            <CloseIcon />
+          </IconButton>
+          <Typography sx={{ ml: 2, flex: 1 }} variant="h6" component="div">
+            Nhập tài khoản Gmail
+          </Typography>
+        </Toolbar>
+      </AppBar>
+
+      {/* Table for Input */}
+      <div style={{ padding: "20px" }} onPaste={handlePaste}>
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "flex-end",
+            alignItems: "center",
+          }}
+        >
+          <Button
+            autoFocus
+            color="inherit"
+            onClick={handleSave}
+            style={{
+              backgroundColor: "#4caf50",
+              color: "#fff",
+              marginRight: "30px",
+            }}
+          >
+            Save
+          </Button>
+        </div>
+
+        <div
+          style={{
+            width: "100%",
+            overflowX: "auto",
+            borderRadius: 12,
+            boxShadow: "0 2px 8px rgba(0,0,0,0.07)",
+            border: "1px solid #e2e8f0",
+            margin: "16px 0",
+            maxHeight: 340,
+            overflowY: "auto",
+          }}
+        >
+          <table
+            style={{
+              minWidth: 600,
+              width: "100%",
+              borderCollapse: "separate",
+              borderSpacing: 0,
+              background: "white",
+              tableLayout: "fixed",
+            }}
+          >
+            <colgroup>
+              <col style={{ width: 52 }} /> {/* checkbox */}
+              <col style={{ width: "28%" }} /> {/* Email */}
+              <col style={{ width: "24%" }} /> {/* Password */}
+              <col style={{ width: "24%" }} /> {/* Recovery Phone */}
+              <col style={{ width: "24%" }} /> {/* Recovery Email */}
+            </colgroup>
+            <thead>
+              <tr>
+                <th
+                  style={{
+                    position: "sticky",
+                    top: 0,
+                    left: 0,
+                    zIndex: 5,
+                    borderBottom: "2px solid #e2e8f0",
+                    padding: "12px 8px",
+                    textAlign: "center",
+                    background: "#f8fafc",
+                    whiteSpace: "nowrap",
+                  }}
+                >
+                  <input
+                    type="checkbox"
+                    checked={
+                      formData.length > 0 &&
+                      selectedRows.length === formData.length
+                    }
+                    onChange={(e) => {
+                      if (e.target.checked)
+                        setSelectedRows(formData.map((_, idx) => idx));
+                      else setSelectedRows([]);
+                    }}
+                    style={{ cursor: "pointer" }}
+                  />
+                </th>
+                {["Email", "Password", "Recovery Phone", "Recovery Email"].map(
+                  (h) => (
+                    <th
+                      key={h}
+                      style={{
+                        position: "sticky",
+                        top: 0,
+                        zIndex: 4,
+                        borderBottom: "2px solid #e2e8f0",
+                        padding: "12px 8px",
+                        background: "#f8fafc",
+                        whiteSpace: "nowrap",
+                      }}
+                    >
+                      {h}
+                    </th>
+                  )
+                )}
+              </tr>
+            </thead>
+            <tbody>
+              {formData.map((row, rowIndex) => (
+                <tr
+                  key={rowIndex}
+                  style={{
+                    background: rowIndex % 2 === 0 ? "#fff" : "#f8fafc",
+                  }}
+                >
+                  <td
+                    style={{
+                      borderBottom: "1px solid #e2e8f0",
+                      padding: "10px 8px",
+                      textAlign: "center",
+                      position: "sticky",
+                      left: 0,
+                      background: rowIndex % 2 === 0 ? "#fff" : "#f8fafc",
+                      zIndex: 2,
+                    }}
+                  >
+                    <input
+                      type="checkbox"
+                      checked={selectedRows.includes(rowIndex)}
+                      onChange={() => handleCheckboxChange(rowIndex)}
+                    />
+                  </td>
+                  <td
+                    style={{
+                      borderBottom: "1px solid #e2e8f0",
+                      padding: "10px 8px",
+                    }}
+                  >
+                    <input
+                      type="email"
+                      value={row.email}
+                      onChange={(e) =>
+                        handleCellChange(rowIndex, "email", e.target.value)
+                      }
+                      onFocus={() => setCurrentFocusRow(rowIndex)}
+                      style={{
+                        width: "100%",
+                        border: "1px solid #e2e8f0",
+                        outline: "none",
+                        padding: "6px 8px",
+                        borderRadius: 6,
+                        background: "#f9fafb",
+                        fontSize: 15,
+                        boxSizing: "border-box",
+                      }}
+                    />
+                  </td>
+                  <td
+                    style={{
+                      borderBottom: "1px solid #e2e8f0",
+                      padding: "10px 8px",
+                    }}
+                  >
+                    <input
+                      type="text"
+                      value={row.password}
+                      onChange={(e) =>
+                        handleCellChange(rowIndex, "password", e.target.value)
+                      }
+                      onFocus={() => setCurrentFocusRow(rowIndex)}
+                      style={{
+                        width: "100%",
+                        border: "1px solid #e2e8f0",
+                        outline: "none",
+                        padding: "6px 8px",
+                        borderRadius: 6,
+                        background: "#f9fafb",
+                        fontSize: 15,
+                        boxSizing: "border-box",
+                      }}
+                    />
+                  </td>
+                  <td
+                    style={{
+                      borderBottom: "1px solid #e2e8f0",
+                      padding: "10px 8px",
+                    }}
+                  >
+                    <input
+                      type="text"
+                      value={row.recoveryPhone}
+                      onChange={(e) =>
+                        handleCellChange(
+                          rowIndex,
+                          "recoveryPhone",
+                          e.target.value
+                        )
+                      }
+                      onFocus={() => setCurrentFocusRow(rowIndex)}
+                      style={{
+                        width: "100%",
+                        border: "1px solid #e2e8f0",
+                        outline: "none",
+                        padding: "6px 8px",
+                        borderRadius: 6,
+                        background: "#f9fafb",
+                        fontSize: 15,
+                        boxSizing: "border-box",
+                      }}
+                    />
+                  </td>
+                  <td
+                    style={{
+                      borderBottom: "1px solid #e2e8f0",
+                      padding: "10px 8px",
+                    }}
+                  >
+                    <input
+                      type="email"
+                      value={row.recoveryEmail}
+                      onChange={(e) =>
+                        handleCellChange(
+                          rowIndex,
+                          "recoveryEmail",
+                          e.target.value
+                        )
+                      }
+                      onFocus={() => setCurrentFocusRow(rowIndex)}
+                      style={{
+                        width: "100%",
+                        border: "1px solid #e2e8f0",
+                        outline: "none",
+                        padding: "6px 8px",
+                        borderRadius: 6,
+                        background: "#f9fafb",
+                        fontSize: 15,
+                        boxSizing: "border-box",
+                      }}
+                    />
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+        <div
+          style={{ display: "flex", gap: 12, marginTop: 16, flexWrap: "wrap" }}
+        >
+          <Button
+            onClick={handleAddRow}
+            variant="contained"
+            color="primary"
+            style={{ minWidth: 120, borderRadius: 8, fontWeight: 600 }}
+          >
+            Thêm Hàng
+          </Button>
+          <Button
+            onClick={handleOpenDeleteDialogForNormal}
+            variant="contained"
+            color="secondary"
+            style={{
+              minWidth: 160,
+              borderRadius: 8,
+              fontWeight: 600,
+              opacity: selectedRows.length === 0 ? 0.5 : 1,
+              cursor: selectedRows.length === 0 ? "not-allowed" : "pointer",
+            }}
+            disabled={selectedRows.length === 0}
+          >
+            Xóa Hàng Đã Chọn
+          </Button>
+        </div>
+      </div>
+
+      {/* Table for API Data */}
+      <div style={{ padding: "20px" }}>
+        <h2 className="section-title">Bảng dữ liệu tài khoản Gmail</h2>
+        <div
+          style={{
+            margin: "12px 0 20px 0",
+            display: "flex",
+            gap: 12,
+            flexWrap: "wrap",
+          }}
+        >
+          <input
+            type="text"
+            value={searchText}
+            onChange={(e) => setSearchText(e.target.value)}
+            placeholder="Tìm theo email..."
+            style={{
+              width: 320,
+              maxWidth: "100%",
+              padding: "10px 14px",
+              border: "1.5px solid #e2e8f0",
+              borderRadius: 8,
+              fontSize: 15,
+              background: "#f9fafb",
+              outline: "none",
+              boxShadow: "0 1px 2px rgba(0,0,0,0.04)",
+              transition: "border-color 0.2s",
+            }}
+          />
+        </div>
+        <div
+          style={{ display: "flex", gap: 12, marginTop: 16, flexWrap: "wrap" }}
+        >
+          <Button
+            onClick={handleOpenDeleteDialogForAPI}
+            variant="contained"
+            color="secondary"
+            style={{
+              minWidth: 160,
+              borderRadius: 8,
+              fontWeight: 600,
+              opacity: selectedApiRows.length === 0 ? 0.5 : 1,
+              cursor: selectedApiRows.length === 0 ? "not-allowed" : "pointer",
+            }}
+            disabled={selectedApiRows.length === 0}
+          >
+            Xóa Hàng Đã Chọn
+          </Button>
+        </div>
+        <div
+          style={{
+            width: "100%",
+            overflowX: "auto",
+            borderRadius: 12,
+            boxShadow: "0 2px 8px rgba(0,0,0,0.07)",
+            border: "1px solid #e2e8f0",
+            margin: "16px 0",
+            maxHeight: 340,
+            overflowY: "auto",
+          }}
+        >
+          <table
+            style={{
+              minWidth: 900,
+              width: "100%",
+              borderCollapse: "separate",
+              borderSpacing: 0,
+              background: "white",
+              tableLayout: "fixed",
+              textAlign: "center",
+            }}
+          >
+            <thead>
+              <tr>
+                <th
+                  style={{
+                    position: "sticky",
+                    top: 0,
+                    left: 0,
+                    zIndex: 5,
+                    borderBottom: "2px solid #e2e8f0",
+                    padding: "12px 8px",
+                    textAlign: "center",
+                    background: "#f8fafc",
+                  }}
+                >
+                  <input
+                    type="checkbox"
+                    checked={
+                      filteredApiData.length > 0 &&
+                      selectedApiRows.length === filteredApiData.length
+                    }
+                    onChange={(e) => {
+                      if (e.target.checked) {
+                        setSelectedApiRows(
+                          filteredApiData.map((row) => row.id)
+                        );
+                      } else {
+                        setSelectedApiRows([]);
+                      }
+                    }}
+                    style={{ cursor: "pointer" }}
+                  />
+                </th>
+                {["Email", "Password", "Recovery Phone", "Recovery Email"].map(
+                  (h) => (
+                    <th
+                      key={h}
+                      style={{
+                        position: "sticky",
+                        top: 0,
+                        zIndex: 4,
+                        borderBottom: "2px solid #e2e8f0",
+                        padding: "12px 8px",
+                        background: "#f8fafc",
+                        whiteSpace: "nowrap",
+                      }}
+                    >
+                      {h}
+                    </th>
+                  )
+                )}
+              </tr>
+            </thead>
+            <tbody>
+              {filteredApiData.map((row, rowIndex) => (
+                <tr
+                  key={row.id}
+                  style={{
+                    background: rowIndex % 2 === 0 ? "#fff" : "#f8fafc",
+                  }}
+                >
+                  <td
+                    style={{
+                      borderBottom: "1px solid #e2e8f0",
+                      padding: "10px 8px",
+                      textAlign: "center",
+                      position: "sticky",
+                      left: 0,
+                      background: rowIndex % 2 === 0 ? "#fff" : "#f8fafc",
+                      zIndex: 2,
+                    }}
+                  >
+                    <input
+                      type="checkbox"
+                      checked={selectedApiRows.includes(row.id)}
+                      onChange={() => handleApiCheckboxChange(row.id)}
+                    />
+                  </td>
+                  <td
+                    style={{
+                      borderBottom: "1px solid #e2e8f0",
+                      padding: "10px 8px",
+                    }}
+                  >
+                    {row.email}
+                  </td>
+                  <td
+                    style={{
+                      borderBottom: "1px solid #e2e8f0",
+                      padding: "10px 8px",
+                    }}
+                  >
+                    {row.password}
+                  </td>
+                  <td
+                    style={{
+                      borderBottom: "1px solid #e2e8f0",
+                      padding: "10px 8px",
+                    }}
+                  >
+                    {row.recoveryPhone}
+                  </td>
+                  <td
+                    style={{
+                      borderBottom: "1px solid #e2e8f0",
+                      padding: "10px 8px",
+                    }}
+                  >
+                    {row.recoveryEmail}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+      <Dialog
+        open={openDeleteDialog}
+        onClose={handleCloseDeleteDialog}
+        aria-labelledby="delete-confirmation-dialog-title"
+        aria-describedby="delete-confirmation-dialog-description"
+      >
+        <DialogTitle id="delete-confirmation-dialog-title">
+          Xác nhận xóa
+        </DialogTitle>
+        <DialogContent>
+          <DialogContentText id="delete-confirmation-dialog-description">
+            Bạn có chắc chắn muốn xóa {selectedRows.length} hàng đã chọn? Hành
+            động này không thể hoàn tác.
+          </DialogContentText>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={handleCloseDeleteDialog} color="primary">
+            Hủy
+          </Button>
+          <Button onClick={handleConfirmDelete} color="secondary" autoFocus>
+            Xóa
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Snackbar for notifications */}
+      <Snackbar
+        open={snackbar.open}
+        autoHideDuration={6000}
+        onClose={closeSnackbar}
+        anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
+      >
+        <Alert
+          onClose={closeSnackbar}
+          severity={snackbar.severity}
+          sx={{ width: "100%" }}
+        >
+          {snackbar.message}
+        </Alert>
+      </Snackbar>
+    </Dialog>
+  );
+}

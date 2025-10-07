@@ -421,5 +421,64 @@ namespace Ve.Controllers
                 return BadRequest("Server error: " + ex.Message);
             }
         }
+
+        [HttpPost("gmail")]
+        [RequirePermission(PermissionHelper.CommonPermissions.GmailAccountManage)]
+        public async Task<IActionResult> AddGmail(List<PlatformAccount> accounts)
+        {
+            try
+            {
+                accounts.ForEach(x =>
+                {
+                    x.Id = Guid.NewGuid();
+                    x.Type = AccountType.Gmail;
+                });
+                var result = await _repository.AddRangeAsync(accounts, true);
+                return Ok(accounts);
+            }
+            catch (Exception ex)
+            {
+                return BadRequest("Server error: " + ex.Message);
+            }
+        }
+
+        [HttpDelete("gmail")]
+        [RequirePermission(PermissionHelper.CommonPermissions.GmailAccountManage)]
+        public async Task<IActionResult> DeleteGmail(List<Guid> accountIds)
+        {
+            try
+            {
+                var accounts = await _repository.GetAllWithNoTrackingAsync<PlatformAccount>(x => accountIds.Contains(x.Id) && x.Type == AccountType.Gmail).ToListAsync();
+                var result = await _repository.DeleteRangeAsync(accounts, true);
+                return Ok(accountIds);
+            }
+            catch (Exception ex)
+            {
+                return BadRequest("Server error: " + ex.Message);
+            }
+        }
+
+        [HttpGet("gmail")]
+        [Authorize]
+        public async Task<IActionResult> GetGmailInfo(string? email)
+        {
+            try
+            {
+                if (string.IsNullOrEmpty(email))
+                {
+                    var result = await _repository.GetAllWithAsync<PlatformAccount>(x => x.Type == AccountType.Gmail);
+                    return Ok(result);
+                }
+                else
+                {
+                    var result = await _repository.GetAllWithAsync<PlatformAccount>(x => x.Type == AccountType.Gmail && x.Email.Contains(email));
+                    return Ok(result);
+                }
+            }
+            catch (Exception ex)
+            {
+                return BadRequest("Server error: " + ex.Message);
+            }
+        }
     }
 }

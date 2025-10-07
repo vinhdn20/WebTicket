@@ -14,26 +14,39 @@ namespace Repositories
         public static async Task InitializeAsync(WebTicketDbContext context)
         {
             await context.Database.MigrateAsync();
-            if (await context.Roles.AnyAsync())
-            {
-                return;
-            }
 
-            var adminRole = new Role
+            // Check if roles exist
+            var rolesExist = await context.Roles.AnyAsync();
+
+            Role adminRole;
+            Role staffRole;
+
+            if (!rolesExist)
+            {
+                // Create roles if they don't exist
+                adminRole = new Role
             {
                 Type = RoleType.Admin,
                 Description = RoleType.Admin.GetDescription()
             };
 
-            var staffRole = new Role
+                staffRole = new Role
+                {
+                    Type = RoleType.Staff,
+                    Description = RoleType.Staff.GetDescription()
+                };
+                context.Roles.AddRange(adminRole, staffRole);
+                await context.SaveChangesAsync(); // Save roles first to get their IDs
+            }
+            else
             {
-                Type = RoleType.Staff,
-                Description = RoleType.Staff.GetDescription()
-            };
-            context.Roles.AddRange(adminRole, staffRole);
-            await context.SaveChangesAsync(); // Save roles first to get their IDs
+                // Get existing roles
+                adminRole = await context.Roles.FirstAsync(r => r.Type == RoleType.Admin);
+                staffRole = await context.Roles.FirstAsync(r => r.Type == RoleType.Staff);
+            }
 
-            var permissions = new List<Permission>()
+            // Define all permissions that should exist
+            var permissionsToEnsure = new List<Permission>()
             {
                 // Manage permissions only
                 new Permission
@@ -77,14 +90,43 @@ namespace Repositories
                     Description = PermissionHelper.GetDisplayName(PermissionHelper.CommonPermissions.AgodaAccountManage),
                     Resource = Resources.AgodaAccount,
                     Action = Actions.Manage
+                },
+                new Permission
+                {
+                    Name = PermissionHelper.CommonPermissions.GmailAccountManage,
+                    Description = PermissionHelper.GetDisplayName(PermissionHelper.CommonPermissions.GmailAccountManage),
+                    Resource = Resources.GmailAccount,
+                    Action = Actions.Manage
                 }
             };
-            
-            context.Permissions.AddRange(permissions);
-            await context.SaveChangesAsync(); // Save permissions first to get their IDs
 
-            // Assign all permissions to Admin role
-            var rolePermissions = permissions.Select(permission =>
+            // Check which permissions are missing and add them
+            var existingPermissionNames = await context.Permissions
+                .Select(p => p.Name)
+                .ToListAsync();
+
+            var newPermissions = permissionsToEnsure
+                .Where(p => !existingPermissionNames.Contains(p.Name))
+                .ToList();
+
+            if (newPermissions.Any())
+            {
+                context.Permissions.AddRange(newPermissions);
+                await context.SaveChangesAsync(); // Save new permissions
+            }
+
+            // Get all permissions (existing + new)
+            var allPermissions = await context.Permissions.ToListAsync();
+
+            // Assign all permissions to Admin role (only if not already assigned)
+            var existingRolePermissions = await context.RolePermissions
+                .Where(rp => rp.RoleId == adminRole.Id)
+                .Select(rp => rp.PermissionId)
+                .ToListAsync();
+
+            var rolePermissions = allPermissions
+                .Where(p => !existingRolePermissions.Contains(p.Id))
+                .Select(permission =>
             {
                 var rolePermission = new RolePermission
                 {
@@ -98,21 +140,29 @@ namespace Repositories
                 return rolePermission;
             }).ToList();
 
-            context.RolePermissions.AddRange(rolePermissions);
+            if (rolePermissions.Any())
+            {
+                context.RolePermissions.AddRange(rolePermissions);
+            }
 
-            var adminUser = new Users
+            // Create admin user only if it doesn't exist
+            var adminUserExists = await context.Users.AnyAsync(u => u.Email == "admin@admin.com");
+            if (!adminUserExists)
+            {
+                var adminUser = new Users
             {
                 Email = "admin@admin.com",
                 Password = BCrypt.Net.BCrypt.HashPassword("1qaz2wsxE"),
                 RoleId = adminRole.Id,
                 IsActive = true,
                 CreatedById = adminRole.Id,
-                ModifiedById = adminRole.Id,
-                CreatedTime = DateTime.UtcNow,
-                ModifiedTime = DateTime.UtcNow
-            };
-            context.Users.AddRange(adminUser);
-            
+                    ModifiedById = adminRole.Id,
+                    CreatedTime = DateTime.UtcNow,
+                    ModifiedTime = DateTime.UtcNow
+                };
+                context.Users.AddRange(adminUser);
+            }
+
             await context.SaveChangesAsync();
         }
     }

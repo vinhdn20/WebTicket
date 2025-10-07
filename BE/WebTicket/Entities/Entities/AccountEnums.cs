@@ -20,6 +20,9 @@ namespace Entities
         Trip = 1,
 
         [Description("Agoda")]
-        Agoda = 2
+        Agoda = 2,
+
+        [Description("Gmail")]
+        Gmail = 3
     }
 }

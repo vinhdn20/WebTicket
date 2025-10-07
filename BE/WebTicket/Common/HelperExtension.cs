@@ -42,7 +42,8 @@ namespace Common
             { Resources.AG, "AG" },
             { Resources.MST, "Mã số thẻ" },
             { Resources.TripAccount, "Tài khoản Trip" },
-            { Resources.AgodaAccount, "Tài khoản Agoda" }
+            { Resources.AgodaAccount, "Tài khoản Agoda" },
+            { Resources.GmailAccount, "Gmail" }
         };
 
         // Display names cho actions
@@ -66,6 +67,7 @@ namespace Common
             { CreatePermissionName(Resources.MST, Actions.Manage), "Quản lý mã số thẻ" },
             { CreatePermissionName(Resources.TripAccount, Actions.Manage), "Quản lý tài khoản Trip" },
             { CreatePermissionName(Resources.AgodaAccount, Actions.Manage), "Quản lý tài khoản Agoda" },
+            { CreatePermissionName(Resources.GmailAccount, Actions.Manage), "Quản lý Gmail" },
         };
 
         // Lấy display name từ permission name
@@ -121,6 +123,9 @@ namespace Common
 
             // AgodaAccount permissions
             public const string AgodaAccountManage = Resources.AgodaAccount + "." + Actions.Manage;
+
+            // GmailAccount permissions
+            public const string GmailAccountManage = Resources.GmailAccount + "." + Actions.Manage;
 
         }
     }

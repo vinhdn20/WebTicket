@@ -36,6 +36,7 @@ namespace Entities
         public const string MST = "masothe";
         public const string TripAccount = "tripaccount";
         public const string AgodaAccount = "agodaaccount";
+        public const string GmailAccount = "gmailaccount";
     }
 
     public static class Actions

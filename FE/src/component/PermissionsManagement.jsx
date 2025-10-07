@@ -51,6 +51,14 @@ const PermissionsManagement = () => {
       "resourceDisplayName": "Tài khoản Trip",
     },
     {
+      "id": "gmailaccount-manage-id",
+      "name": "gmailaccount.manage",
+      "description": "Quản lý Gmail",
+      "resource": "gmailaccount",
+      "displayName": "Quản lý Gmail",
+      "resourceDisplayName": "Gmail",
+    },
+    {
       "id": "52e35eda-5b82-4271-8bb8-24141f05b8a5",
       "name": "users.manage",
       "description": "Quản lý người dùng",
