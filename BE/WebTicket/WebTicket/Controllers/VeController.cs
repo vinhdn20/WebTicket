@@ -13,6 +13,8 @@ using Services.Services.Interfaces;
 using WebTicket.Controllers;
 using WebTicket.Models;
 using WebTicket.Common;
+using ClosedXML.Excel;
+using System.ComponentModel.DataAnnotations;
 
 namespace Ve.Controllers
 {
@@ -474,6 +476,152 @@ namespace Ve.Controllers
                     var result = await _repository.GetAllWithAsync<PlatformAccount>(x => x.Type == AccountType.Gmail && x.Email.Contains(email));
                     return Ok(result);
                 }
+            }
+            catch (Exception ex)
+            {
+                return BadRequest("Server error: " + ex.Message);
+            }
+        }
+
+        [HttpGet("gmail/template")]
+        [Authorize]
+        public IActionResult DownloadGmailTemplate()
+        {
+            try
+            {
+                var templatePath = Path.Combine(Directory.GetCurrentDirectory(), "Templates", "Gmail-Template.xlsx");
+
+                if (!System.IO.File.Exists(templatePath))
+                {
+                    return NotFound("Template file not found.");
+                }
+
+                var fileBytes = System.IO.File.ReadAllBytes(templatePath);
+                return File(fileBytes, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", "Gmail-Template.xlsx");
+            }
+            catch (Exception ex)
+            {
+                return BadRequest("Server error: " + ex.Message);
+            }
+        }
+
+        [HttpPost("gmail/import")]
+        [RequirePermission(PermissionHelper.CommonPermissions.GmailAccountManage)]
+        public async Task<IActionResult> ImportGmail(IFormFile file)
+        {
+            try
+            {
+                if (file == null || file.Length == 0)
+                {
+                    return BadRequest("No file uploaded.");
+                }
+
+                var validAccounts = new List<PlatformAccount>();
+                var errorRows = new List<(int rowNumber, string email, string password, string recoveryPhone, string recoveryEmail, string error)>();
+
+                using (var stream = file.OpenReadStream())
+                using (var workbook = new XLWorkbook(stream))
+                {
+                    var worksheet = workbook.Worksheet(1);
+                    var rowCount = worksheet.LastRowUsed()?.RowNumber() ?? 1;
+
+                    for (int row = 2; row <= rowCount; row++) // Start from row 2 (skip header)
+                    {
+                        var email = worksheet.Cell(row, 2).GetString().Trim(); // Column B
+                        var password = worksheet.Cell(row, 3).GetString().Trim(); // Column C
+                        var recoveryPhone = worksheet.Cell(row, 10).GetString().Trim(); // Column J
+                        var recoveryEmail = worksheet.Cell(row, 11).GetString().Trim(); // Column K
+
+                        // Skip empty rows
+                        if (string.IsNullOrWhiteSpace(email) && string.IsNullOrWhiteSpace(password))
+                        {
+                            continue;
+                        }
+
+                        // Validate
+                        var errors = new List<string>();
+
+                        if (string.IsNullOrWhiteSpace(email))
+                        {
+                            errors.Add("Email is required");
+                        }
+                        else if (!new EmailAddressAttribute().IsValid(email))
+                        {
+                            errors.Add("Invalid email format");
+                        }
+
+                        if (string.IsNullOrWhiteSpace(password))
+                        {
+                            errors.Add("Password is required");
+                        }
+
+                        if (errors.Any())
+                        {
+                            errorRows.Add((row, email, password, recoveryPhone, recoveryEmail, string.Join(", ", errors)));
+                        }
+                        else
+                        {
+                            validAccounts.Add(new PlatformAccount
+                            {
+                                Email = email,
+                                Password = password,
+                                RecoveryPhone = recoveryPhone,
+                                RecoveryEmail = recoveryEmail,
+                                Type = AccountType.Gmail,
+                                Status = AccountStatus.Active
+                            });
+                        }
+                    }
+                }
+
+                // If there are errors, return error file
+                if (errorRows.Any())
+                {
+                    using (var errorWorkbook = new XLWorkbook())
+                    {
+                        var errorWorksheet = errorWorkbook.Worksheets.Add("Errors");
+
+                        // Header
+                        errorWorksheet.Cell(1, 1).Value = "Row Number";
+                        errorWorksheet.Cell(1, 2).Value = "Email";
+                        errorWorksheet.Cell(1, 3).Value = "Password";
+                        errorWorksheet.Cell(1, 10).Value = "Recovery Phone";
+                        errorWorksheet.Cell(1, 11).Value = "Recovery Email";
+                        errorWorksheet.Cell(1, 12).Value = "Error";
+
+                        // Error rows
+                        for (int i = 0; i < errorRows.Count; i++)
+                        {
+                            var errorRow = errorRows[i];
+                            errorWorksheet.Cell(i + 2, 1).Value = errorRow.rowNumber;
+                            errorWorksheet.Cell(i + 2, 2).Value = errorRow.email;
+                            errorWorksheet.Cell(i + 2, 3).Value = errorRow.password;
+                            errorWorksheet.Cell(i + 2, 10).Value = errorRow.recoveryPhone;
+                            errorWorksheet.Cell(i + 2, 11).Value = errorRow.recoveryEmail;
+                            errorWorksheet.Cell(i + 2, 12).Value = errorRow.error;
+                        }
+
+                        using (var errorStream = new MemoryStream())
+                        {
+                            errorWorkbook.SaveAs(errorStream);
+                            errorStream.Position = 0;
+
+                            return File(
+                                errorStream.ToArray(),
+                                "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                                "Gmail-Import-Errors.xlsx"
+                            );
+                        }
+                    }
+                }
+
+                // Return valid accounts
+                return Ok(new
+                {
+                    success = true,
+                    message = $"Successfully parsed {validAccounts.Count} accounts.",
+                    data = validAccounts
+                });
             }
             catch (Exception ex)
             {

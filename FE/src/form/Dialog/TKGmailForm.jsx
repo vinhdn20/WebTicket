@@ -370,6 +370,102 @@ export default function TKGmailForm({ open, onClose }) {
     setOpenDeleteDialog(false);
   }, [handleDeleteSelectedApiRows, handleDeleteSelectedRows, isApi]);
 
+  const handleDownloadTemplate = useCallback(async () => {
+    try {
+      const accessToken = getAccessToken();
+      const response = await fetch(`${API_URL}/Ve/gmail/template`, {
+        method: "GET",
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+        },
+      });
+
+      if (!response.ok) throw new Error("Failed to download template");
+
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "Gmail-Template.xlsx";
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+
+      openSnackbar("Đã tải template thành công!", "success");
+    } catch (error) {
+      console.error("Error downloading template", error);
+      openSnackbar("Có lỗi xảy ra khi tải template.", "error");
+    }
+  }, [API_URL, getAccessToken, openSnackbar]);
+
+  const handleImportExcel = useCallback(() => {
+    const input = document.createElement("input");
+    input.type = "file";
+    input.accept = ".xlsx,.xls";
+    input.onchange = async (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+
+      try {
+        const accessToken = getAccessToken();
+        const formData = new FormData();
+        formData.append("file", file);
+
+        const response = await fetch(`${API_URL}/Ve/gmail/import`, {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${accessToken}`,
+          },
+          body: formData,
+        });
+
+        // Check if response is JSON or file
+        const contentType = response.headers.get("content-type");
+
+        if (contentType && contentType.includes("application/json")) {
+          // Success response with data
+          const result = await response.json();
+
+          if (result.success && result.data) {
+            // Map imported data to formData
+            const importedAccounts = result.data.map((account, index) => ({
+              email: account.email || "",
+              password: account.password || "",
+              recoveryPhone: account.recoveryPhone || "",
+              recoveryEmail: account.recoveryEmail || "",
+              matrixValue: generateMatrixValues(1, 4, 11)[0],
+            }));
+
+            setFormData(importedAccounts);
+            openSnackbar(`Đã import ${result.data.length} tài khoản thành công!`, "success");
+          } else {
+            openSnackbar("Import thất bại!", "error");
+          }
+        } else if (contentType && contentType.includes("spreadsheet")) {
+          // Error file response
+          const blob = await response.blob();
+          const url = window.URL.createObjectURL(blob);
+          const a = document.createElement("a");
+          a.href = url;
+          a.download = "Gmail-Import-Errors.xlsx";
+          document.body.appendChild(a);
+          a.click();
+          window.URL.revokeObjectURL(url);
+          document.body.removeChild(a);
+
+          openSnackbar("Có lỗi trong file import! Đã tải file lỗi.", "warning");
+        } else {
+          openSnackbar("Import thất bại!", "error");
+        }
+      } catch (error) {
+        console.error("Error importing file", error);
+        openSnackbar("Có lỗi xảy ra khi import file.", "error");
+      }
+    };
+    input.click();
+  }, [API_URL, getAccessToken, openSnackbar]);
+
   return (
     <Dialog
       open={open}
@@ -416,8 +512,31 @@ export default function TKGmailForm({ open, onClose }) {
             display: "flex",
             justifyContent: "flex-end",
             alignItems: "center",
+            gap: "10px",
           }}
         >
+          <Button
+            color="inherit"
+            onClick={handleDownloadTemplate}
+            style={{
+              backgroundColor: "#2196f3",
+              color: "#fff",
+            }}
+          >
+            Tải Template
+          </Button>
+
+          <Button
+            color="inherit"
+            onClick={handleImportExcel}
+            style={{
+              backgroundColor: "#ff9800",
+              color: "#fff",
+            }}
+          >
+            Import Excel
+          </Button>
+
           <Button
             autoFocus
             color="inherit"
@@ -425,7 +544,6 @@ export default function TKGmailForm({ open, onClose }) {
             style={{
               backgroundColor: "#4caf50",
               color: "#fff",
-              marginRight: "30px",
             }}
           >
             Save
